@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Mac X — Super Mode logic prototype</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #66717e;
+      --line: #dfe4e8;
+      --accent: #4a5bd5;
+      --accent-soft: #eef0ff;
+      --ok: #267a53;
+      --warning: #a15c12;
+      --danger: #a43b45;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--bg); line-height: 1.45; }
+    main { width: min(1120px, calc(100% - 32px)); margin: 32px auto 64px; }
+    header { margin-bottom: 24px; }
+    .eyebrow { color: var(--accent); font-size: 12px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: 6px 0 8px; font-size: clamp(28px, 4vw, 42px); line-height: 1.08; letter-spacing: -.03em; }
+    h2 { margin: 0 0 14px; font-size: 19px; }
+    h3 { margin: 0 0 6px; font-size: 15px; }
+    p { margin: 0; }
+    .question { max-width: 850px; color: var(--muted); font-size: 16px; }
+    .throwaway { display: inline-block; margin-top: 14px; padding: 6px 9px; color: var(--danger); background: #fff0f1; border: 1px solid #f0c9cd; border-radius: 7px; font-size: 12px; font-weight: 700; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr); gap: 16px; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: 0 5px 18px rgba(25, 34, 50, .045); }
+    .state-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .mode { padding: 5px 10px; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-size: 13px; font-weight: 750; }
+    .state-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .field { min-height: 76px; padding: 12px; background: #fff; }
+    .label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 12px; }
+    .value { font-weight: 650; overflow-wrap: anywhere; }
+    .value.good { color: var(--ok); }
+    .value.warn { color: var(--warning); }
+    .value.danger { color: var(--danger); }
+    .change { margin-top: 14px; padding: 12px 14px; background: #f8f9fb; border-left: 3px solid var(--accent); border-radius: 4px 9px 9px 4px; }
+    .change strong { display: block; font-size: 13px; margin-bottom: 2px; }
+    .legend { margin-top: 14px; color: var(--muted); font-size: 12px; }
+    .command-map { display: grid; gap: 8px; }
+    .command-row { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 10px; padding: 9px 10px; background: #f8f9fb; border-radius: 8px; }
+    kbd { display: inline-flex; justify-content: center; width: fit-content; min-width: 28px; padding: 3px 7px; border: 1px solid #cfd5db; border-bottom-width: 2px; border-radius: 6px; background: white; font: 650 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    section { margin-top: 16px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { appearance: none; border: 1px solid #cfd5db; border-radius: 8px; padding: 9px 12px; color: var(--ink); background: #fff; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+    button:hover { border-color: var(--accent); color: var(--accent); }
+    button:focus-visible { outline: 3px solid rgba(74, 91, 213, .25); outline-offset: 2px; }
+    button.primary { border-color: var(--accent); color: #fff; background: var(--accent); }
+    button.soft { border-color: #cbd0f5; color: var(--accent); background: var(--accent-soft); }
+    button.danger { color: var(--danger); }
+    button:disabled { cursor: default; opacity: .42; }
+    .groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .group { padding: 14px; background: #f8f9fb; border-radius: 10px; }
+    .group .toolbar { gap: 6px; }
+    .group button { padding: 7px 9px; }
+    .policy { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+    select { padding: 8px 10px; border: 1px solid #cfd5db; border-radius: 8px; background: #fff; font: inherit; }
+    .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+    .tab[aria-selected="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+    .scenario { margin-top: 14px; padding: 16px; background: #f8f9fb; border-radius: 10px; }
+    .scenario-top { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
+    .scenario p { color: var(--muted); font-size: 14px; }
+    .steps { display: grid; gap: 8px; margin-top: 14px; }
+    .step { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; background: white; }
+    .step-index { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%; color: var(--muted); background: #edf0f2; font-size: 12px; font-weight: 750; }
+    .step.done .step-index { color: white; background: var(--ok); }
+    .step-copy { font-size: 13px; }
+    .step-copy span { display: block; color: var(--muted); font-size: 12px; }
+    .step button { min-width: 94px; padding: 7px 9px; }
+    .history { max-height: 230px; overflow: auto; margin: 0; padding: 0; list-style: none; }
+    .history li { display: grid; grid-template-columns: 68px 1fr; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+    .history li:first-child { border-top: 0; }
+    .history .from { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .empty { color: var(--muted); font-size: 13px; }
+    footer { margin-top: 18px; color: var(--muted); font-size: 12px; text-align: center; }
+
+    @media (max-width: 820px) {
+      .grid { grid-template-columns: 1fr; }
+      .groups { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      main { width: min(100% - 20px, 1120px); margin-top: 20px; }
+      .panel { padding: 15px; }
+      .state-fields { grid-template-columns: 1fr; }
+      .scenario-top, .policy { align-items: stretch; flex-direction: column; }
+      .step { grid-template-columns: 26px 1fr; }
+      .step button { grid-column: 2; justify-self: start; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">My Mac X · Sprint 0</div>
+      <h1>Super Mode state machine</h1>
+      <p class="question"><strong>Câu hỏi cần trả lời:</strong> prefix mode có còn dễ đoán và an toàn khi người dùng đi vào submenu, bấm phím sai, nhấn prefix lần nữa, hủy hoặc để timeout không — và phím nào phải được app giữ lại thay vì truyền tới ứng dụng đang dùng?</p>
+      <span class="throwaway">THROWAWAY PROTOTYPE — không ship file này</span>
+    </header>
+
+    <div class="grid">
+      <section class="panel" aria-labelledby="state-title">
+        <div class="state-header">
+          <h2 id="state-title">Trạng thái hiện tại</h2>
+          <span class="mode" id="mode-badge">Idle</span>
+        </div>
+        <div class="state-fields">
+          <div class="field"><span class="label">Super Mode</span><div class="value" id="enabled-value"></div></div>
+          <div class="field"><span class="label">Đường dẫn lệnh</span><div class="value" id="path-value"></div></div>
+          <div class="field"><span class="label">Phím vừa rồi có bị giữ lại?</span><div class="value" id="consume-value"></div></div>
+          <div class="field"><span class="label">Timeout session</span><div class="value" id="session-value"></div></div>
+          <div class="field"><span class="label">Kết quả gần nhất</span><div class="value" id="outcome-value"></div></div>
+          <div class="field"><span class="label">Nếu gặp phím sai</span><div class="value" id="policy-value"></div></div>
+          <div class="field"><span class="label">Các phím hợp lệ tiếp theo</span><div class="value" id="legal-value"></div></div>
+          <div class="field"><span class="label">Lần chuyển trạng thái</span><div class="value" id="transition-value"></div></div>
+        </div>
+        <div class="change" aria-live="polite">
+          <strong>Điều vừa xảy ra</strong>
+          <span id="change-value"></span>
+        </div>
+        <p class="legend">“Giữ lại” nghĩa là production event tap sẽ consume phím đó. Prototype này không capture bàn phím thật; mọi input đều từ nút bấm.</p>
+      </section>
+
+      <aside class="panel" aria-labelledby="map-title">
+        <h2 id="map-title">Cây lệnh đang thử</h2>
+        <div class="command-map">
+          <div class="command-row"><kbd>⌃Space</kbd><span>Vào Super Mode / quay về root</span></div>
+          <div class="command-row"><kbd>H</kbd><span>Snap nửa trái</span></div>
+          <div class="command-row"><kbd>L</kbd><span>Snap nửa phải</span></div>
+          <div class="command-row"><kbd>M</kbd><span>Mở submenu màn hình</span></div>
+          <div class="command-row"><kbd>G</kbd><span>Mở submenu layout</span></div>
+          <div class="command-row"><kbd>C</kbd><span>Mở Settings</span></div>
+          <div class="command-row"><kbd>M N</kbd><span>Chuyển sang màn hình kế</span></div>
+          <div class="command-row"><kbd>M P</kbd><span>Chuyển về màn hình trước</span></div>
+          <div class="command-row"><kbd>G 1/2/4</kbd><span>Full / halves / quarters</span></div>
+          <div class="command-row"><kbd>Esc</kbd><span>Hủy ở mọi cấp</span></div>
+        </div>
+      </aside>
+    </div>
+
+    <section class="panel" aria-labelledby="free-title">
+      <div class="state-header">
+        <div>
+          <h2 id="free-title">Thử tự do</h2>
+          <p class="question">Các nút luôn có sẵn để thử thứ tự bất kỳ, kể cả hành động không hợp lệ.</p>
+        </div>
+        <button type="button" class="soft" data-action="RESET">Reset demo</button>
+      </div>
+      <div class="groups">
+        <div class="group">
+          <h3>Điều khiển mode</h3>
+          <div class="toolbar">
+            <button type="button" class="primary" data-action="PRESS_PREFIX">⌃Space</button>
+            <button type="button" class="danger" data-action="CANCEL">Escape</button>
+            <button type="button" data-action="TIMEOUT">Giả lập timeout</button>
+          </div>
+        </div>
+        <div class="group">
+          <h3>Phím lệnh</h3>
+          <div class="toolbar">
+            <button type="button" data-key="h">H</button>
+            <button type="button" data-key="l">L</button>
+            <button type="button" data-key="m">M</button>
+            <button type="button" data-key="g">G</button>
+            <button type="button" data-key="c">C</button>
+            <button type="button" data-key="n">N</button>
+            <button type="button" data-key="p">P</button>
+            <button type="button" data-key="1">1</button>
+            <button type="button" data-key="2">2</button>
+            <button type="button" data-key="4">4</button>
+            <button type="button" class="danger" data-key="x">X (sai)</button>
+          </div>
+        </div>
+        <div class="group">
+          <h3>Runtime</h3>
+          <div class="toolbar">
+            <button type="button" data-action="ENABLE">Bật</button>
+            <button type="button" data-action="DISABLE">Tắt</button>
+            <button type="button" data-action="APP_DEACTIVATED">App đổi focus</button>
+          </div>
+        </div>
+      </div>
+      <div class="policy">
+        <div>
+          <h3>Policy đang cần quyết định</h3>
+          <p class="question">Khi đang armed mà nhận phím không có trong cây lệnh.</p>
+        </div>
+        <label>
+          <span class="label">Phím sai</span>
+          <select id="policy-select">
+            <option value="cancel">Hủy ngay (mặc định đề xuất)</option>
+            <option value="keepListening">Giữ mode và chờ tiếp</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="guided-title">
+      <h2 id="guided-title">Kịch bản hướng dẫn</h2>
+      <div class="tabs" id="scenario-tabs" role="tablist" aria-label="Các kịch bản"></div>
+      <div class="scenario" id="scenario-detail"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="history-title">
+      <h2 id="history-title">Nhật ký trong bộ nhớ</h2>
+      <ul class="history" id="history-list"></ul>
+    </section>
+
+    <footer>Không persistence · Không global hotkey · Không Accessibility · Một file tự chứa</footer>
+  </main>
+
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // PURE, PORTABLE LOGIC MODULE. No DOM, timers, or browser APIs in this block.
+    // ─────────────────────────────────────────────────────────────────────────
+    const SuperModeMachine = (() => {
+      const rootCommands = Object.freeze({
+        h: { kind: "execute", id: "window.snap.left", label: "Đã snap cửa sổ sang nửa trái" },
+        l: { kind: "execute", id: "window.snap.right", label: "Đã snap cửa sổ sang nửa phải" },
+        c: { kind: "execute", id: "settings.open", label: "Đã yêu cầu mở Settings" },
+        m: { kind: "submenu", id: "display", label: "Đang chọn màn hình" },
+        g: { kind: "submenu", id: "layout", label: "Đang chọn layout" },
+      });
+
+      const submenuCommands = Object.freeze({
+        display: Object.freeze({
+          n: { id: "display.next", label: "Đã yêu cầu chuyển sang màn hình kế" },
+          p: { id: "display.previous", label: "Đã yêu cầu chuyển về màn hình trước" },
+        }),
+        layout: Object.freeze({
+          "1": { id: "layout.full", label: "Đã chọn layout full work area" },
+          "2": { id: "layout.halves", label: "Đã chọn nhóm layout halves" },
+          "4": { id: "layout.quarters", label: "Đã chọn nhóm layout quarters" },
+        }),
+      });
+
+      function initialState(options = {}) {
+        return Object.freeze({
+          enabled: options.enabled ?? true,
+          mode: "idle",
+          path: Object.freeze([]),
+          invalidPolicy: options.invalidPolicy ?? "cancel",
+          session: 0,
+          consumeLastEvent: false,
+          lastInput: "Khởi tạo",
+          lastOutcome: Object.freeze({ kind: "none", label: "Chưa có action" }),
+          lastTransition: "∅ → Idle",
+          explanation: "Super Mode đang nghỉ; phím thường phải đi tới ứng dụng hiện tại.",
+        });
+      }
+
+      function patch(state, values) {
+        return Object.freeze({ ...state, ...values, path: Object.freeze(values.path ?? state.path) });
+      }
+
+      function modeName(state) {
+        if (state.mode === "idle") return "Idle";
+        if (state.mode === "armed") return "Armed · root";
+        return `Armed · ${state.path.join(" › ")}`;
+      }
+
+      function legalKeys(state) {
+        if (!state.enabled || state.mode === "idle") return ["⌃Space"];
+        if (state.mode === "armed") return Object.keys(rootCommands).map(key => key.toUpperCase()).concat(["Esc", "⌃Space"]);
+        return Object.keys(submenuCommands[state.path[0]] ?? {}).map(key => key.toUpperCase()).concat(["Esc", "⌃Space"]);
+      }
+
+      function toIdle(state, input, outcome, explanation, consume = true) {
+        return patch(state, {
+          mode: "idle",
+          path: [],
+          consumeLastEvent: consume,
+          lastInput: input,
+          lastOutcome: Object.freeze(outcome),
+          lastTransition: `${modeName(state)} → Idle`,
+          explanation,
+        });
+      }
+
+      function invalidKey(state, key) {
+        const input = `Phím sai ${key.toUpperCase()}`;
+        if (state.invalidPolicy === "keepListening") {
+          return patch(state, {
+            consumeLastEvent: true,
+            lastInput: input,
+            lastOutcome: Object.freeze({ kind: "invalid", label: "Phím không có trong nhánh này" }),
+            lastTransition: `${modeName(state)} → ${modeName(state)}`,
+            explanation: "Phím sai bị giữ lại; mode và timeout session hiện tại được giữ nguyên.",
+          });
+        }
+        return toIdle(
+          state,
+          input,
+          { kind: "invalid", label: "Đã hủy vì phím sai" },
+          "Phím sai bị giữ lại và Super Mode thoát ngay để tránh capture nhầm các phím tiếp theo."
+        );
+      }
+
+      function transition(state, action) {
+        if (action.type === "RESET") return initialState({ invalidPolicy: state.invalidPolicy });
+        if (action.type === "SET_INVALID_POLICY") {
+          return patch(state, {
+            invalidPolicy: action.policy,
+            consumeLastEvent: false,
+            lastInput: "Đổi policy",
+            lastTransition: `${modeName(state)} → ${modeName(state)}`,
+            explanation: action.policy === "cancel" ? "Phím sai giờ sẽ hủy mode ngay." : "Phím sai giờ sẽ bị bỏ qua và mode tiếp tục chờ.",
+          });
+        }
+        if (action.type === "DISABLE") {
+          return patch(state, {
+            enabled: false,
+            mode: "idle",
+            path: [],
+            consumeLastEvent: false,
+            lastInput: "Tắt Super Mode",
+            lastOutcome: Object.freeze({ kind: "cancelled", label: "Mode đã bị tắt" }),
+            lastTransition: `${modeName(state)} → Disabled / Idle`,
+            explanation: "Tắt tính năng luôn xóa session đang chờ; không giữ lại input.",
+          });
+        }
+        if (action.type === "ENABLE") {
+          return patch(state, {
+            enabled: true,
+            consumeLastEvent: false,
+            lastInput: "Bật Super Mode",
+            lastTransition: `${modeName(state)} → Idle`,
+            explanation: "Tính năng đã bật nhưng chỉ arm sau khi nhận prefix.",
+          });
+        }
+        if (!state.enabled) {
+          return patch(state, {
+            consumeLastEvent: false,
+            lastInput: action.type === "PRESS_PREFIX" ? "⌃Space khi disabled" : action.type,
+            lastTransition: "Disabled / Idle → Disabled / Idle",
+            explanation: "Tính năng đang tắt; event không được app giữ lại.",
+          });
+        }
+
+        if (action.type === "PRESS_PREFIX") {
+          return patch(state, {
+            mode: "armed",
+            path: [],
+            session: state.session + 1,
+            consumeLastEvent: true,
+            lastInput: "⌃Space",
+            lastOutcome: Object.freeze({ kind: "waiting", label: "Đang chờ lệnh root" }),
+            lastTransition: `${modeName(state)} → Armed · root`,
+            explanation: state.mode === "idle" ? "Prefix được giữ lại; bắt đầu một timeout session mới." : "Prefix lặp lại đưa cây lệnh về root và làm mới timeout.",
+          });
+        }
+
+        if (action.type === "CANCEL" || action.type === "APP_DEACTIVATED") {
+          if (state.mode === "idle") {
+            return patch(state, {
+              consumeLastEvent: false,
+              lastInput: action.type === "CANCEL" ? "Escape khi Idle" : "App đổi focus khi Idle",
+              lastTransition: "Idle → Idle",
+              explanation: "Không có session để hủy; event không bị giữ lại.",
+            });
+          }
+          const isEscape = action.type === "CANCEL";
+          return toIdle(
+            state,
+            isEscape ? "Escape" : "App đổi focus",
+            { kind: "cancelled", label: isEscape ? "Đã hủy bằng Escape" : "Đã hủy do focus thay đổi" },
+            isEscape ? "Escape bị giữ lại và thoát ở mọi cấp." : "Session bị xóa để HUD không theo nhầm cửa sổ; focus event không phải keyboard input.",
+            isEscape
+          );
+        }
+
+        if (action.type === "TIMEOUT") {
+          if (state.mode === "idle") {
+            return patch(state, {
+              consumeLastEvent: false,
+              lastInput: "Timeout khi Idle",
+              lastTransition: "Idle → Idle",
+              explanation: "Timeout cũ/stale không được làm gì khi session đã kết thúc.",
+            });
+          }
+          return toIdle(state, "Timeout", { kind: "timeout", label: "Đã hết thời gian chờ" }, "Timeout không tạo input; session và command path được xóa.", false);
+        }
+
+        if (action.type === "PRESS_KEY") {
+          const key = String(action.key).toLowerCase();
+          if (state.mode === "idle") {
+            return patch(state, {
+              consumeLastEvent: false,
+              lastInput: key.toUpperCase(),
+              lastTransition: "Idle → Idle",
+              explanation: "Chưa có prefix nên phím thường phải đi tới ứng dụng hiện tại.",
+            });
+          }
+          if (state.mode === "armed") {
+            const command = rootCommands[key];
+            if (!command) return invalidKey(state, key);
+            if (command.kind === "submenu") {
+              return patch(state, {
+                mode: "submenu",
+                path: [command.id],
+                consumeLastEvent: true,
+                lastInput: key.toUpperCase(),
+                lastOutcome: Object.freeze({ kind: "waiting", label: command.label }),
+                lastTransition: "Armed · root → Armed · submenu",
+                explanation: "Phím submenu bị giữ lại; timeout session hiện tại tiếp tục chạy.",
+              });
+            }
+            return toIdle(state, key.toUpperCase(), { kind: "executed", label: command.label, actionID: command.id }, "Lệnh hoàn tất một lần rồi Super Mode thoát ngay.");
+          }
+          const branch = submenuCommands[state.path[0]] ?? {};
+          const command = branch[key];
+          if (!command) return invalidKey(state, key);
+          return toIdle(state, key.toUpperCase(), { kind: "executed", label: command.label, actionID: command.id }, "Lệnh sâu hoàn tất rồi xóa toàn bộ command path.");
+        }
+
+        return patch(state, {
+          consumeLastEvent: false,
+          lastInput: action.type,
+          lastTransition: `${modeName(state)} → ${modeName(state)}`,
+          explanation: "Action không được state machine nhận biết và không thay đổi mode.",
+        });
+      }
+
+      return Object.freeze({ initialState, transition, legalKeys, modeName });
+    })();
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // THROWAWAY DEMO SHELL. DOM and guided-scenario wiring live only below here.
+    // ─────────────────────────────────────────────────────────────────────────
+    const scenarios = [
+      {
+        id: "happy",
+        name: "Lệnh nhanh",
+        description: "Happy path: một prefix và một lệnh trực tiếp. Theo dõi việc mode thoát ngay sau execute.",
+        steps: [
+          ["PRESS_PREFIX", null, "Nhấn prefix", "Mode chuyển từ Idle sang Armed"],
+          ["PRESS_KEY", "h", "Bấm H", "Snap trái được phát và mode trở lại Idle"],
+        ],
+      },
+      {
+        id: "deep",
+        name: "Lệnh sâu",
+        description: "Đi qua submenu để chuyển cửa sổ sang màn hình kế. Command path phải hiển thị rõ và được xóa sau cùng.",
+        steps: [
+          ["PRESS_PREFIX", null, "Nhấn prefix", "Bắt đầu session"],
+          ["PRESS_KEY", "m", "Bấm M", "Mở nhánh màn hình"],
+          ["PRESS_KEY", "n", "Bấm N", "Thực thi display.next và thoát"],
+        ],
+      },
+      {
+        id: "cancel",
+        name: "Hủy & timeout",
+        description: "Hai đường thoát phải dọn sạch state. Chạy Escape trước, rồi arm lần nữa và giả lập timeout.",
+        steps: [
+          ["PRESS_PREFIX", null, "Nhấn prefix", "Bắt đầu session"],
+          ["PRESS_KEY", "g", "Bấm G", "Mở nhánh layout"],
+          ["CANCEL", null, "Bấm Escape", "Thoát và consume Escape"],
+          ["PRESS_PREFIX", null, "Nhấn prefix lần nữa", "Tạo session mới"],
+          ["TIMEOUT", null, "Để timeout", "Thoát nhưng không consume input"],
+        ],
+      },
+      {
+        id: "invalid",
+        name: "Phím sai",
+        description: "Case cần quyết định: X không tồn tại ở root. Đổi policy phía trên rồi chạy lại để cảm nhận khác biệt.",
+        preservePolicy: true,
+        steps: [
+          ["PRESS_PREFIX", null, "Nhấn prefix", "Mode armed"],
+          ["PRESS_KEY", "x", "Bấm X", "Quan sát hủy ngay hoặc tiếp tục chờ"],
+        ],
+      },
+      {
+        id: "restart",
+        name: "Prefix lặp",
+        description: "Khi đang trong submenu, nhấn prefix lần nữa. Đề xuất hiện tại là quay về root và làm mới session.",
+        steps: [
+          ["PRESS_PREFIX", null, "Nhấn prefix", "Tạo session"],
+          ["PRESS_KEY", "m", "Bấm M", "Vào submenu màn hình"],
+          ["PRESS_PREFIX", null, "Nhấn prefix lại", "Quay về root, tăng session"],
+          ["PRESS_KEY", "l", "Bấm L", "Thực thi lệnh root bình thường"],
+        ],
+      },
+      {
+        id: "disabled",
+        name: "Đang tắt",
+        description: "Khi feature bị tắt, prefix và phím thường đều không được giữ lại. Bật lại không tự arm.",
+        steps: [
+          ["DISABLE", null, "Tắt Super Mode", "Xóa session và không consume"],
+          ["PRESS_PREFIX", null, "Thử prefix", "Vẫn Idle, không consume"],
+          ["ENABLE", null, "Bật lại", "Vẫn Idle"],
+          ["PRESS_PREFIX", null, "Nhấn prefix", "Bây giờ mới arm"],
+        ],
+      },
+    ];
+
+    let state = SuperModeMachine.initialState();
+    let history = [];
+    let activeScenario = { index: 0, step: 0 };
+
+    const $ = id => document.getElementById(id);
+    const actionLabel = action => action.type === "PRESS_KEY" ? `Key ${action.key.toUpperCase()}` : action.type;
+
+    function dispatch(action, source = "free") {
+      const before = SuperModeMachine.modeName(state);
+      state = SuperModeMachine.transition(state, action);
+      history.unshift({ before, action: actionLabel(action), after: SuperModeMachine.modeName(state), source });
+      if (history.length > 20) history.pop();
+      render();
+    }
+
+    function valueClass(kind) {
+      if (kind === "executed") return "good";
+      if (["invalid", "timeout", "cancelled"].includes(kind)) return "warn";
+      return "";
+    }
+
+    function renderState() {
+      $("mode-badge").textContent = SuperModeMachine.modeName(state);
+      $("enabled-value").textContent = state.enabled ? "Bật" : "Tắt";
+      $("enabled-value").className = `value ${state.enabled ? "good" : "danger"}`;
+      $("path-value").textContent = state.path.length ? `root › ${state.path.join(" › ")}` : (state.mode === "idle" ? "Không có" : "root");
+      $("consume-value").textContent = state.consumeLastEvent ? "Có — app giữ event" : "Không — cho event đi tiếp";
+      $("consume-value").className = `value ${state.consumeLastEvent ? "warn" : "good"}`;
+      $("session-value").textContent = state.session ? `#${state.session}` : "Chưa bắt đầu";
+      $("outcome-value").textContent = state.lastOutcome.actionID ? `${state.lastOutcome.label} · ${state.lastOutcome.actionID}` : state.lastOutcome.label;
+      $("outcome-value").className = `value ${valueClass(state.lastOutcome.kind)}`;
+      $("policy-value").textContent = state.invalidPolicy === "cancel" ? "Hủy ngay" : "Giữ mode và chờ";
+      $("legal-value").textContent = SuperModeMachine.legalKeys(state).join(" · ");
+      $("transition-value").textContent = state.lastTransition;
+      $("change-value").textContent = state.explanation;
+      $("policy-select").value = state.invalidPolicy;
+    }
+
+    function renderHistory() {
+      const list = $("history-list");
+      list.replaceChildren();
+      if (!history.length) {
+        const item = document.createElement("li");
+        item.className = "empty";
+        item.textContent = "Chưa có thao tác. Chọn một nút ở phần Thử tự do hoặc chạy walkthrough.";
+        list.append(item);
+        return;
+      }
+      history.forEach(entry => {
+        const item = document.createElement("li");
+        const source = document.createElement("span");
+        source.className = "from";
+        source.textContent = entry.source;
+        const copy = document.createElement("span");
+        copy.textContent = `${entry.action}: ${entry.before} → ${entry.after}`;
+        item.append(source, copy);
+        list.append(item);
+      });
+    }
+
+    function selectScenario(index) {
+      activeScenario.index = index;
+      activeScenario.step = 0;
+      const policy = state.invalidPolicy;
+      state = SuperModeMachine.initialState({ invalidPolicy: policy });
+      history.unshift({ before: "—", action: "Start scenario", after: "Idle", source: scenarios[index].id });
+      render();
+    }
+
+    function runScenarioStep(stepIndex) {
+      if (stepIndex !== activeScenario.step) return;
+      const scenario = scenarios[activeScenario.index];
+      const [type, key] = scenario.steps[stepIndex];
+      dispatch(key ? { type, key } : { type }, scenario.id);
+      activeScenario.step += 1;
+      renderScenarios();
+    }
+
+    function renderScenarios() {
+      const tabs = $("scenario-tabs");
+      tabs.replaceChildren();
+      scenarios.forEach((scenario, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tab";
+        button.role = "tab";
+        button.setAttribute("aria-selected", String(index === activeScenario.index));
+        button.textContent = scenario.name;
+        button.addEventListener("click", () => selectScenario(index));
+        tabs.append(button);
+      });
+
+      const scenario = scenarios[activeScenario.index];
+      const detail = $("scenario-detail");
+      detail.replaceChildren();
+      const top = document.createElement("div");
+      top.className = "scenario-top";
+      const copy = document.createElement("div");
+      const title = document.createElement("h3");
+      title.textContent = scenario.name;
+      const description = document.createElement("p");
+      description.textContent = scenario.description;
+      copy.append(title, description);
+      const restart = document.createElement("button");
+      restart.type = "button";
+      restart.className = "soft";
+      restart.textContent = "Chạy lại từ đầu";
+      restart.addEventListener("click", () => selectScenario(activeScenario.index));
+      top.append(copy, restart);
+
+      const steps = document.createElement("div");
+      steps.className = "steps";
+      scenario.steps.forEach((step, index) => {
+        const row = document.createElement("div");
+        row.className = `step ${index < activeScenario.step ? "done" : ""}`;
+        const number = document.createElement("span");
+        number.className = "step-index";
+        number.textContent = index < activeScenario.step ? "✓" : String(index + 1);
+        const stepCopy = document.createElement("div");
+        stepCopy.className = "step-copy";
+        stepCopy.textContent = step[2];
+        const note = document.createElement("span");
+        note.textContent = step[3];
+        stepCopy.append(note);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = index < activeScenario.step ? "Đã chạy" : (index === activeScenario.step ? "Thực hiện" : "Chờ bước trước");
+        button.disabled = index !== activeScenario.step;
+        if (index === activeScenario.step) button.className = "primary";
+        button.addEventListener("click", () => runScenarioStep(index));
+        row.append(number, stepCopy, button);
+        steps.append(row);
+      });
+      detail.append(top, steps);
+    }
+
+    function render() {
+      renderState();
+      renderHistory();
+      renderScenarios();
+    }
+
+    document.querySelectorAll("[data-action]").forEach(button => {
+      button.addEventListener("click", () => dispatch({ type: button.dataset.action }));
+    });
+    document.querySelectorAll("[data-key]").forEach(button => {
+      button.addEventListener("click", () => dispatch({ type: "PRESS_KEY", key: button.dataset.key }));
+    });
+    $("policy-select").addEventListener("change", event => {
+      dispatch({ type: "SET_INVALID_POLICY", policy: event.target.value });
+    });
+
+    render();
+  </script>
+</body>
+</html>
