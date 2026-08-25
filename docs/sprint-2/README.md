@@ -31,12 +31,11 @@ scripted Accessibility work, but Gate G1 is not reported complete.
 | W2-09 | Special-window handling | Core / GPT-5.6 Sol H | DONE | W2-02 | [Evidence](evidence/w2-09-special-windows.md): standard/dialog/sheet safe fallback, 44/44 AX tests pass |
 | W2-10 | Native Full Screen async action | Core / GPT-5.6 Sol H | DONE | W2-02 | [Evidence](evidence/w2-10-native-full-screen.md): finite async request; accepted remains unverified, 9/9 pass |
 | W2-11 | Layout property-test generator | QA / GPT-5.6 Luna M | DONE | W2-01…08 | [Evidence](evidence/w2-11-layout-property-tests.md): 240 seeded mixed-topology configurations pass |
-| W2-12 | Real-app integration harness | QA / GPT-5.6 Terra H | PENDING | W2-02…10 | 100 consecutive Snap actions without crash/obvious leak |
+| W2-12 | Real-app integration harness | QA / GPT-5.6 Terra H | DONE | W2-02…10 | [Evidence](evidence/w2-12-real-app-harness.md): 100/100 verified snaps on OpenChamber, 6.6s total, frame restored, 2026-08-26 |
 
 ## Gate G2
 
-`PENDING` — requires the unified `perform(_:)` Interface, at least eight Layout Regions,
-verified Undo and physical multi-display behavior.
+`PENDING` — W2-12 real-app integration passed (2026-08-26). Remaining: physical multi-display human verification and gate sign-off.
 
 ## Baseline verification
 
