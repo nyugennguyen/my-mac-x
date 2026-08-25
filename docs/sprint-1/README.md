@@ -19,11 +19,11 @@ Sprint 1 bắt đầu ngày 2026-08-24 theo phê duyệt của user. Sprint đư
 | F1-05 | `ScreenGeometryService` | ScreenKit / GPT-5.6 Sol H | `f1_05_screenkit` + `f1_05_core_review` | DONE | P0-05 | [Evidence](evidence/f1-05-screen-geometry.md): 12/12 + live HKC/non-Notch + built-in Notch/mixed-scale pass; independent re-review không còn P0/P1/P2 |
 | F1-06 | Privacy-safe logging và error taxonomy | DiagnosticsKit / GPT-5.6 Terra M | `f1_06_diagnostics` + `f1_06_hardening` | DONE | F1-01 | [Evidence](evidence/f1-06-diagnostics.md): exhaustive typed mappings, privacy allowlist và concurrent writer test pass |
 | F1-07 | AX/screen fakes và geometry fixtures | Test Support / GPT-5.6 Luna M | `f1_07_test_support` | DONE | F1-04…F1-05 | [Evidence](evidence/f1-07-test-support.md): AX/screen Adapters và geometry fixtures không phụ thuộc app/Display thật |
-| F1-08 | CI skeleton | Foundation / GPT-5.6 Terra M | `f1_08_ci` | REVIEW | F1-01 | [Evidence](evidence/f1-08-ci.md): workflow validated locally; chờ hosted PR run đầu tiên |
+| F1-08 | CI skeleton | Foundation / GPT-5.6 Terra M | `f1_08_ci` | DONE | F1-01 | [Evidence](evidence/f1-08-ci.md): workflow validated locally; hosted PR #1 passed 2026-08-25 on macos-15, 1m41s, 161/161 tests |
 
 ## Gate G1
 
-`PENDING` — AppShell, PermissionKit, AXWindowKit, ScreenKit, test support và DiagnosticsKit đã tích hợp; còn clean-profile human TCC sign-off cho F1-03 và hosted F1-08 run.
+`PENDING` — F1-08 hosted CI run passed (2026-08-25). Remaining: clean-profile human TCC sign-off for F1-03.
 
 ## Current integrated verification
 
