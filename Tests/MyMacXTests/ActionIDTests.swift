@@ -12,4 +12,3 @@ final class ActionIDTests: XCTestCase {
         XCTAssertEqual(decoded, original)
     }
 }
-

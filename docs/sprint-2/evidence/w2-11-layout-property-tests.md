@@ -33,4 +33,3 @@ On 2026-08-24, the integrated Xcode test passed on the current Apple Silicon Mac
 - generated configurations: 240/240;
 - invariant failures: 0;
 - project plist lint: pass.
-
