@@ -13,8 +13,8 @@ Matrix này cụ thể hóa các feature ưu tiên P0 trong [Project Plan — Fe
 
 | Feature | Release | Acceptance criteria đo được | Verify | Evidence / owner | Status |
 |---|---|---|---|---|---|
-| SYS-01 Permission | MVP | Trạng thái not-requested/denied/granted/revoked cập nhật runtime; deep-link đúng pane; action bị chặn an toàn khi thiếu quyền | Unit state + Manual máy sạch | `[TBD]` / Core | TODO |
-| SYS-02 Window Core | MVP | Lấy đúng focused standard window; phân biệt movable/resizable/minimized/full-screen; 6 app P0-03 pass hoặc có unsupported reason xác định | Adapter test + Manual matrix | `evidence/p0-03-ax-spike.md` / Core | TODO |
+| SYS-01 Permission | MVP | Trạng thái not-requested/denied/granted/revoked cập nhật runtime; mở System Settings bằng public API kèm hướng dẫn điều hướng; action bị chặn an toàn khi thiếu quyền | Unit state + Manual máy sạch | [F1-03 evidence](../sprint-1/evidence/f1-03-accessibility-permission.md) / Core | REVIEW |
+| SYS-02 Window Core | MVP | Lấy đúng focused standard window; phân biệt movable/resizable/minimized và Full Screen knowledge (`unavailable` khi public signal không tồn tại); 6 app P0-03 pass hoặc có unsupported reason xác định | Adapter test + Manual matrix | [P0-03](evidence/p0-03-ax-spike.md), [F1-04](../sprint-1/evidence/f1-04-focused-window.md) / Core | PASS |
 | SYS-03 Layout cơ bản | MVP | Maximize/halves/quarters/top-bottom nằm trong `visibleFrame`; target math ≤1 logical point trên fixtures origin âm/scaling | Unit/property + Manual read-back | `[TBD]` / Geometry | TODO |
 | SYS-05 History | MVP | Hai cửa sổ cùng process không dùng nhầm history; Undo/Restore trả frame hợp lệ; closed window fail an toàn | Unit + Integration | `[TBD]` / Core | TODO |
 | SYS-06 Physical display | MVP | Next/previous display deterministic; cửa sổ còn nhìn thấy; single-display là no-op có feedback; reconnect không crash | Property + Manual multi-display | `[TBD]` / Geometry | TODO |
@@ -58,4 +58,3 @@ Một feature chỉ chuyển `DONE` khi:
 - `[PoC: P0-04]` Permission behavior của Event Tap/Input Monitoring chưa được chốt.
 - `[PoC: P0-05]` Ngưỡng ≤1 point và focus safety cần kiểm tra trên hardware có Notch/mixed scaling.
 - `[Research]` VoiceOver behavior của non-activating overlay cần prototype; nếu không thể vừa không focus vừa truy cập keyboard/VoiceOver, UX phải tách interaction mode và ghi ADR.
-

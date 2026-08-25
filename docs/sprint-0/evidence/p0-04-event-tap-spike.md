@@ -1,19 +1,28 @@
 # P0-04 — Event Tap and Super Mode evidence
 
-Status: `NOT RUN`
+Status: `PARTIAL PASS — LISTEN-ONLY DELIVERY AND STATE MACHINE VERIFIED`
 
 ## Environment
 
-- Tester/date:
-- macOS build:
-- Hardware/keyboard/input source:
-- Prototype revision/checksum:
+- Tester/date: Codex automated run with user authorization — 2026-08-24
+- macOS build: macOS 26.5.2 (25F84)
+- Hardware/keyboard/input source: Apple Silicon arm64; active input source not captured
+- Prototype revision/checksum: workspace listen-only prototype, type-check passed
+
+## Automated run result
+
+- The listen-only session Event Tap was created outside the sandbox.
+- The run loop stayed active for 15 seconds and stopped cleanly with `Control+C`.
+- No user key event was observed during that manual window.
+- The prototype did not suppress, rewrite or persist input.
+- A second self-test posted one synthetic `Escape` down/up pair. The listen-only tap observed both events (`keyCode 53`) and exited successfully.
+- Eight pure Super Mode cases passed: quick action, deep command, cancel, timeout, invalid-cancel, repeated prefix, disabled mode and invalid-keep-listening.
 
 ## Permission matrix
 
 | Accessibility | Input Monitoring | Tap created | Key down/up observed | Permission UI observed | Result |
 |---|---|---|---|---|---|
-| Off | Off | | | | |
+| On after user grant | Unknown | Yes | Synthetic key-down/up observed | No Input Monitoring prompt observed | Partial pass |
 | On | Off | | | | |
 | Off | On | | | | |
 | On | On | | | | |
@@ -39,7 +48,6 @@ Status: `NOT RUN`
 
 ## Verdict
 
-- P0-04: `☐ PASS ☐ CONDITIONAL ☐ FAIL`
-- Unknowns/conditions:
+- P0-04: `☐ PASS ☒ CONDITIONAL ☐ FAIL`
+- Unknowns/conditions: Input Monitoring matrix and active-filter suppression/pass-through remain untested; listen-only delivery and state logic are proven on this machine.
 - Reviewer/date:
-

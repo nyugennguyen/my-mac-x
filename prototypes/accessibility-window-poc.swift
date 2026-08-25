@@ -97,10 +97,29 @@ func setSize(_ size: CGSize, on element: AXUIElement, attribute: String) throws 
     guard error == .success else { throw PrototypeError.ax("Set \(attribute)", error) }
 }
 
-func focusedWindow() throws -> AXUIElement {
+func focusedWindowViaSystemWideElement() throws -> AXUIElement {
     let system = AXUIElementCreateSystemWide()
     let application = try copyElement(system, kAXFocusedApplicationAttribute)
     return try copyElement(application, kAXFocusedWindowAttribute)
+}
+
+func focusedWindowViaFrontmostProcess() throws -> AXUIElement {
+    guard let frontmost = NSWorkspace.shared.frontmostApplication else {
+        throw PrototypeError.missingAttribute("NSWorkspace.frontmostApplication")
+    }
+    let application = AXUIElementCreateApplication(frontmost.processIdentifier)
+    return try copyElement(application, kAXFocusedWindowAttribute)
+}
+
+func focusedWindow() throws -> AXUIElement {
+    do {
+        return try focusedWindowViaSystemWideElement()
+    } catch {
+        // Public fallback recommended by the Sprint 0 research. Do not enumerate
+        // arbitrary windows or guess the first one when the focused window is absent.
+        print("System-wide focus lookup unavailable; trying the frontmost-process fallback.")
+        return try focusedWindowViaFrontmostProcess()
+    }
 }
 
 func printInspection(window: AXUIElement) throws {
@@ -116,7 +135,7 @@ func printInspection(window: AXUIElement) throws {
     print("  AXSize settable: \(canResize)")
 }
 
-func applyClearlyGuardedTestMutation(window: AXUIElement) throws {
+func applyClearlyGuardedTestMutation(window: AXUIElement, restoreAfterReadBack: Bool) throws {
     let originalPosition = try copyPoint(window, kAXPositionAttribute)
     let originalSize = try copySize(window, kAXSizeAttribute)
     guard try isSettable(window, kAXPositionAttribute), try isSettable(window, kAXSizeAttribute) else {
@@ -133,20 +152,46 @@ func applyClearlyGuardedTestMutation(window: AXUIElement) throws {
 
     let actualPosition = try copyPoint(window, kAXPositionAttribute)
     let actualSize = try copySize(window, kAXSizeAttribute)
-    print("Mutation completed; restore the disposable test window manually.")
+    print(restoreAfterReadBack
+        ? "Mutation completed; automatic restore will run after read-back."
+        : "Mutation completed; restore the disposable test window manually.")
     print("  original: \(originalPosition), \(originalSize)")
     print("  requested: \(targetPosition), \(targetSize)")
     print("  read-back: \(actualPosition), \(actualSize)")
+
+    if restoreAfterReadBack {
+        // Restore position first so macOS does not clamp the original size against
+        // the temporary offset from the top/left screen edges.
+        try setPoint(originalPosition, on: window, attribute: kAXPositionAttribute)
+        try setSize(originalSize, on: window, attribute: kAXSizeAttribute)
+        let restoredPosition = try copyPoint(window, kAXPositionAttribute)
+        let restoredSize = try copySize(window, kAXSizeAttribute)
+        print("  restored: \(restoredPosition), \(restoredSize)")
+    }
 }
 
-let arguments = Set(CommandLine.arguments.dropFirst())
+let argumentList = Array(CommandLine.arguments.dropFirst())
+let arguments = Set(argumentList)
 let wantsInspect = arguments.contains("--inspect")
 let wantsApply = arguments.contains("--apply")
 let confirmed = arguments.contains("--confirm-I-understand")
+let restoreAfterReadBack = arguments.contains("--restore-after-readback")
 
-guard wantsInspect || wantsApply else {
+func explicitRecoveryFrame(from arguments: [String]) -> CGRect? {
+    guard let flagIndex = arguments.firstIndex(of: "--restore-explicit") else { return nil }
+    let valueStart = arguments.index(after: flagIndex)
+    guard arguments.distance(from: valueStart, to: arguments.endIndex) >= 4 else { return nil }
+    let values = arguments[valueStart..<arguments.index(valueStart, offsetBy: 4)].compactMap(Double.init)
+    guard values.count == 4 else { return nil }
+    return CGRect(x: values[0], y: values[1], width: values[2], height: values[3])
+}
+
+let explicitRecovery = explicitRecoveryFrame(from: argumentList)
+
+guard wantsInspect || wantsApply || explicitRecovery != nil else {
     print("Usage: accessibility-window-poc.swift --inspect")
-    print("Mutation (manual test only): --apply --confirm-I-understand")
+    print("Mutation (manual test only): --apply --confirm-I-understand [--restore-after-readback]")
+    print("Recovery: --restore-explicit x y width height --confirm-I-understand")
     exit(EXIT_SUCCESS)
 }
 
@@ -159,15 +204,26 @@ guard AXIsProcessTrusted() else {
 do {
     let window = try focusedWindow()
     try printInspection(window: window)
+    if let explicitRecovery {
+        guard confirmed else {
+            print("Refusing explicit recovery: add --confirm-I-understand.")
+            exit(EXIT_FAILURE)
+        }
+        try setPoint(explicitRecovery.origin, on: window, attribute: kAXPositionAttribute)
+        try setSize(explicitRecovery.size, on: window, attribute: kAXSizeAttribute)
+        let restoredPosition = try copyPoint(window, kAXPositionAttribute)
+        let restoredSize = try copySize(window, kAXSizeAttribute)
+        print("Explicit recovery read-back: \(restoredPosition), \(restoredSize)")
+        exit(EXIT_SUCCESS)
+    }
     if wantsApply {
         guard confirmed else {
             print("Refusing mutation: add --confirm-I-understand after reading the safety notes.")
             exit(EXIT_FAILURE)
         }
-        try applyClearlyGuardedTestMutation(window: window)
+        try applyClearlyGuardedTestMutation(window: window, restoreAfterReadBack: restoreAfterReadBack)
     }
 } catch {
     print("Prototype failed: \(error)")
     exit(EXIT_FAILURE)
 }
-

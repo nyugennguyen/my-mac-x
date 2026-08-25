@@ -18,9 +18,9 @@ Không chuyển task sang `DONE` chỉ dựa trên mô tả hoặc mock. Spike p
 |---|---|---|---|---|---|---|
 | P0-01 | Chốt persona, thuật ngữ và MVP | Product / TERRA-M | DONE | — | [Product brief](product-brief.md), user approved Project Plan 2026-08-23 | Product scope và canonical terms đã được ghi vào `CONTEXT.md` |
 | P0-02 | Feature matrix và acceptance criteria | Product + QA / TERRA-M | DONE | P0-01 | [Feature acceptance matrix](feature-acceptance-matrix.md), user approved Project Plan 2026-08-23 | Mọi `SYS-*` P0 có AC đo được, phương pháp verify và owner |
-| P0-03 | AX focused-window + resize spike trên 6 app | Core / SOL-H | IN PROGRESS | P0-01 | [AX PoC](../../prototypes/accessibility-window-poc.swift), [research](../research/macos-window-management-feasibility.md), [manual evidence template](evidence/p0-03-ax-spike.md) | PoC type-check pass; còn manual 6-app matrix và read-back trên máy thật |
-| P0-04 | Global hotkey/Event Tap spike | Input / SOL-H | IN PROGRESS | P0-01 | [Event Tap PoC](../../prototypes/event-tap-poc.swift), [Super Mode prototype](../../prototypes/super-mode-logic-prototype.html), [manual evidence template](evidence/p0-04-event-tap-spike.md) | Listen-only PoC type-check pass; còn permission matrix, active suppression và hardware test |
-| P0-05 | Notch/safe-area/multi-display coordinates spike | Geometry / SOL-XH | IN PROGRESS | P0-03 | [Geometry PoC](../../prototypes/notch-geometry-poc.swift), [manual evidence template](evidence/p0-05-screen-geometry-spike.md) | Read-only PoC type-check pass; còn overlay/focus, origin âm, mixed scaling và Notch hardware evidence |
+| P0-03 | AX focused-window + resize spike trên 6 app | Core / SOL-H | DONE | P0-01 | [AX PoC](../../prototypes/accessibility-window-poc.swift), [research](../research/macos-window-management-feasibility.md), [current evidence](evidence/p0-03-ax-spike.md) | 6/6 app pass mutation/read-back/restore trên máy thật; user sign-off 2026-08-24 |
+| P0-04 | Global hotkey/Event Tap spike | Input / SOL-H | IN PROGRESS | P0-01 | [Event Tap PoC](../../prototypes/event-tap-poc.swift), [Super Mode prototype](../../prototypes/super-mode-logic-prototype.html), [current evidence](evidence/p0-04-event-tap-spike.md) | Listen-only synthetic delivery + 8 state cases pass; Input Monitoring matrix and active suppression pending |
+| P0-05 | Notch/safe-area/multi-display coordinates spike | Geometry / SOL-XH | IN PROGRESS | P0-03 | [Geometry PoC](../../prototypes/notch-geometry-poc.swift), [current evidence](evidence/p0-05-screen-geometry-spike.md) | Built-in Notch + HKC non-Notch + live 1×/2× geometry passed; physical negative-origin, Dock/attach-detach và overlay/focus tests pending |
 | P0-06 | Module/protocol/ADR | Architecture / SOL-XH | REVIEW | P0-03…P0-05 | [Window Action Interface](../design/window-action-interface.md), [ADR-0003](../adr/0003-intent-driven-window-action-module.md) | Deep Interface đã thiết kế; final sign-off chờ kết luận ba spike |
 | P0-07 | Threat model, data inventory, distribution | Security / SOL-H | REVIEW | P0-03…P0-04 để kết luận | [Threat model](threat-model.md), evidence từ P0-03/04, sign-off security | Security gates TM-G01…TM-G10 có kết quả; residual risks có owner; distribution/entitlement được chốt |
 | P0-08 | UX flows, tokens và mockup review | Product Design / SOL-M | DONE | P0-01…P0-02 | [UX sign-off checklist](ux-signoff-checklist.md), mockup trong [Project Plan](../../my-mac-x_projectplan.md#5-project-design-mockup), user approved Project Plan 2026-08-23 | 20 surfaces và primary flows đã được approve; usability tokens vẫn cần P0-05 evidence |
@@ -31,10 +31,10 @@ Không chuyển task sang `DONE` chỉ dựa trên mô tả hoặc mock. Spike p
 
 | Gate | Tiêu chí checkable | Evidence | Kết quả |
 |---|---|---|---|
-| G0-01 | Resize được cửa sổ của app khác trên máy thật bằng public Accessibility API | P0-03 report + build/commit | ☐ Pass ☐ Fail |
+| G0-01 | Resize được cửa sổ của app khác trên máy thật bằng public Accessibility API | P0-03 report + build/commit | Pass: 6/6 required apps, read-back và restore exact |
 | G0-02 | Overlay top-center/Notch PoC hiển thị mà không thành key/main window và không lấy focus app đích | P0-05 report + screen recording | ☐ Pass ☐ Fail |
-| G0-03 | Event Tap/prefix PoC không làm mất phím hoặc modifier khi success, Esc, timeout và tap bị disable | P0-04 report | ☐ Pass ☐ Fail |
-| G0-04 | Spaces/Desktop N được xác nhận ngoài v1; production không dùng SkyLight/private API | Product sign-off + architecture decision | ☐ Pass ☐ Fail |
+| G0-03 | Event Tap/prefix PoC không làm mất phím hoặc modifier khi success, Esc, timeout và tap bị disable | P0-04 report | Conditional: listen-only + state logic pass; suppression pending |
+| G0-04 | Spaces/Desktop N được xác nhận ngoài v1; production không dùng SkyLight/private API | Product sign-off + architecture decision | Pass via ADR-0002 |
 | G0-05 | P0 feature AC, threat model và 20-surface UX checklist được duyệt | Ba artifact trong thư mục này | ☐ Pass ☐ Fail |
 | G0-06 | Không còn unknown mức `Blocker` chưa có owner/ngày xử lý | Decision/unknown logs | ☐ Pass ☐ Fail |
 
@@ -44,6 +44,8 @@ Không chuyển task sang `DONE` chỉ dựa trên mô tả hoặc mock. Spike p
 - Ngày review: `[TBD]`
 - Kết quả: `☐ GO  ☐ CONDITIONAL GO  ☐ NO-GO`
 - Điều kiện nếu Conditional Go: `[TBD]`
+
+Ngày 2026-08-24, user phê duyệt P0-03 và cho phép bắt đầu Sprint 1. Việc chuyển tiếp chỉ mở các task nền tảng không phụ thuộc gate còn thiếu; P0-04, P0-05 và G0-02/G0-03 vẫn phải được đóng trước khi implementation phụ thuộc vào overlay hoặc active input suppression.
 
 ## Trình tự thực hiện và song song hóa
 
@@ -56,10 +58,10 @@ Không chuyển task sang `DONE` chỉ dựa trên mô tả hoặc mock. Spike p
 ## Trạng thái môi trường hiện tại
 
 - Swift CLI: Apple Swift 6.3.3; ba Swift PoC đã type-check thành công.
-- `xcodebuild`: chưa khả dụng vì active developer directory hiện là Command Line Tools, không phải full Xcode.
-- Git: workspace chưa được khởi tạo repository.
+- Xcode: 26.6 (17F113); active developer directory là `/Applications/Xcode.app/Contents/Developer`.
+- Git: repository đã được khởi tạo; các artifact Sprint 0 hiện còn là thay đổi chưa commit.
 
-Full Xcode selection/installation và repository bootstrap là prerequisite trước Sprint 1; chúng không ngăn Sprint 0 research, interface design hoặc CLI type-check.
+Hai prerequisite môi trường cho Sprint 1 — full Xcode và repository bootstrap — hiện đã sẵn sàng. Signing/team configuration vẫn được kiểm tra khi tạo Xcode project ở F1-01.
 
 ## Quy tắc evidence
 
