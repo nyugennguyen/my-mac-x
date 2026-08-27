@@ -24,4 +24,6 @@ public extension ActionID {
     static let moveDisplayNext = Self(rawValue: "window.move-display-next")
     static let moveDisplayPrevious = Self(rawValue: "window.move-display-previous")
     static let cycleLeftEdge = Self(rawValue: "window.cycle-left-edge")
+    static let leftThird = Self(rawValue: "window.left-third")
+    static let leftTwoThirds = Self(rawValue: "window.left-two-thirds")
 }

@@ -14,11 +14,14 @@ import MyMacX
 /// They never inspect a title, document name, screenshot, or application content.
 public struct OpenChamberWindowActionHarness {
     static let requiredConfirmation = "RUN_OPENCHAMBER_W2_12"
+    static let requiredG2Confirmation = "RUN_OPENCHAMBER_G2_MULTI_DISPLAY"
 
     private static let confirmationEnvironmentKey =
         "MYMACX_W2_12_OPENCHAMBER_CONFIRMATION"
     private static let focusTimeoutEnvironmentKey =
         "MYMACX_W2_12_OPENCHAMBER_FOCUS_TIMEOUT_SECONDS"
+    private static let g2ConfirmationEnvironmentKey =
+        "MYMACX_G2_MULTI_DISPLAY_CONFIRMATION"
     private static let expectedBundleIdentifier = "dev.openchamber.desktop"
     private static let actionCount = 100
     private static let maximumFocusTimeout: Duration = .seconds(60)
@@ -47,6 +50,94 @@ public struct OpenChamberWindowActionHarness {
     /// The XCTest is skipped unless this exact value is supplied by a human-run command.
     static var isExplicitlyArmed: Bool {
         ProcessInfo.processInfo.environment[confirmationEnvironmentKey] == requiredConfirmation
+    }
+
+    static var isG2ExplicitlyArmed: Bool {
+        ProcessInfo.processInfo.environment[g2ConfirmationEnvironmentKey]
+            == requiredG2Confirmation
+    }
+
+    /// Exercises physical Display selection through the production Window Action Interface.
+    public func runG2PhysicalMultiDisplay() async throws -> G2Report {
+        guard environment[Self.g2ConfirmationEnvironmentKey] == Self.requiredG2Confirmation else {
+            throw HarnessError.notExplicitlyArmed
+        }
+        let displays = try PhysicalDisplays.capture()
+        guard displays.count >= 2 else {
+            throw HarnessError.multipleDisplaysRequired(actual: displays.count)
+        }
+
+        let target = try await waitForPinnedTarget(within: try configuredFocusTimeout())
+        let originalFrame = try target.readFrame()
+        let sourceDisplayID = try displays.displayID(containing: originalFrame)
+        var didVerifyFinalRecovery = false
+        defer {
+            if !didVerifyFinalRecovery {
+                _ = try? target.restore(originalFrame, tolerance: Self.frameTolerance)
+            }
+        }
+
+        _ = try await performVerified(.leftHalf, target: target, step: "source Snap")
+        guard try displays.displayID(containing: target.readFrame()) == sourceDisplayID else {
+            throw HarnessError.unexpectedDisplay(step: "source Snap")
+        }
+
+        let moveNext = try await performVerified(
+            .moveDisplayNext,
+            target: target,
+            step: "Move Next Display"
+        )
+        let nextDisplayID = try displays.displayID(containing: target.readFrame())
+        guard nextDisplayID != sourceDisplayID else {
+            throw HarnessError.windowDidNotChangeDisplay(step: "Move Next Display")
+        }
+        guard let moveUndoToken = moveNext.undoToken else {
+            throw HarnessError.missingUndoToken
+        }
+
+        try target.requireStillFocused()
+        let undoResult = await windowActions.perform(
+            .undo(token: moveUndoToken, source: .settingsTest)
+        )
+        guard case .succeeded = undoResult.disposition,
+              case .undone = undoResult.effect else {
+            throw HarnessError.unverifiedUndoResult
+        }
+        try target.requireStillFocused()
+        let undoDisplayID = try displays.displayID(containing: target.readFrame())
+        guard undoDisplayID == sourceDisplayID else {
+            throw HarnessError.unexpectedDisplay(step: "Undo Move Next")
+        }
+
+        _ = try await performVerified(.moveDisplayNext, target: target, step: "second Move Next")
+        guard try displays.displayID(containing: target.readFrame()) == nextDisplayID else {
+            throw HarnessError.unexpectedDisplay(step: "second Move Next")
+        }
+
+        _ = try await performVerified(
+            .moveDisplayPrevious,
+            target: target,
+            step: "Move Previous Display"
+        )
+        let returnedDisplayID = try displays.displayID(containing: target.readFrame())
+        guard returnedDisplayID == sourceDisplayID else {
+            throw HarnessError.unexpectedDisplay(step: "Move Previous Display")
+        }
+
+        let restoredFrame = try target.restore(originalFrame, tolerance: Self.frameTolerance)
+        didVerifyFinalRecovery = true
+        return G2Report(
+            displayCount: displays.count,
+            sourceDisplayID: sourceDisplayID,
+            destinationDisplayID: nextDisplayID,
+            undoReturnedToSource: undoDisplayID == sourceDisplayID,
+            previousReturnedToSource: returnedDisplayID == sourceDisplayID,
+            originalFrameRestored: framesMatch(
+                restoredFrame,
+                originalFrame,
+                tolerance: Self.frameTolerance
+            )
+        )
     }
 
     /// Runs exactly one serial, target-pinned sequence. The caller must focus OpenChamber
@@ -177,6 +268,22 @@ public struct OpenChamberWindowActionHarness {
         }
     }
 
+    private func performVerified(
+        _ action: ActionID,
+        target: PinnedTarget,
+        step: String
+    ) async throws -> WindowActionResult {
+        try target.requireStillFocused()
+        let result = await windowActions.perform(.commit(action: action, source: .settingsTest))
+        guard case .succeeded = result.disposition,
+              case .committed = result.effect else {
+            throw HarnessError.unverifiedG2ActionResult(step: step)
+        }
+        _ = try target.readFrame()
+        try target.requireStillFocused()
+        return result
+    }
+
     private static func residentGrowth(baseline: UInt64?, final: UInt64?) -> UInt64? {
         guard let baseline, let final else { return nil }
         return final >= baseline ? final - baseline : 0
@@ -196,6 +303,15 @@ public struct OpenChamberWindowActionHarness {
 }
 
 extension OpenChamberWindowActionHarness {
+    public struct G2Report: Sendable {
+        public let displayCount: Int
+        public let sourceDisplayID: CGDirectDisplayID
+        public let destinationDisplayID: CGDirectDisplayID
+        public let undoReturnedToSource: Bool
+        public let previousReturnedToSource: Bool
+        public let originalFrameRestored: Bool
+    }
+
     public struct Report: Sendable {
         public let bundleIdentifier: String
         public let processIdentifier: pid_t
@@ -223,6 +339,13 @@ extension OpenChamberWindowActionHarness {
         case unverifiedActionResult(index: Int)
         case restoreFailed
         case residentMemoryGrowthExceeded(UInt64)
+        case multipleDisplaysRequired(actual: Int)
+        case displayCouldNotBeResolved
+        case windowDidNotChangeDisplay(step: String)
+        case unexpectedDisplay(step: String)
+        case missingUndoToken
+        case unverifiedUndoResult
+        case unverifiedG2ActionResult(step: String)
 
         var errorDescription: String? {
             switch self {
@@ -252,8 +375,49 @@ extension OpenChamberWindowActionHarness {
                 "The final frame did not match the captured original frame after recovery."
             case .residentMemoryGrowthExceeded:
                 "Resident memory grew beyond the harness's obvious-leak threshold."
+            case .multipleDisplaysRequired(let actual):
+                "Gate G2 requires at least two active physical Displays; found \(actual)."
+            case .displayCouldNotBeResolved:
+                "The pinned window could not be associated with an active physical Display."
+            case .windowDidNotChangeDisplay(let step):
+                "\(step) committed but the raw AX frame remained on the source Display."
+            case .unexpectedDisplay(let step):
+                "\(step) placed the raw AX frame on an unexpected physical Display."
+            case .missingUndoToken:
+                "Move Next committed without the explicit Undo token required by Gate G2."
+            case .unverifiedUndoResult:
+                "Undo did not report a verified undone effect."
+            case .unverifiedG2ActionResult(let step):
+                "\(step) did not report a verified committed effect."
             }
         }
+    }
+}
+
+private struct PhysicalDisplays {
+    private let boundsByID: [(id: CGDirectDisplayID, bounds: CGRect)]
+
+    var count: Int { boundsByID.count }
+
+    static func capture() throws -> Self {
+        var count: UInt32 = 0
+        guard CGGetActiveDisplayList(0, nil, &count) == .success else {
+            throw OpenChamberWindowActionHarness.HarnessError.displayCouldNotBeResolved
+        }
+        var ids = Array(repeating: CGDirectDisplayID(), count: Int(count))
+        guard CGGetActiveDisplayList(count, &ids, &count) == .success else {
+            throw OpenChamberWindowActionHarness.HarnessError.displayCouldNotBeResolved
+        }
+        return Self(boundsByID: ids.prefix(Int(count)).map { ($0, CGDisplayBounds($0)) })
+    }
+
+    func displayID(containing frame: CGRect) throws -> CGDirectDisplayID {
+        guard let match = boundsByID.max(by: {
+            intersectionArea(frame, $0.bounds) < intersectionArea(frame, $1.bounds)
+        }), intersectionArea(frame, match.bounds) > 0 else {
+            throw OpenChamberWindowActionHarness.HarnessError.displayCouldNotBeResolved
+        }
+        return match.id
     }
 }
 
@@ -458,4 +622,10 @@ private func framesMatch(_ first: CGRect, _ second: CGRect, tolerance: CGFloat) 
         && abs(first.minY - second.minY) <= tolerance
         && abs(first.width - second.width) <= tolerance
         && abs(first.height - second.height) <= tolerance
+}
+
+private func intersectionArea(_ first: CGRect, _ second: CGRect) -> CGFloat {
+    let intersection = first.intersection(second)
+    guard !intersection.isNull, !intersection.isInfinite else { return 0 }
+    return intersection.width * intersection.height
 }

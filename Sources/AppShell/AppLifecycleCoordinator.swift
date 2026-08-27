@@ -10,14 +10,17 @@ protocol AppShellSystem: AnyObject {
 final class AppLifecycleCoordinator {
     private let system: AppShellSystem
     private let refreshAccessibilityPermission: @MainActor () -> Void
+    private let startHotkeyRuntime: @MainActor () -> Void
     private var hasStarted = false
 
     init(
         system: AppShellSystem,
-        refreshAccessibilityPermission: @escaping @MainActor () -> Void = {}
+        refreshAccessibilityPermission: @escaping @MainActor () -> Void = {},
+        startHotkeyRuntime: @escaping @MainActor () -> Void = {}
     ) {
         self.system = system
         self.refreshAccessibilityPermission = refreshAccessibilityPermission
+        self.startHotkeyRuntime = startHotkeyRuntime
     }
 
     func start() {
@@ -26,6 +29,7 @@ final class AppLifecycleCoordinator {
         hasStarted = true
         system.applyAccessoryActivationPolicy()
         system.installMenuBarItem()
+        startHotkeyRuntime()
     }
 
     func applicationDidBecomeActive() {

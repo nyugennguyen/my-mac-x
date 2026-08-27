@@ -52,6 +52,29 @@
 		10000000000000000000002B /* W2_11LayoutPropertyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000030 /* W2_11LayoutPropertyTests.swift */; };
 		10000000000000000000002C /* OpenChamberWindowActionHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000031 /* OpenChamberWindowActionHarness.swift */; };
 		10000000000000000000002D /* W2_12OpenChamberIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000032 /* W2_12OpenChamberIntegrationTests.swift */; };
+		10000000000000000000002E /* GlobalHotkeyManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000033 /* GlobalHotkeyManagerTests.swift */; };
+		10000000000000000000002F /* GlobalHotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000034 /* GlobalHotkeyManager.swift */; };
+		100000000000000000000030 /* InMemoryGlobalHotkeySystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000035 /* InMemoryGlobalHotkeySystem.swift */; };
+		100000000000000000000031 /* ActionRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000036 /* ActionRegistry.swift */; };
+		100000000000000000000032 /* ActionRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000037 /* ActionRegistryTests.swift */; };
+		100000000000000000000033 /* MacOSGlobalHotkeySystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000038 /* MacOSGlobalHotkeySystem.swift */; };
+		100000000000000000000034 /* DefaultHotkeyBindings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000039 /* DefaultHotkeyBindings.swift */; };
+		100000000000000000000035 /* HotkeyRuntimeCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003A /* HotkeyRuntimeCoordinator.swift */; };
+		100000000000000000000036 /* HotkeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003B /* HotkeyRecorder.swift */; };
+		100000000000000000000037 /* HotkeyRecorderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003C /* HotkeyRecorderTests.swift */; };
+		100000000000000000000038 /* InMemoryHotkeyRecorderInputAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003D /* InMemoryHotkeyRecorderInputAdapter.swift */; };
+		100000000000000000000039 /* HotkeyChordPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003E /* HotkeyChordPresenter.swift */; };
+		10000000000000000000003A /* MacOSHotkeyKeyLabelResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000003F /* MacOSHotkeyKeyLabelResolver.swift */; };
+		10000000000000000000003B /* HotkeyKeyLabelResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000040 /* HotkeyKeyLabelResolverTests.swift */; };
+		10000000000000000000003C /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000041 /* SettingsStore.swift */; };
+		10000000000000000000003D /* LocalSettingsDocumentAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000042 /* LocalSettingsDocumentAdapter.swift */; };
+		10000000000000000000003E /* StrictJSONParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000043 /* StrictJSONParser.swift */; };
+		10000000000000000000003F /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000044 /* SettingsStoreTests.swift */; };
+		100000000000000000000040 /* InMemorySettingsDocumentAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000045 /* InMemorySettingsDocumentAdapter.swift */; };
+		100000000000000000000041 /* HotkeyConflictDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000046 /* HotkeyConflictDetector.swift */; };
+		100000000000000000000042 /* HotkeyConflictDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000047 /* HotkeyConflictDetectorTests.swift */; };
+		100000000000000000000043 /* HotkeyRuntimeBindingUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000048 /* HotkeyRuntimeBindingUpdater.swift */; };
+		100000000000000000000044 /* HotkeyRuntimeBindingUpdaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000049 /* HotkeyRuntimeBindingUpdaterTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -115,6 +138,29 @@
 		200000000000000000000030 /* W2_11LayoutPropertyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = W2_11LayoutPropertyTests.swift; sourceTree = "<group>"; };
 		200000000000000000000031 /* OpenChamberWindowActionHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenChamberWindowActionHarness.swift; sourceTree = "<group>"; };
 		200000000000000000000032 /* W2_12OpenChamberIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = W2_12OpenChamberIntegrationTests.swift; sourceTree = "<group>"; };
+		200000000000000000000033 /* GlobalHotkeyManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeyManagerTests.swift; sourceTree = "<group>"; };
+		200000000000000000000034 /* GlobalHotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotkeyManager.swift; sourceTree = "<group>"; };
+		200000000000000000000035 /* InMemoryGlobalHotkeySystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemoryGlobalHotkeySystem.swift; sourceTree = "<group>"; };
+		200000000000000000000036 /* ActionRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionRegistry.swift; sourceTree = "<group>"; };
+		200000000000000000000037 /* ActionRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionRegistryTests.swift; sourceTree = "<group>"; };
+		200000000000000000000038 /* MacOSGlobalHotkeySystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacOSGlobalHotkeySystem.swift; sourceTree = "<group>"; };
+		200000000000000000000039 /* DefaultHotkeyBindings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultHotkeyBindings.swift; sourceTree = "<group>"; };
+		20000000000000000000003A /* HotkeyRuntimeCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRuntimeCoordinator.swift; sourceTree = "<group>"; };
+		20000000000000000000003B /* HotkeyRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorder.swift; sourceTree = "<group>"; };
+		20000000000000000000003C /* HotkeyRecorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderTests.swift; sourceTree = "<group>"; };
+		20000000000000000000003D /* InMemoryHotkeyRecorderInputAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemoryHotkeyRecorderInputAdapter.swift; sourceTree = "<group>"; };
+		20000000000000000000003E /* HotkeyChordPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyChordPresenter.swift; sourceTree = "<group>"; };
+		20000000000000000000003F /* MacOSHotkeyKeyLabelResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacOSHotkeyKeyLabelResolver.swift; sourceTree = "<group>"; };
+		200000000000000000000040 /* HotkeyKeyLabelResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyKeyLabelResolverTests.swift; sourceTree = "<group>"; };
+		200000000000000000000041 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		200000000000000000000042 /* LocalSettingsDocumentAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSettingsDocumentAdapter.swift; sourceTree = "<group>"; };
+		200000000000000000000043 /* StrictJSONParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrictJSONParser.swift; sourceTree = "<group>"; };
+		200000000000000000000044 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
+		200000000000000000000045 /* InMemorySettingsDocumentAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemorySettingsDocumentAdapter.swift; sourceTree = "<group>"; };
+		200000000000000000000046 /* HotkeyConflictDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyConflictDetector.swift; sourceTree = "<group>"; };
+		200000000000000000000047 /* HotkeyConflictDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyConflictDetectorTests.swift; sourceTree = "<group>"; };
+		200000000000000000000048 /* HotkeyRuntimeBindingUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRuntimeBindingUpdater.swift; sourceTree = "<group>"; };
+		200000000000000000000049 /* HotkeyRuntimeBindingUpdaterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRuntimeBindingUpdaterTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +206,8 @@
 				700000000000000000000019 /* CycleKit */,
 				70000000000000000000001B /* DisplayMoveKit */,
 				70000000000000000000001D /* WindowActionKit */,
+				700000000000000000000020 /* InputKit */,
+				700000000000000000000023 /* PersistenceKit */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -169,6 +217,8 @@
 			children = (
 				200000000000000000000001 /* MyMacXApplication.swift */,
 				20000000000000000000000B /* AppLifecycleCoordinator.swift */,
+				20000000000000000000003A /* HotkeyRuntimeCoordinator.swift */,
+				200000000000000000000048 /* HotkeyRuntimeBindingUpdater.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -198,6 +248,9 @@
 				70000000000000000000001C /* DisplayMoveKit */,
 				70000000000000000000001E /* WindowActionKit */,
 				70000000000000000000001F /* Sprint2 */,
+				700000000000000000000021 /* InputKit */,
+				700000000000000000000022 /* CommandKit */,
+				700000000000000000000024 /* PersistenceKit */,
 			);
 			path = MyMacXTests;
 			sourceTree = "<group>";
@@ -225,6 +278,7 @@
 			isa = PBXGroup;
 			children = (
 				200000000000000000000008 /* ActionID.swift */,
+				200000000000000000000036 /* ActionRegistry.swift */,
 			);
 			path = CommandKit;
 			sourceTree = "<group>";
@@ -249,6 +303,7 @@
 			isa = PBXGroup;
 			children = (
 				20000000000000000000000C /* AppLifecycleCoordinatorTests.swift */,
+				200000000000000000000049 /* HotkeyRuntimeBindingUpdaterTests.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -431,6 +486,60 @@
 			path = Sprint2;
 			sourceTree = "<group>";
 		};
+		700000000000000000000020 /* InputKit */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000039 /* DefaultHotkeyBindings.swift */,
+				200000000000000000000034 /* GlobalHotkeyManager.swift */,
+				20000000000000000000003B /* HotkeyRecorder.swift */,
+				20000000000000000000003E /* HotkeyChordPresenter.swift */,
+				200000000000000000000046 /* HotkeyConflictDetector.swift */,
+				20000000000000000000003F /* MacOSHotkeyKeyLabelResolver.swift */,
+				200000000000000000000038 /* MacOSGlobalHotkeySystem.swift */,
+			);
+			path = InputKit;
+			sourceTree = "<group>";
+		};
+		700000000000000000000021 /* InputKit */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000033 /* GlobalHotkeyManagerTests.swift */,
+				200000000000000000000035 /* InMemoryGlobalHotkeySystem.swift */,
+				20000000000000000000003C /* HotkeyRecorderTests.swift */,
+				20000000000000000000003D /* InMemoryHotkeyRecorderInputAdapter.swift */,
+				200000000000000000000040 /* HotkeyKeyLabelResolverTests.swift */,
+				200000000000000000000047 /* HotkeyConflictDetectorTests.swift */,
+			);
+			path = InputKit;
+			sourceTree = "<group>";
+		};
+		700000000000000000000022 /* CommandKit */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000037 /* ActionRegistryTests.swift */,
+			);
+			path = CommandKit;
+			sourceTree = "<group>";
+		};
+		700000000000000000000023 /* PersistenceKit */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000041 /* SettingsStore.swift */,
+				200000000000000000000042 /* LocalSettingsDocumentAdapter.swift */,
+				200000000000000000000043 /* StrictJSONParser.swift */,
+			);
+			path = PersistenceKit;
+			sourceTree = "<group>";
+		};
+		700000000000000000000024 /* PersistenceKit */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000044 /* SettingsStoreTests.swift */,
+				200000000000000000000045 /* InMemorySettingsDocumentAdapter.swift */,
+			);
+			path = PersistenceKit;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -558,6 +667,19 @@
 				100000000000000000000027 /* WindowActionEngine.swift in Sources */,
 				100000000000000000000028 /* WindowActionModels.swift in Sources */,
 				100000000000000000000029 /* WindowActionTopology.swift in Sources */,
+				10000000000000000000002F /* GlobalHotkeyManager.swift in Sources */,
+				100000000000000000000031 /* ActionRegistry.swift in Sources */,
+				100000000000000000000033 /* MacOSGlobalHotkeySystem.swift in Sources */,
+				100000000000000000000034 /* DefaultHotkeyBindings.swift in Sources */,
+				100000000000000000000035 /* HotkeyRuntimeCoordinator.swift in Sources */,
+				100000000000000000000043 /* HotkeyRuntimeBindingUpdater.swift in Sources */,
+				100000000000000000000036 /* HotkeyRecorder.swift in Sources */,
+				100000000000000000000039 /* HotkeyChordPresenter.swift in Sources */,
+				10000000000000000000003A /* MacOSHotkeyKeyLabelResolver.swift in Sources */,
+				100000000000000000000041 /* HotkeyConflictDetector.swift in Sources */,
+				10000000000000000000003C /* SettingsStore.swift in Sources */,
+				10000000000000000000003D /* LocalSettingsDocumentAdapter.swift in Sources */,
+				10000000000000000000003E /* StrictJSONParser.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -568,6 +690,7 @@
 				100000000000000000000002 /* ActionIDTests.swift in Sources */,
 				100000000000000000000005 /* AccessibilityPermissionManagerTests.swift in Sources */,
 				100000000000000000000007 /* AppLifecycleCoordinatorTests.swift in Sources */,
+				100000000000000000000044 /* HotkeyRuntimeBindingUpdaterTests.swift in Sources */,
 				100000000000000000000009 /* PrivacySafeDiagnosticsLoggerTests.swift in Sources */,
 				10000000000000000000000D /* FocusedWindowProviderTests.swift in Sources */,
 				10000000000000000000000E /* ScriptedWindowAdapter.swift in Sources */,
@@ -586,6 +709,15 @@
 				10000000000000000000002B /* W2_11LayoutPropertyTests.swift in Sources */,
 				10000000000000000000002C /* OpenChamberWindowActionHarness.swift in Sources */,
 				10000000000000000000002D /* W2_12OpenChamberIntegrationTests.swift in Sources */,
+				10000000000000000000002E /* GlobalHotkeyManagerTests.swift in Sources */,
+				100000000000000000000030 /* InMemoryGlobalHotkeySystem.swift in Sources */,
+				100000000000000000000032 /* ActionRegistryTests.swift in Sources */,
+				100000000000000000000037 /* HotkeyRecorderTests.swift in Sources */,
+				100000000000000000000038 /* InMemoryHotkeyRecorderInputAdapter.swift in Sources */,
+				10000000000000000000003B /* HotkeyKeyLabelResolverTests.swift in Sources */,
+				100000000000000000000042 /* HotkeyConflictDetectorTests.swift in Sources */,
+				10000000000000000000003F /* SettingsStoreTests.swift in Sources */,
+				100000000000000000000040 /* InMemorySettingsDocumentAdapter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

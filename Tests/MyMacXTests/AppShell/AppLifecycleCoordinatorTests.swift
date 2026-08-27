@@ -17,15 +17,20 @@ final class AppLifecycleCoordinatorTests: XCTestCase {
 
     func testStartInstallsOnlyOneMenuBarItemWhenCalledRepeatedly() {
         let system = AppShellSystemSpy()
-        let coordinator = AppLifecycleCoordinator(system: system)
+        var hotkeyRuntimeStartCount = 0
+        let coordinatorWithHotkeys = AppLifecycleCoordinator(
+            system: system,
+            startHotkeyRuntime: { hotkeyRuntimeStartCount += 1 }
+        )
 
-        coordinator.start()
-        coordinator.start()
+        coordinatorWithHotkeys.start()
+        coordinatorWithHotkeys.start()
 
         XCTAssertEqual(
             system.state,
             AppShellSystemState(accessoryPolicyApplications: 1, menuBarItemInstallations: 1)
         )
+        XCTAssertEqual(hotkeyRuntimeStartCount, 1)
     }
 
     func testEachApplicationActivationRefreshesAccessibilityPermission() {

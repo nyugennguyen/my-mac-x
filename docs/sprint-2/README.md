@@ -35,7 +35,7 @@ scripted Accessibility work, but Gate G1 is not reported complete.
 
 ## Gate G2
 
-`PENDING` — W2-12 real-app integration passed (2026-08-26). Remaining: physical multi-display human verification and gate sign-off.
+`PASS` — W2-12 real-app integration and the [physical multi-Display human/device run](evidence/g2-physical-multi-display.md) passed on 2026-08-26. Snap, Move Next/Previous, explicit-token Undo and original-frame Restore were independently read-back verified across the HKC and built-in Displays.
 
 ## Baseline verification
 
