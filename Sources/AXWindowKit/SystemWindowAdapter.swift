@@ -8,9 +8,11 @@ import CoreFoundation
 /// and capability values leave this Adapter.
 actor SystemWindowAdapter: AccessibilityWindowAdapting,
         AccessibilityWindowMutationAdapting,
-        NativeFullScreenAccessibilityAdapting {
+        NativeFullScreenAccessibilityAdapting,
+        PointerDragWindowMovementAdapting {
     /// Bounds every synchronous public AX message made by this Adapter.
     static let messagingTimeoutSeconds: Float = 1
+    static let shared = SystemWindowAdapter()
 
     private static let identityCacheLimit = 64
 
@@ -23,6 +25,13 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
         capacity: identityCacheLimit,
         areEquivalent: { CFEqual($0, $1) }
     )
+    private let movementRunLoop = AXMovementRunLoopThread(
+        name: "MyMacX.PointerAXObserver"
+    )
+    private var movementObserver: AXObserver?
+    private var movementObservedWindow: AXUIElement?
+    private var movementSource: CFRunLoopSource?
+    private var movementCallbackBox: SystemAXMovementCallbackBox?
 
     func captureFocusedWindow() -> AccessibilityWindowCapture {
         guard AXIsProcessTrusted() else {
@@ -90,6 +99,90 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
                 )
             )
         )
+    }
+
+    /// Registers movement observation on the exact element entered into this Adapter's identity
+    /// cache. Actor serialization keeps resolution, identity lookup, and notification registration
+    /// atomic with respect to all other window captures.
+    func observeFocusedWindow() -> PointerDragWindowObservationResult {
+        stopObserving()
+
+        let candidate: AccessibilityWindowCandidate
+        switch captureFocusedWindow() {
+        case .candidate(let value):
+            candidate = value
+        case .unsupported:
+            return .unavailable(.noEligibleWindow)
+        case .failure(let failure):
+            return .unavailable(mapObservation(failure))
+        }
+        guard candidate.capabilities.minimized != .active,
+              candidate.capabilities.isMovable || candidate.capabilities.isResizable,
+              let window = identityCache.element(for: candidate.identity)
+        else {
+            return .unavailable(.noEligibleWindow)
+        }
+
+        var processID: pid_t = 0
+        let processError = AXUIElementGetPid(window, &processID)
+        guard processError == .success, processID > 0 else {
+            return .unavailable(mapObservation(processError))
+        }
+
+        var createdObserver: AXObserver?
+        let createError = AXObserverCreate(
+            processID,
+            systemAXMovementObserverCallback,
+            &createdObserver
+        )
+        guard createError == .success, let createdObserver else {
+            return .unavailable(mapObservation(createError))
+        }
+
+        let channel = AsyncStream.makeStream(
+            of: WindowIdentity.self,
+            bufferingPolicy: .bufferingNewest(1)
+        )
+        let box = SystemAXMovementCallbackBox(
+            window: candidate.identity,
+            continuation: channel.continuation
+        )
+        let addError = AXObserverAddNotification(
+            createdObserver,
+            window,
+            kAXMovedNotification as CFString,
+            Unmanaged.passUnretained(box).toOpaque()
+        )
+        guard addError == .success else {
+            channel.continuation.finish()
+            return .unavailable(mapObservation(addError))
+        }
+
+        let source = AXObserverGetRunLoopSource(createdObserver)
+        movementRunLoop.add(source)
+        movementObserver = createdObserver
+        movementObservedWindow = window
+        movementSource = source
+        movementCallbackBox = box
+        return .observing(window: candidate.identity, movements: channel.stream)
+    }
+
+    func stopObserving() {
+        if let movementObserver, let movementObservedWindow {
+            AXObserverRemoveNotification(
+                movementObserver,
+                movementObservedWindow,
+                kAXMovedNotification as CFString
+            )
+        }
+        if let movementSource {
+            movementRunLoop.remove(movementSource)
+        }
+        movementCallbackBox?.finish()
+        movementCallbackBox = nil
+        movementSource = nil
+        movementObservedWindow = nil
+        movementObserver = nil
     }
 
     func inspectWindow(_ identity: WindowIdentity) -> AccessibilityWindowInspectionResult {
@@ -539,6 +632,43 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
         }
     }
 
+    private func mapObservation(
+        _ failure: FocusedWindowFailure
+    ) -> PointerDragWindowObservationFailure {
+        switch failure {
+        case .permissionRequired:
+            return .accessibilityPermissionRequired
+        case .noEligibleWindow:
+            return .noEligibleWindow
+        case .temporarilyUnavailable:
+            return .temporarilyUnavailable
+        case .systemUnavailable:
+            return .systemUnavailable
+        }
+    }
+
+    private func mapObservation(
+        _ error: AXError
+    ) -> PointerDragWindowObservationFailure {
+        switch error {
+        case .apiDisabled:
+            return .accessibilityPermissionRequired
+        case .invalidUIElement, .noValue, .attributeUnsupported:
+            return .noEligibleWindow
+        case .notificationUnsupported:
+            return .notificationUnsupported
+        case .cannotComplete:
+            return .temporarilyUnavailable
+        case .success, .failure, .illegalArgument, .invalidUIElementObserver,
+                .actionUnsupported, .notImplemented, .notificationAlreadyRegistered,
+                .notificationNotRegistered, .parameterizedAttributeUnsupported,
+                .notEnoughPrecision:
+            return .systemUnavailable
+        @unknown default:
+            return .systemUnavailable
+        }
+    }
+
     private func mapOperation(_ error: AXError) -> AccessibilityWindowOperationFailure {
         switch error {
         case .apiDisabled:
@@ -598,6 +728,116 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
         @unknown default:
             return .rejected
         }
+    }
+}
+
+private final class SystemAXMovementCallbackBox: @unchecked Sendable {
+    private let window: WindowIdentity
+    private let continuation: AsyncStream<WindowIdentity>.Continuation
+
+    init(
+        window: WindowIdentity,
+        continuation: AsyncStream<WindowIdentity>.Continuation
+    ) {
+        self.window = window
+        self.continuation = continuation
+    }
+
+    func moved() {
+        continuation.yield(window)
+    }
+
+    func finish() {
+        continuation.finish()
+    }
+}
+
+private let systemAXMovementObserverCallback: AXObserverCallback = {
+    _, _, notification, userInfo in
+    guard notification as String == (kAXMovedNotification as String),
+          let userInfo
+    else { return }
+    let box = Unmanaged<SystemAXMovementCallbackBox>
+        .fromOpaque(userInfo)
+        .takeUnretainedValue()
+    box.moved()
+}
+
+private final class AXMovementRunLoopThread: @unchecked Sendable {
+    private struct SourceBox: @unchecked Sendable {
+        let value: CFRunLoopSource
+    }
+
+    private final class Storage: @unchecked Sendable {
+        let condition = NSCondition()
+        private var runLoop: CFRunLoop?
+
+        func publish(_ runLoop: CFRunLoop) {
+            condition.lock()
+            self.runLoop = runLoop
+            condition.broadcast()
+            condition.unlock()
+        }
+
+        func waitForRunLoop() -> CFRunLoop {
+            condition.lock()
+            while runLoop == nil { condition.wait() }
+            let value = runLoop!
+            condition.unlock()
+            return value
+        }
+    }
+
+    private let storage: Storage
+
+    init(name: String) {
+        let storage = Storage()
+        self.storage = storage
+        let thread = Thread {
+            var context = CFRunLoopSourceContext()
+            let keepAlive = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &context)!
+            let runLoop = CFRunLoopGetCurrent()!
+            CFRunLoopAddSource(runLoop, keepAlive, .commonModes)
+            storage.publish(runLoop)
+            CFRunLoopRun()
+            CFRunLoopRemoveSource(runLoop, keepAlive, .commonModes)
+            CFRunLoopSourceInvalidate(keepAlive)
+        }
+        thread.name = name
+        thread.qualityOfService = .userInteractive
+        thread.start()
+        _ = storage.waitForRunLoop()
+    }
+
+    func add(_ source: CFRunLoopSource) {
+        let source = SourceBox(value: source)
+        performSync {
+            CFRunLoopAddSource(CFRunLoopGetCurrent(), source.value, .commonModes)
+        }
+    }
+
+    func remove(_ source: CFRunLoopSource) {
+        let source = SourceBox(value: source)
+        performSync {
+            CFRunLoopRemoveSource(CFRunLoopGetCurrent(), source.value, .commonModes)
+        }
+    }
+
+    deinit {
+        let runLoop = storage.waitForRunLoop()
+        CFRunLoopStop(runLoop)
+        CFRunLoopWakeUp(runLoop)
+    }
+
+    private func performSync(_ operation: @escaping @Sendable () -> Void) {
+        let runLoop = storage.waitForRunLoop()
+        let completed = DispatchSemaphore(value: 0)
+        CFRunLoopPerformBlock(runLoop, CFRunLoopMode.commonModes.rawValue) {
+            operation()
+            completed.signal()
+        }
+        CFRunLoopWakeUp(runLoop)
+        completed.wait()
     }
 }
 

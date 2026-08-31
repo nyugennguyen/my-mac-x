@@ -6,7 +6,11 @@ Automated coverage is in `HotkeyKeyLabelResolverTests`. It exercises ABC labels,
 arrow labels, cached successes and failures, generation-keyed invalidation, and
 presenter-owned hardware-code fallback for unavailable or ambiguous results.
 
-## Human OS gate — pending
+## Human OS gate — passed 2026-08-27
+
+The user confirmed the physical ABC/Vietnamese Telex input-source matrix passed.
+
+The retained procedure below documents the checks covered by that confirmation.
 
 Run this check on a signed/debug build with Settings rendering the same chord:
 
@@ -19,6 +23,5 @@ Run this check on a signed/debug build with Settings rendering the same chord:
 4. Confirm no typed Vietnamese text, source identifiers/names, titles, or raw
    characters appear in diagnostics or persisted configuration.
 
-Record the macOS version, selected source names/identifiers, and observed labels
-here after a human performs the check. This document intentionally does not claim
-that the OS matrix has passed.
+The user confirmation supplies the human gate result; automated coverage and the
+privacy constraints above remain part of the retained evidence.

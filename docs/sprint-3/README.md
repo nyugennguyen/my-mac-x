@@ -85,21 +85,20 @@ Observable tests at this Interface:
 
 | ID | Deliverable | Status | Dependency | Evidence / exit gate |
 |---|---|---|---|---|
-| H3-01 | Global hotkey lifecycle | REVIEW — human gate | P0-04, F1-02 | [Evidence](evidence/h3-01-global-hotkey-lifecycle.md): 7/7 lifecycle tests, public macOS Adapter and AppShell start-once composition integrated; real global chord + device sleep/wake remain human-only |
+| H3-01 | Global hotkey lifecycle | DONE | P0-04, F1-02 | [Evidence](evidence/h3-01-global-hotkey-lifecycle.md): 7/7 lifecycle tests, public macOS Adapter and AppShell start-once composition integrated; human gate confirmed 2026-08-27 |
 | H3-02 | Stable Action Registry | DONE | W2-02 | [Evidence](evidence/h3-02-action-registry.md): stable discovery and typed availability; exact hotkey dispatch through `WindowActionPerforming`; 4/4 focused tests pass |
 | H3-03 | Hotkey recorder | DONE | H3-01 | [Evidence](evidence/h3-03-hotkey-recorder.md): bounded local capture, hardware-code identity, cancel/clear and presentation fallback; 9/9 focused tests pass |
 | H3-04 | Conflict detection | DONE | H3-03 | [Evidence](evidence/h3-04-hotkey-conflict-detection.md): invalid, reserved and duplicate conflicts are typed before Save; 15/15 focused tests pass |
 | H3-05 | Versioned Settings Store + migrations | DONE | H3-02…04 | [Evidence](evidence/h3-05-settings-store.md): versioned atomic persistence, migration and corrupt-data fallback; 10/10 focused tests pass |
 | H3-06 | Runtime binding updates | DONE | H3-01…05 | [Evidence](evidence/h3-06-runtime-binding-updates.md): persisted settings are the sole launch source; save/reconcile/compensation and no-restart replacement covered by 10/10 focused tests |
-| H3-07 | Key mapping/input-source tests | REVIEW — human gate | H3-01…06 | [Evidence](evidence/h3-07-input-source-key-label-mapping.md): automated mapping/cache/fallback coverage passes; physical ABC/Vietnamese Telex matrix remains human-only |
+| H3-07 | Key mapping/input-source tests | DONE | H3-01…06 | [Evidence](evidence/h3-07-input-source-key-label-mapping.md): automated mapping/cache/fallback coverage passes; physical ABC/Vietnamese Telex gate confirmed 2026-08-27 |
 
 ## Gate G3
 
-`IN PROGRESS` — H3-02…H3-06 implementation is done; H3-01 and H3-07 await their human gates. Passing requires all H3 tasks,
-end-to-end custom-hotkey dispatch through `WindowActionPerforming`, conflict prevention
-before Save, runtime replacement, persistence/relaunch evidence, and the required input-source
-matrix. Human sleep/wake and input-source checks remain human-only evidence where automation
-cannot reproduce the operating-system state.
+`PASS` — confirmed by the human tester on 2026-08-27 after the remaining H3-01
+global-hotkey/sleep-wake and H3-07 physical input-source gates passed. Automated evidence
+continues to cover end-to-end custom-hotkey dispatch through `WindowActionPerforming`,
+conflict prevention before Save, runtime replacement and persistence/relaunch behavior.
 
 ## Current verification
 

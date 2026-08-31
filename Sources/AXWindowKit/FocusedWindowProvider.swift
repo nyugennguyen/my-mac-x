@@ -2,7 +2,7 @@ struct FocusedWindowProvider: FocusedWindowProviding {
     private let adapter: any AccessibilityWindowAdapting
 
     init() {
-        adapter = SystemWindowAdapter()
+        adapter = SystemWindowAdapter.shared
     }
 
     init(adapter: any AccessibilityWindowAdapting) {

@@ -1,6 +1,10 @@
 # H3-01 — Global Hotkey lifecycle evidence
 
-Status: `IN PROGRESS`
+Status: `PASS`
+
+## Human gate result — 2026-08-27
+
+The user confirmed the remaining real global-hotkey and sleep/wake checks passed.
 
 ## Confirmed Interface
 

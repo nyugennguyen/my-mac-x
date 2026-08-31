@@ -96,6 +96,42 @@ final class WindowActionEngineTests: XCTestCase {
         XCTAssertEqual(consumed.disposition, .rejected(.previewMissingOrExpired))
     }
 
+    func testIdentityBoundPreviewNeverRecapturesFocusAndCommitsThePointerCapturedWindow() async {
+        let pointerCaptured = WindowIdentity()
+        let laterFocused = WindowIdentity()
+        let focus = ScriptedFocusedWindows([.found(eligible(laterFocused))])
+        let mutation = RecordingWindowMutation(
+            frames: [
+                pointerCaptured: axFrame(x: 100, y: 100, width: 400, height: 300),
+                laterFocused: axFrame(x: 700, y: 100, width: 300, height: 250),
+            ],
+            outcomes: [
+                .applied(
+                    actualFrame: axFrame(x: 0, y: 25, width: 600, height: 775),
+                    constrained: false
+                ),
+            ]
+        )
+        let engine = makeEngine(focus: focus, mutation: mutation)
+        let interaction = InteractionID()
+
+        let preview = await engine.perform(
+            .preview(
+                action: .leftHalf,
+                interaction: interaction,
+                capturedWindow: pointerCaptured
+            )
+        )
+        let committed = await engine.perform(.commitPreview(interaction: interaction))
+        let captureCount = await focus.captureCount
+        let mutatedWindows = await mutation.mutationCalls.map(\.window)
+
+        XCTAssertEqual(preview.disposition, .succeeded)
+        XCTAssertEqual(committed.disposition, .succeeded)
+        XCTAssertEqual(captureCount, 0)
+        XCTAssertEqual(mutatedWindows, [pointerCaptured])
+    }
+
     func testLatestHoverSupersedesOlderCalculation() async {
         let window = WindowIdentity()
         let topology = GatedWindowActionTopology(snapshot: topologySnapshot(generation: 7))

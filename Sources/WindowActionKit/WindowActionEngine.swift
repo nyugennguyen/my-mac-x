@@ -2,7 +2,7 @@ import CoreGraphics
 
 public actor WindowActionEngine: WindowActionPerforming {
     private struct CapturedBinding: Sendable {
-        let window: EligibleWindow
+        let window: WindowIdentity
         let topology: WindowActionTopologySnapshot
         let currentFrame: AppKitGlobalLogicalFrame
     }
@@ -40,6 +40,7 @@ public actor WindowActionEngine: WindowActionPerforming {
 
     private struct PreviewEntry: Sendable {
         let binding: Task<CapturedBindingResult, Never>
+        let capturedWindow: WindowIdentity?
         let catalog: WindowActionCatalog
         var revision: UInt64
         var plan: PlacementPlan?
@@ -61,7 +62,7 @@ public actor WindowActionEngine: WindowActionPerforming {
     private var windowWaiters: [WindowIdentity: [CheckedContinuation<Void, Never>]] = [:]
 
     public init() {
-        let accessibility = SystemWindowAdapter()
+        let accessibility = SystemWindowAdapter.shared
         focusedWindows = FocusedWindowProvider(adapter: accessibility)
         topology = ObservedWindowActionTopologyAdapter(observer: DisplayTopologyObserver())
         frames = AccessibilityCapturedWindowFrameAdapter(adapter: accessibility)
@@ -94,8 +95,13 @@ public actor WindowActionEngine: WindowActionPerforming {
 
     public func perform(_ intent: WindowIntent) async -> WindowActionResult {
         switch intent {
-        case let .preview(action, interaction):
-            return await preview(action: action, interaction: interaction)
+        case let .preview(action, interaction, capturedWindow, targetDisplay):
+            return await preview(
+                action: action,
+                interaction: interaction,
+                capturedWindow: capturedWindow,
+                targetDisplay: targetDisplay
+            )
         case let .commit(action, _):
             return await directCommit(action: action)
         case .commitPreview(let interaction):
@@ -109,13 +115,18 @@ public actor WindowActionEngine: WindowActionPerforming {
 
     private func preview(
         action: ActionID,
-        interaction: InteractionID
+        interaction: InteractionID,
+        capturedWindow: WindowIdentity?,
+        targetDisplay: DisplayID? = nil
     ) async -> WindowActionResult {
         let revision: UInt64
         let bindingTask: Task<CapturedBindingResult, Never>
         let snapshotCatalog: WindowActionCatalog
 
         if var entry = previews[interaction] {
+            guard entry.capturedWindow == capturedWindow else {
+                return .superseded
+            }
             entry.revision &+= 1
             entry.plan = nil
             revision = entry.revision
@@ -131,19 +142,30 @@ public actor WindowActionEngine: WindowActionPerforming {
                 return .rejected(.actionDisabled(action))
             }
 
-            let focusedWindows = focusedWindows
             let topology = topology
             let frames = frames
-            bindingTask = Task {
-                await Self.captureBinding(
-                    focusedWindows: focusedWindows,
-                    topology: topology,
-                    frames: frames
-                )
+            if let capturedWindow {
+                bindingTask = Task {
+                    await Self.captureBinding(
+                        capturedWindow: capturedWindow,
+                        topology: topology,
+                        frames: frames
+                    )
+                }
+            } else {
+                let focusedWindows = focusedWindows
+                bindingTask = Task {
+                    await Self.captureBinding(
+                        focusedWindows: focusedWindows,
+                        topology: topology,
+                        frames: frames
+                    )
+                }
             }
             revision = 1
             previews[interaction] = PreviewEntry(
                 binding: bindingTask,
+                capturedWindow: capturedWindow,
                 catalog: snapshotCatalog,
                 revision: revision,
                 plan: nil
@@ -176,7 +198,8 @@ public actor WindowActionEngine: WindowActionPerforming {
         let plan: PlacementPlan
         switch compile(
             definition: definition,
-            binding: binding
+            binding: binding,
+            targetDisplay: targetDisplay
         ) {
         case .success(let value):
             plan = value
@@ -426,7 +449,8 @@ public actor WindowActionEngine: WindowActionPerforming {
 
     private func compile(
         definition: WindowActionCatalog.Definition,
-        binding: CapturedBinding
+        binding: CapturedBinding,
+        targetDisplay: DisplayID? = nil
     ) -> Result<PlacementPlan, WindowActionFailure> {
         guard definition.isEnabled else {
             return .failure(.actionDisabled(definition.id))
@@ -434,17 +458,25 @@ public actor WindowActionEngine: WindowActionPerforming {
 
         switch definition.operation {
         case .layout(let region):
-            guard let display = displayContaining(
-                binding.currentFrame.cgRect,
-                topology: binding.topology.topology
-            ) else {
+            let display: DisplaySnapshot?
+            if let targetDisplay {
+                display = binding.topology.topology.displays.first(where: {
+                    $0.id == targetDisplay
+                })
+            } else {
+                display = displayContaining(
+                    binding.currentFrame.cgRect,
+                    topology: binding.topology.topology
+                )
+            }
+            guard let display else {
                 return .failure(.displayUnavailable)
             }
             do {
                 let layoutPlan = try layoutCalculator.plan(for: region, in: display)
                 return .success(
                     PlacementPlan(
-                        window: binding.window.identity,
+                        window: binding.window,
                         topology: binding.topology,
                         before: binding.currentFrame,
                         target: AppKitGlobalLogicalFrame(layoutPlan.frame),
@@ -475,7 +507,7 @@ public actor WindowActionEngine: WindowActionPerforming {
                 }
                 return .success(
                     PlacementPlan(
-                        window: binding.window.identity,
+                        window: binding.window,
                         topology: binding.topology,
                         before: binding.currentFrame,
                         target: movePlan.targetFrame,
@@ -515,7 +547,7 @@ public actor WindowActionEngine: WindowActionPerforming {
         }
         return .success(
             PlacementPlan(
-                window: binding.window.identity,
+                window: binding.window,
                 topology: binding.topology,
                 before: binding.currentFrame,
                 target: AppKitGlobalLogicalFrame(reconciliation.frame),
@@ -560,7 +592,32 @@ public actor WindowActionEngine: WindowActionPerforming {
             return .failed(.displayUnavailable)
         }
         return .available(
-            CapturedBinding(window: eligible, topology: snapshot, currentFrame: current)
+            CapturedBinding(window: eligible.identity, topology: snapshot, currentFrame: current)
+        )
+    }
+
+    private static func captureBinding(
+        capturedWindow: WindowIdentity,
+        topology: any WindowActionTopologyProviding,
+        frames: any CapturedWindowFrameProviding
+    ) async -> CapturedBindingResult {
+        guard case let .available(snapshot) = await topology.captureTopology() else {
+            return .failed(.displayUnavailable)
+        }
+        let currentAX: AXGlobalTopLeftFrame
+        switch await frames.currentFrame(window: capturedWindow) {
+        case .available(let frame):
+            currentAX = frame
+        case .failed(let failure):
+            return .failed(map(failure))
+        }
+        guard let converter = try? CoordinateConverter(
+            topology: CoordinateSpaceTopology(snapshot.topology)
+        ), let current = try? converter.convert(currentAX) else {
+            return .failed(.displayUnavailable)
+        }
+        return .available(
+            CapturedBinding(window: capturedWindow, topology: snapshot, currentFrame: current)
         )
     }
 
@@ -581,7 +638,7 @@ public actor WindowActionEngine: WindowActionPerforming {
             return .failed(.displayUnavailable)
         }
         return .available(
-            CapturedBinding(window: eligible, topology: snapshot, currentFrame: current)
+            CapturedBinding(window: eligible.identity, topology: snapshot, currentFrame: current)
         )
     }
 

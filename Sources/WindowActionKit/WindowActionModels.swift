@@ -22,7 +22,16 @@ public enum ActionSource: Hashable, Sendable {
 }
 
 public enum WindowIntent: Sendable {
-    case preview(action: ActionID, interaction: InteractionID)
+    /// Starts or revises a non-mutating preview transaction.
+    ///
+    /// Pointer interactions provide `capturedWindow` so focus changes cannot retarget the Snap.
+    /// `nil` preserves focused-window capture for non-pointer preview callers.
+    case preview(
+        action: ActionID,
+        interaction: InteractionID,
+        capturedWindow: WindowIdentity? = nil,
+        targetDisplay: DisplayID? = nil
+    )
     case commit(action: ActionID, source: ActionSource)
     case commitPreview(interaction: InteractionID)
     case cancelPreview(interaction: InteractionID)

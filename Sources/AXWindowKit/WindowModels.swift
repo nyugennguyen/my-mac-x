@@ -4,7 +4,7 @@ import Foundation
 ///
 /// The value deliberately carries no title or document metadata. The system Adapter
 /// owns the association between this token and the underlying Accessibility element.
-struct WindowIdentity: Hashable, Sendable {
+public struct WindowIdentity: Hashable, Sendable {
     private let rawValue: UUID
 
     init() {
