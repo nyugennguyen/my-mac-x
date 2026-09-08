@@ -53,6 +53,9 @@ public actor WindowActionEngine: WindowActionPerforming {
     private let history: any WindowHistoryManaging
     private let cycles: any CycleGroupManaging
     private let nativeFullScreen: any NativeFullScreenActionPerforming
+    private let applicationIdentities: any CapturedWindowApplicationIdentifying
+    private let appRules: any AppRuleDeciding
+    private let profileLayouts: any DisplayProfileLayoutResolving
     private let catalog: WindowActionCatalog
     private let layoutCalculator = LayoutCalculator()
     private let displayMovePlanner = DisplayMovePlanner()
@@ -61,7 +64,7 @@ public actor WindowActionEngine: WindowActionPerforming {
     private var busyWindows: Set<WindowIdentity> = []
     private var windowWaiters: [WindowIdentity: [CheckedContinuation<Void, Never>]] = [:]
 
-    public init() {
+    public init(appRules: AppRuleRuntime = AppRuleRuntime()) {
         let accessibility = SystemWindowAdapter.shared
         focusedWindows = FocusedWindowProvider(adapter: accessibility)
         topology = ObservedWindowActionTopologyAdapter(observer: DisplayTopologyObserver())
@@ -70,6 +73,27 @@ public actor WindowActionEngine: WindowActionPerforming {
         history = BoundedSessionWindowHistory()
         cycles = BoundedSessionCycleGroups()
         nativeFullScreen = NativeFullScreenActionStrategy(adapter: accessibility)
+        applicationIdentities = accessibility
+        self.appRules = appRules
+        profileLayouts = DefaultDisplayProfileLayoutResolver()
+        catalog = .builtIn
+    }
+
+    init(
+        appRules: AppRuleRuntime,
+        profileLayouts: any DisplayProfileLayoutResolving
+    ) {
+        let accessibility = SystemWindowAdapter.shared
+        focusedWindows = FocusedWindowProvider(adapter: accessibility)
+        topology = ObservedWindowActionTopologyAdapter(observer: DisplayTopologyObserver())
+        frames = AccessibilityCapturedWindowFrameAdapter(adapter: accessibility)
+        mutation = WindowMutationModule(adapter: accessibility)
+        history = BoundedSessionWindowHistory()
+        cycles = BoundedSessionCycleGroups()
+        nativeFullScreen = NativeFullScreenActionStrategy(adapter: accessibility)
+        applicationIdentities = accessibility
+        self.appRules = appRules
+        self.profileLayouts = profileLayouts
         catalog = .builtIn
     }
 
@@ -81,7 +105,10 @@ public actor WindowActionEngine: WindowActionPerforming {
         history: any WindowHistoryManaging,
         cycles: any CycleGroupManaging,
         nativeFullScreen: any NativeFullScreenActionPerforming,
-        catalog: WindowActionCatalog = .builtIn
+        catalog: WindowActionCatalog = .builtIn,
+        applicationIdentities: any CapturedWindowApplicationIdentifying,
+        appRules: any AppRuleDeciding,
+        profileLayouts: any DisplayProfileLayoutResolving = DefaultDisplayProfileLayoutResolver()
     ) {
         self.focusedWindows = focusedWindows
         self.topology = topology
@@ -91,6 +118,9 @@ public actor WindowActionEngine: WindowActionPerforming {
         self.cycles = cycles
         self.nativeFullScreen = nativeFullScreen
         self.catalog = catalog
+        self.applicationIdentities = applicationIdentities
+        self.appRules = appRules
+        self.profileLayouts = profileLayouts
     }
 
     public func perform(_ intent: WindowIntent) async -> WindowActionResult {
@@ -144,12 +174,16 @@ public actor WindowActionEngine: WindowActionPerforming {
 
             let topology = topology
             let frames = frames
+            let applicationIdentities = applicationIdentities
+            let appRules = appRules
             if let capturedWindow {
                 bindingTask = Task {
                     await Self.captureBinding(
                         capturedWindow: capturedWindow,
                         topology: topology,
-                        frames: frames
+                        frames: frames,
+                        applicationIdentities: applicationIdentities,
+                        appRules: appRules
                     )
                 }
             } else {
@@ -158,7 +192,9 @@ public actor WindowActionEngine: WindowActionPerforming {
                     await Self.captureBinding(
                         focusedWindows: focusedWindows,
                         topology: topology,
-                        frames: frames
+                        frames: frames,
+                        applicationIdentities: applicationIdentities,
+                        appRules: appRules
                     )
                 }
             }
@@ -196,7 +232,7 @@ public actor WindowActionEngine: WindowActionPerforming {
         }
 
         let plan: PlacementPlan
-        switch compile(
+        switch await compile(
             definition: definition,
             binding: binding,
             targetDisplay: targetDisplay
@@ -241,6 +277,10 @@ public actor WindowActionEngine: WindowActionPerforming {
         await acquire(window: eligible.identity)
         defer { release(window: eligible.identity) }
 
+        guard await isIncluded(window: eligible.identity) else {
+            return .rejected(.applicationExcluded)
+        }
+
         if case .nativeFullScreen = definition.operation {
             let result = await nativeFullScreen.perform(on: eligible.identity)
             return mapNativeFullScreen(result)
@@ -272,7 +312,7 @@ public actor WindowActionEngine: WindowActionPerforming {
                 await cycles.discard(staging)
                 return .rejected(.unknownAction(staging.action))
             }
-            switch compile(definition: stagedDefinition, binding: binding) {
+            switch await compile(definition: stagedDefinition, binding: binding) {
             case .success(let plan):
                 return await execute(plan: plan, cycle: staging)
             case .failure(let failure):
@@ -281,7 +321,7 @@ public actor WindowActionEngine: WindowActionPerforming {
             }
 
         case .layout, .moveDisplay:
-            switch compile(definition: definition, binding: binding) {
+            switch await compile(definition: definition, binding: binding) {
             case .success(let plan):
                 return await execute(plan: plan, cycle: nil)
             case .failure(let failure):
@@ -301,6 +341,10 @@ public actor WindowActionEngine: WindowActionPerforming {
 
         await acquire(window: originalPlan.window)
         defer { release(window: originalPlan.window) }
+
+        guard await isIncluded(window: originalPlan.window) else {
+            return .rejected(.applicationExcluded)
+        }
 
         guard case let .available(freshTopology) = await topology.captureTopology(),
               freshTopology.generation == originalPlan.topology.generation else {
@@ -339,6 +383,10 @@ public actor WindowActionEngine: WindowActionPerforming {
 
         await acquire(window: eligible.identity)
         defer { release(window: eligible.identity) }
+
+        guard await isIncluded(window: eligible.identity) else {
+            return .rejected(.applicationExcluded)
+        }
 
         let binding: CapturedBinding
         switch await captureBinding(for: eligible) {
@@ -451,13 +499,13 @@ public actor WindowActionEngine: WindowActionPerforming {
         definition: WindowActionCatalog.Definition,
         binding: CapturedBinding,
         targetDisplay: DisplayID? = nil
-    ) -> Result<PlacementPlan, WindowActionFailure> {
+    ) async -> Result<PlacementPlan, WindowActionFailure> {
         guard definition.isEnabled else {
             return .failure(.actionDisabled(definition.id))
         }
 
         switch definition.operation {
-        case .layout(let region):
+        case let .layout(layoutID, region):
             let display: DisplaySnapshot?
             if let targetDisplay {
                 display = binding.topology.topology.displays.first(where: {
@@ -472,8 +520,19 @@ public actor WindowActionEngine: WindowActionPerforming {
             guard let display else {
                 return .failure(.displayUnavailable)
             }
+            let constraints: LayoutConstraints
+            switch await profileLayouts.decision(for: layoutID, on: display.id) {
+            case let .available(value):
+                constraints = value
+            case .layoutUnavailable:
+                return .failure(.actionDisabled(definition.id))
+            }
             do {
-                let layoutPlan = try layoutCalculator.plan(for: region, in: display)
+                let layoutPlan = try layoutCalculator.plan(
+                    for: region,
+                    in: display,
+                    constraints: constraints
+                )
                 return .success(
                     PlacementPlan(
                         window: binding.window,
@@ -563,7 +622,9 @@ public actor WindowActionEngine: WindowActionPerforming {
     private static func captureBinding(
         focusedWindows: any FocusedWindowProviding,
         topology: any WindowActionTopologyProviding,
-        frames: any CapturedWindowFrameProviding
+        frames: any CapturedWindowFrameProviding,
+        applicationIdentities: any CapturedWindowApplicationIdentifying,
+        appRules: any AppRuleDeciding
     ) async -> CapturedBindingResult {
         let eligible: EligibleWindow
         switch await focusedWindows.focusedWindow() {
@@ -574,6 +635,14 @@ public actor WindowActionEngine: WindowActionPerforming {
         case .unavailable(.noEligibleWindow), .unavailable(.temporarilyUnavailable),
                 .unavailable(.systemUnavailable):
             return .failed(.noFocusedWindow)
+        }
+
+        guard await isIncluded(
+            window: eligible.identity,
+            applicationIdentities: applicationIdentities,
+            appRules: appRules
+        ) else {
+            return .failed(.applicationExcluded)
         }
 
         guard case let .available(snapshot) = await topology.captureTopology() else {
@@ -599,8 +668,17 @@ public actor WindowActionEngine: WindowActionPerforming {
     private static func captureBinding(
         capturedWindow: WindowIdentity,
         topology: any WindowActionTopologyProviding,
-        frames: any CapturedWindowFrameProviding
+        frames: any CapturedWindowFrameProviding,
+        applicationIdentities: any CapturedWindowApplicationIdentifying,
+        appRules: any AppRuleDeciding
     ) async -> CapturedBindingResult {
+        guard await isIncluded(
+            window: capturedWindow,
+            applicationIdentities: applicationIdentities,
+            appRules: appRules
+        ) else {
+            return .failed(.applicationExcluded)
+        }
         guard case let .available(snapshot) = await topology.captureTopology() else {
             return .failed(.displayUnavailable)
         }
@@ -652,6 +730,23 @@ public actor WindowActionEngine: WindowActionPerforming {
                 .unavailable(.systemUnavailable):
             return .failure(.noFocusedWindow)
         }
+    }
+
+    private func isIncluded(window: WindowIdentity) async -> Bool {
+        await Self.isIncluded(
+            window: window,
+            applicationIdentities: applicationIdentities,
+            appRules: appRules
+        )
+    }
+
+    private static func isIncluded(
+        window: WindowIdentity,
+        applicationIdentities: any CapturedWindowApplicationIdentifying,
+        appRules: any AppRuleDeciding
+    ) async -> Bool {
+        let bundleIdentifier = await applicationIdentities.bundleIdentifier(for: window)
+        return await appRules.decision(for: bundleIdentifier) == .included
     }
 
     private func convert(

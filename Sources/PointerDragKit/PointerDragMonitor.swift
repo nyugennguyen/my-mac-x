@@ -3,6 +3,50 @@ import CoreFoundation
 import CoreGraphics
 import Foundation
 
+protocol PointerDragScheduledTimeout: Sendable {
+    func cancel()
+}
+
+protocol PointerDragReleaseTimeoutScheduling: Sendable {
+    func schedule(
+        afterMilliseconds: UInt64,
+        _ operation: @escaping @Sendable () -> Void
+    ) -> any PointerDragScheduledTimeout
+}
+
+final class TaskPointerDragReleaseTimeoutScheduler:
+    PointerDragReleaseTimeoutScheduling,
+    @unchecked Sendable
+{
+    func schedule(
+        afterMilliseconds: UInt64,
+        _ operation: @escaping @Sendable () -> Void
+    ) -> any PointerDragScheduledTimeout {
+        TaskPointerDragScheduledTimeout(
+            task: Task {
+                try? await Task.sleep(for: .milliseconds(afterMilliseconds))
+                guard !Task.isCancelled else { return }
+                operation()
+            }
+        )
+    }
+}
+
+private final class TaskPointerDragScheduledTimeout:
+    PointerDragScheduledTimeout,
+    @unchecked Sendable
+{
+    private let task: Task<Void, Never>
+
+    init(task: Task<Void, Never>) {
+        self.task = task
+    }
+
+    func cancel() {
+        task.cancel()
+    }
+}
+
 /// Compact pointer facts copied from the system callback.
 ///
 /// Locations use AppKit-compatible global logical coordinates from
@@ -75,6 +119,7 @@ actor PointerDragMonitor: PointerDragMonitoring {
     private struct PressSession: Sendable {
         enum Phase: Equatable, Sendable {
             case arming
+            case replaying
             case armed
             case dragging
         }
@@ -94,12 +139,13 @@ actor PointerDragMonitor: PointerDragMonitoring {
     private let pointerEvents: any PointerEventAdapting
     private let windowMovements: any PointerDragWindowMovementAdapting
     private let tracker: PointerDragTracker
+    private let releaseTimeoutScheduler: any PointerDragReleaseTimeoutScheduling
     private let continuation: AsyncStream<PointerDragEvent>.Continuation
 
     private var pointerTask: Task<Void, Never>?
     private var movementTask: Task<Void, Never>?
     private var armingTask: Task<PointerDragWindowObservationResult, Never>?
-    private var releaseTimeoutTask: Task<Void, Never>?
+    private var releaseTimeoutTask: (any PointerDragScheduledTimeout)?
     private var lifecycle = Lifecycle.stopped
     private var lifecycleEpoch: UInt64 = 0
     private var pressEpoch: UInt64 = 0
@@ -108,7 +154,9 @@ actor PointerDragMonitor: PointerDragMonitoring {
     init(
         pointerEvents: any PointerEventAdapting,
         windowMovements: any PointerDragWindowMovementAdapting,
-        tracker: PointerDragTracker = PointerDragTracker()
+        tracker: PointerDragTracker = PointerDragTracker(),
+        releaseTimeoutScheduler: any PointerDragReleaseTimeoutScheduling =
+            TaskPointerDragReleaseTimeoutScheduler()
     ) {
         let channel = AsyncStream.makeStream(
             of: PointerDragEvent.self,
@@ -119,6 +167,7 @@ actor PointerDragMonitor: PointerDragMonitoring {
         self.pointerEvents = pointerEvents
         self.windowMovements = windowMovements
         self.tracker = tracker
+        self.releaseTimeoutScheduler = releaseTimeoutScheduler
     }
 
     static func system() -> PointerDragMonitor {
@@ -314,10 +363,8 @@ actor PointerDragMonitor: PointerDragMonitoring {
         print("[NotchSnap] window observation → active")
 
         let interaction = InteractionID()
-        session.phase = .armed
+        session.phase = .replaying
         session.interaction = interaction
-        let bufferedSignals = session.bufferedSignals
-        session.bufferedSignals.removeAll(keepingCapacity: false)
         pressSession = session
         _ = await tracker.consume(
             .leftButtonPressed(
@@ -340,9 +387,25 @@ actor PointerDragMonitor: PointerDragMonitoring {
             }
         }
 
-        for signal in bufferedSignals {
-            guard pressSession?.epoch == inputPressEpoch else { return }
-            await consumePressSignal(signal, generation: generation)
+        while true {
+            guard var replaySession = pressSession,
+                  replaySession.epoch == inputPressEpoch,
+                  replaySession.generation == generation
+            else { return }
+            let bufferedSignals = replaySession.bufferedSignals
+            replaySession.bufferedSignals.removeAll(keepingCapacity: false)
+            if bufferedSignals.isEmpty {
+                if replaySession.phase == .replaying {
+                    replaySession.phase = .armed
+                    pressSession = replaySession
+                }
+                return
+            }
+            pressSession = replaySession
+            for signal in bufferedSignals {
+                guard pressSession?.epoch == inputPressEpoch else { return }
+                await consumeReadyPressSignal(signal, generation: generation)
+            }
         }
     }
 
@@ -388,11 +451,24 @@ actor PointerDragMonitor: PointerDragMonitoring {
               session.generation == inputGeneration
         else { return }
 
-        if session.phase == .arming {
+        if session.phase == .arming || session.phase == .replaying {
             session.bufferedSignals.append(signal)
             pressSession = session
             return
         }
+
+        await consumeReadyPressSignal(signal, generation: inputGeneration)
+    }
+
+    private func consumeReadyPressSignal(
+        _ signal: PointerPlatformSignal,
+        generation inputGeneration: UInt64
+    ) async {
+        guard case .active(let activeGeneration) = lifecycle,
+              activeGeneration == inputGeneration,
+              var session = pressSession,
+              session.generation == inputGeneration
+        else { return }
 
         switch signal {
         case .leftButtonDragged(let location):
@@ -434,13 +510,14 @@ actor PointerDragMonitor: PointerDragMonitoring {
 
     private func scheduleReleaseTimeout(for session: PressSession) {
         releaseTimeoutTask?.cancel()
-        releaseTimeoutTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(250))
-            guard !Task.isCancelled else { return }
-            await self?.expireReleasedPress(
-                generation: session.generation,
-                pressEpoch: session.epoch
-            )
+        releaseTimeoutTask = releaseTimeoutScheduler.schedule(afterMilliseconds: 250) {
+            [weak self] in
+            Task {
+                await self?.expireReleasedPress(
+                    generation: session.generation,
+                    pressEpoch: session.epoch
+                )
+            }
         }
     }
 

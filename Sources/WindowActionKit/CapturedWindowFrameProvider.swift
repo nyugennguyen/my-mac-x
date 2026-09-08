@@ -8,6 +8,11 @@ protocol CapturedWindowFrameProviding: Sendable {
     func currentFrame(window: WindowIdentity) async -> CapturedWindowFrameResult
 }
 
+/// Exact-identity seam for resolving the owning app without exposing window content.
+protocol CapturedWindowApplicationIdentifying: Sendable {
+    func bundleIdentifier(for window: WindowIdentity) async -> String?
+}
+
 /// Keeps inspection on the same actor-confined Accessibility Adapter that owns identity.
 struct AccessibilityCapturedWindowFrameAdapter: CapturedWindowFrameProviding {
     private let adapter: any AccessibilityWindowMutationAdapting

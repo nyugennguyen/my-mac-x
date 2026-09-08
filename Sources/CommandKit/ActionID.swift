@@ -26,4 +26,8 @@ public extension ActionID {
     static let cycleLeftEdge = Self(rawValue: "window.cycle-left-edge")
     static let leftThird = Self(rawValue: "window.left-third")
     static let leftTwoThirds = Self(rawValue: "window.left-two-thirds")
+
+    static let openSettings = Self(rawValue: "app.open-settings")
+    static let toggleGaps = Self(rawValue: "layout.toggle-gaps")
+    static let selectProfile = Self(rawValue: "profile.select")
 }

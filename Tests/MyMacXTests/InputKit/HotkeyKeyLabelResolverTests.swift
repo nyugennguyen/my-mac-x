@@ -4,6 +4,38 @@ import XCTest
 @testable import MyMacX
 
 final class HotkeyKeyLabelResolverTests: XCTestCase {
+    func testStableMacKeysResolveWithoutDependingOnTheCurrentKeyboardLayout() {
+        let source = FixtureSource(layout: .unavailable)
+        let resolver = MacOSHotkeyKeyLabelResolver(
+            sourceProvider: source,
+            translator: FixtureTranslator()
+        )
+
+        let expected: [UInt16: String] = [
+            0x24: "Return",
+            0x30: "Tab",
+            0x31: "Space",
+            0x33: "Delete",
+            0x35: "Escape",
+            0x4C: "Keypad Enter",
+            0x52: "Keypad 0",
+            0x73: "Home",
+            0x74: "Page Up",
+            0x75: "Forward Delete",
+            0x77: "End",
+            0x79: "Page Down",
+            0x7A: "F1",
+            0x6F: "F12",
+            0x7B: "Left Arrow",
+            0x7E: "Up Arrow",
+        ]
+
+        for (keyCode, label) in expected {
+            XCTAssertEqual(resolver.label(for: keyCode), label, "key code \(keyCode)")
+        }
+        XCTAssertEqual(source.lookupCount, 0)
+    }
+
     func testABCMappingResolvesLettersAndArrow() {
         let source = FixtureSource(layout: .abc)
         let resolver = MacOSHotkeyKeyLabelResolver(sourceProvider: source, translator: FixtureTranslator())
@@ -11,7 +43,7 @@ final class HotkeyKeyLabelResolverTests: XCTestCase {
         XCTAssertEqual(resolver.label(for: 0x00), "A")
         XCTAssertEqual(resolver.label(for: 0x06), "Z")
         XCTAssertEqual(resolver.label(for: 0x7B), "Left Arrow")
-        XCTAssertEqual(source.lookupCount, 3)
+        XCTAssertEqual(source.lookupCount, 2)
     }
 
     func testRepeatedLookupUsesOneSourceSnapshotAndCachesFailure() {

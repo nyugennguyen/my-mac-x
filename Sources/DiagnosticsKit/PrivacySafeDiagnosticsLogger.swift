@@ -63,6 +63,7 @@ public enum WindowActionFailure: Error, Equatable, Sendable {
     case noFocusedWindow
     case unknownAction(ActionID)
     case actionDisabled(ActionID)
+    case applicationExcluded
     case windowNotMovable
     case windowNotResizable
     case windowDisappeared
@@ -93,6 +94,7 @@ public enum DiagnosticsCode: String, Equatable, Sendable {
     case windowNoFocusedWindow = "window.no-focused-window"
     case windowUnknownAction = "window.unknown-action"
     case windowActionDisabled = "window.action-disabled"
+    case windowApplicationExcluded = "window.application-excluded"
     case windowNotMovable = "window.not-movable"
     case windowNotResizable = "window.not-resizable"
     case windowDisappeared = "window.disappeared"
@@ -168,6 +170,7 @@ private extension DiagnosticsFailure {
             case .noFocusedWindow: .windowNoFocusedWindow
             case .unknownAction: .windowUnknownAction
             case .actionDisabled: .windowActionDisabled
+            case .applicationExcluded: .windowApplicationExcluded
             case .windowNotMovable: .windowNotMovable
             case .windowNotResizable: .windowNotResizable
             case .windowDisappeared: .windowDisappeared

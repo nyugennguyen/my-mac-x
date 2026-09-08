@@ -1,5 +1,45 @@
+import AppKit
 import CoreGraphics
 import Foundation
+
+enum SnappingRuntimeTrigger: Equatable, Sendable {
+    case notch
+    case topCenter
+}
+
+struct SnappingRuntimeSettings: Equatable, Sendable {
+    var isEnabled: Bool
+    var trigger: SnappingRuntimeTrigger
+    var dwellMilliseconds: UInt32
+    var showsPlacementPreview: Bool
+    var usesReducedEffects: Bool
+
+    static let defaults = SnappingRuntimeSettings(
+        isEnabled: true,
+        trigger: .notch,
+        dwellMilliseconds: 150,
+        showsPlacementPreview: true,
+        usesReducedEffects: false
+    )
+}
+
+/// Hot-reload Settings seam. Composition reads one coherent snapshot per pointer event.
+@MainActor
+protocol SnappingRuntimeSettingsProviding: AnyObject {
+    func currentSnappingSettings() -> SnappingRuntimeSettings
+}
+
+/// Production Adapter backed by the application's canonical Settings runtime.
+@MainActor
+final class ProductionSnappingRuntimeSettingsAdapter: SnappingRuntimeSettingsProviding {
+    private let load: @MainActor () -> SnappingRuntimeSettings
+
+    init(load: @escaping @MainActor () -> SnappingRuntimeSettings) {
+        self.load = load
+    }
+
+    func currentSnappingSettings() -> SnappingRuntimeSettings { load() }
+}
 
 /// Wires the complete Notch Snap pipeline: pointer drag → notch trigger → dwell →
 /// cross-Display coordinator → overlay presentation → chooser selection → preview/commit.
@@ -27,6 +67,9 @@ final class CrossDisplayDragComposition {
     private let notchEngine = NotchTriggerEngine()
     private let dwellEngine: TriggerDwellEngine
     private let actionRegistry: ActionRegistry
+    private let snappingSettings: any SnappingRuntimeSettingsProviding
+    private let performance: ProductionPerformanceInstrumentation
+    private let previewPlanner = PlacementPreviewPlanner()
 
     private var coordinator = CrossDisplayDragCoordinator()
     private let chooserSize = CGSize(width: 360, height: 220)
@@ -46,15 +89,20 @@ final class CrossDisplayDragComposition {
         topologyObserving: any DisplayTopologyObserving,
         triggerEngine: TriggerDwellEngine,
         pointerMonitor: PointerDragMonitor? = nil,
-        actionRegistry: ActionRegistry = .builtIn
+        actionRegistry: ActionRegistry = .builtIn,
+        windowActions: WindowActionEngine = WindowActionEngine(),
+        snappingSettings: any SnappingRuntimeSettingsProviding =
+            ProductionSnappingRuntimeSettingsAdapter(load: { .defaults }),
+        performance: ProductionPerformanceInstrumentation = ProductionPerformanceInstrumentation()
     ) {
         self.overlay = overlay
         self.dwellEngine = triggerEngine
         self.actionRegistry = actionRegistry
+        self.snappingSettings = snappingSettings
+        self.performance = performance
 
-        let engine = WindowActionEngine()
-        self.windowActions = engine
-        self.stateMachine = SnapInteractionStateMachine(windowActions: engine)
+        self.windowActions = windowActions
+        self.stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
         self.pointerMonitor = pointerMonitor ?? PointerDragMonitor.system()
 
         // Wire chooser events from overlay → state machine
@@ -64,7 +112,8 @@ final class CrossDisplayDragComposition {
                 guard let self else { return }
                 switch event {
                 case .selectionChanged(let action):
-                    _ = await self.stateMachine.consume(.chooser(.selectionChanged(action: action)))
+                    let result = await self.stateMachine.consume(.chooser(.selectionChanged(action: action)))
+                    self.presentPreview(from: result)
                 case .confirmed(let action):
                     _ = await self.stateMachine.consume(.chooser(.confirmed(action: action)))
                 case .cancelled:
@@ -97,6 +146,7 @@ final class CrossDisplayDragComposition {
     }
 
     private func applyTopology(_ topology: DisplayTopologyState) {
+        performance.recordDisplayChange()
         currentTopology = topology
         if case .available(let versioned) = topology {
             currentTopologySnapshot = versioned.topology
@@ -108,20 +158,49 @@ final class CrossDisplayDragComposition {
     // MARK: - Pointer drag → notch trigger → dwell
 
     private func startPointerMonitor() {
-        pointerTask = Task { [weak self] in
-            guard let self else { return }
-            let status = await self.pointerMonitor.start()
+        let pointerMonitor = pointerMonitor
+        pointerTask = Task { [weak self, pointerMonitor] in
+            let status = await pointerMonitor.start()
             print("[NotchSnap] PointerDragMonitor.start() → \(status)")
             guard status == .active else { return }
-            let events = self.pointerMonitor.events
+            let events = pointerMonitor.events
             for await event in events {
                 guard !Task.isCancelled else { break }
+                guard let self else { break }
                 await self.handlePointerEvent(event)
             }
         }
     }
 
     private func handlePointerEvent(_ event: PointerDragEvent) async {
+        let settings = snappingSettings.currentSnappingSettings()
+        applyPresentationPolicy(settings)
+        if let configuration = try? TriggerDwellConfiguration(
+            dwellDuration: .milliseconds(settings.dwellMilliseconds)
+        ) {
+            await dwellEngine.updateConfiguration(configuration)
+        }
+
+        guard settings.isEnabled else {
+            if isDragging {
+                isDragging = false
+                await dwellEngine.update(.outside)
+                overlay.dismiss()
+                let interaction: InteractionID?
+                switch event {
+                case .began(let context), .moved(let context):
+                    interaction = context.interaction
+                case .released(let value), .cancelled(let value):
+                    interaction = value
+                }
+                if let interaction {
+                    _ = await stateMachine.consume(
+                        .pointer(.cancelled(interaction: interaction))
+                    )
+                }
+            }
+            return
+        }
         switch event {
         case .began(let context):
             print("[NotchSnap] drag → began")
@@ -142,7 +221,10 @@ final class CrossDisplayDragComposition {
                     pointerLocation: context.pointerLocation,
                     topology: snapshot
                 ) {
+                    let matchesConfiguredTrigger = settings.trigger == .topCenter
+                        || resolution.trigger.classification == .notch
                     let presence: TriggerDwellPresence = resolution.pointerIsInsideTrigger
+                        && matchesConfiguredTrigger
                         ? .inside(resolution.displayID)
                         : .outside
                     await dwellEngine.update(presence)
@@ -153,22 +235,41 @@ final class CrossDisplayDragComposition {
             isDragging = false
             await dwellEngine.update(.outside)
             _ = await stateMachine.consume(.pointer(.released(interaction: interaction)))
+            overlay.dismiss()
 
         case .cancelled(let interaction):
             isDragging = false
             await dwellEngine.update(.outside)
             _ = await stateMachine.consume(.pointer(.cancelled(interaction: interaction)))
+            overlay.dismiss()
         }
+    }
+
+    private func applyPresentationPolicy(_ settings: SnappingRuntimeSettings) {
+        let workspace = NSWorkspace.shared
+        overlay.updateAccessibilityPreferences(.init(
+            reduceMotion: settings.usesReducedEffects || workspace.accessibilityDisplayShouldReduceMotion,
+            reduceTransparency: settings.usesReducedEffects || workspace.accessibilityDisplayShouldReduceTransparency,
+            increaseContrast: workspace.accessibilityDisplayShouldIncreaseContrast
+        ))
+    }
+
+    private func presentPreview(from result: WindowActionResult?) {
+        guard snappingSettings.currentSnappingSettings().showsPlacementPreview,
+              let result,
+              case let .success(presentation) = previewPlanner.presentation(from: result)
+        else { return }
+        _ = overlay.showPreview(presentation)
     }
 
     // MARK: - Dwell events → overlay
 
     private func observeDwellEvents() {
-        stateTask = Task { [weak self] in
-            guard let self else { return }
-            let dwellEvents = self.dwellEngine.events
+        let dwellEvents = dwellEngine.events
+        stateTask = Task { [weak self, dwellEvents] in
             for await event in dwellEvents {
                 guard !Task.isCancelled else { break }
+                guard let self else { break }
                 _ = await self.stateMachine.consume(.trigger(event))
                 await self.handleTriggerEvent(event)
             }
@@ -184,7 +285,9 @@ final class CrossDisplayDragComposition {
                   let display = versioned.topology.displays.first(where: { $0.id == displayID })
             else { return }
 
-            let choices = actionRegistry.actions
+            var choices: [OverlayLayoutChoice] = []
+            _ = performance.measureOverlayPreviewCalculation {
+                choices = actionRegistry.actions
                 .filter {
                     $0.availability == .available
                         && Self.notchSnapActions.contains($0.id)
@@ -196,6 +299,7 @@ final class CrossDisplayDragComposition {
                         accessibilityLabel: descriptor.title
                     )
                 }
+            }
 
             let chooserFrame = CGRect(
                 x: display.notchTrigger.region.midX - chooserSize.width / 2,

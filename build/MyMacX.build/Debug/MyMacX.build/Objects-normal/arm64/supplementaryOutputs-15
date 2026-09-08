@@ -1,0 +1,30 @@
+{
+  "/Users/mac/Projects/mymac-x/Sources/AppShell/HotkeyRuntimeCoordinator.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyRuntimeCoordinator.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyRuntimeCoordinator.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyRuntimeCoordinator.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyRuntimeCoordinator.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyRuntimeCoordinator.swiftdeps"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/InputKit/HotkeyChordPresenter.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyChordPresenter.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyChordPresenter.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyChordPresenter.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyChordPresenter.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyChordPresenter.swiftdeps"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/InputKit/HotkeyRecorder.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyRecorder.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyRecorder.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyRecorder.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyRecorder.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/HotkeyRecorder.swiftdeps"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/InputKit/MacOSHotkeyKeyLabelResolver.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/MacOSHotkeyKeyLabelResolver.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/MacOSHotkeyKeyLabelResolver.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/MacOSHotkeyKeyLabelResolver.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/MacOSHotkeyKeyLabelResolver.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/MacOSHotkeyKeyLabelResolver.swiftdeps"
+  }
+}

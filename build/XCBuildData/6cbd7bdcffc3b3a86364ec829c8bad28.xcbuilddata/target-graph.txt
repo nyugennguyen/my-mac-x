@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'MyMacXTests' in project 'MyMacX'
+➜ Explicit dependency on target 'MyMacX' in project 'MyMacX'
+Target 'MyMacX' in project 'MyMacX' (no dependencies)

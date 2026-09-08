@@ -43,9 +43,19 @@ final class CrossDisplayDragCoordinatorTests: XCTestCase {
         }
         XCTAssertEqual(externalTarget.displayID, DisplayID(rawValue: 11))
         XCTAssertEqual(externalTarget.preview, externalPreview)
+        XCTAssertEqual(
+            externalTarget.chooserFrame,
+            CGRect(x: -1_180, y: 502, width: 360, height: 220),
+            "The chooser must stay centered below the external Display's top trigger"
+        )
         XCTAssertEqual(dismissing, externalTarget)
         XCTAssertEqual(presenting.displayID, DisplayID(rawValue: 22))
         XCTAssertNil(presenting.preview, "A preview belonging to the old Display must not move")
+        XCTAssertEqual(
+            presenting.chooserFrame,
+            CGRect(x: 320, y: 552, width: 360, height: 220),
+            "Each Display must derive the same anchor from its own trigger"
+        )
         assertContains(
             presenting.chooserFrame,
             inside: CGRect(x: 0, y: 25, width: 1_000, height: 775)
@@ -83,6 +93,95 @@ final class CrossDisplayDragCoordinatorTests: XCTestCase {
         XCTAssertNil(chooserOnly.preview)
         XCTAssertEqual(displayID, DisplayID(rawValue: 22))
         XCTAssertEqual(preview, targetPreview)
+    }
+
+    func testSelectionChangePreservesTheActivatedChooserFrameWhenContentSizeChanges() {
+        var coordinator = CrossDisplayDragCoordinator()
+        let topology = mixedScaleTopology(generation: 1)
+
+        let activation = coordinator.update(
+            trigger: triggerEvent(generation: 1, .activated(DisplayID(rawValue: 22))),
+            resolution: resolution(displayID: 22),
+            topology: topology,
+            chooserSize: CGSize(width: 360, height: 220),
+            preview: nil
+        )
+        let selectedRegionPreview = preview(
+            displayID: 22,
+            frame: CGRect(x: 500, y: 25, width: 500, height: 775)
+        )
+        let selectionChanged = coordinator.update(
+            trigger: nil,
+            resolution: resolution(displayID: 22),
+            topology: topology,
+            chooserSize: CGSize(width: 420, height: 248),
+            preview: selectedRegionPreview
+        )
+
+        guard case let .present(activatedTarget) = activation,
+              case let .updatePreview(displayID, updatedPreview) = selectionChanged
+        else {
+            return XCTFail("Selection must update only the preview, without moving the chooser")
+        }
+        XCTAssertEqual(displayID, DisplayID(rawValue: 22))
+        XCTAssertEqual(updatedPreview, selectedRegionPreview)
+        XCTAssertEqual(
+            activatedTarget.chooserFrame,
+            CGRect(x: 320, y: 552, width: 360, height: 220)
+        )
+    }
+
+    func testChooserAnchorClampsAtBothEdgesOfTheOwningDisplaysVisibleFrame() {
+        let visibleFrame = CGRect(x: -500, y: -175, width: 1_000, height: 775)
+        let leftTriggerDisplay = display(
+            id: 23,
+            frame: CGRect(x: -500, y: -200, width: 1_000, height: 800),
+            visibleFrame: visibleFrame,
+            scale: 2,
+            trigger: CGRect(x: -500, y: 584, width: 80, height: 16)
+        )
+        let rightTriggerDisplay = display(
+            id: 24,
+            frame: CGRect(x: -500, y: -200, width: 1_000, height: 800),
+            visibleFrame: visibleFrame,
+            scale: 2,
+            trigger: CGRect(x: 420, y: 584, width: 80, height: 16)
+        )
+
+        var leftCoordinator = CrossDisplayDragCoordinator()
+        let left = leftCoordinator.update(
+            trigger: triggerEvent(generation: 2, .activated(leftTriggerDisplay.id)),
+            resolution: resolution(displayID: 23),
+            topology: available(
+                generation: 2,
+                displays: [leftTriggerDisplay],
+                primary: leftTriggerDisplay.id
+            ),
+            chooserSize: CGSize(width: 360, height: 220),
+            preview: nil
+        )
+        var rightCoordinator = CrossDisplayDragCoordinator()
+        let right = rightCoordinator.update(
+            trigger: triggerEvent(generation: 3, .activated(rightTriggerDisplay.id)),
+            resolution: resolution(displayID: 24),
+            topology: available(
+                generation: 3,
+                displays: [rightTriggerDisplay],
+                primary: rightTriggerDisplay.id
+            ),
+            chooserSize: CGSize(width: 360, height: 220),
+            preview: nil
+        )
+
+        guard case let .present(leftTarget) = left,
+              case let .present(rightTarget) = right
+        else {
+            return XCTFail("Expected chooser presentations on both edge cases")
+        }
+        XCTAssertEqual(leftTarget.chooserFrame, CGRect(x: -500, y: 352, width: 360, height: 220))
+        XCTAssertEqual(rightTarget.chooserFrame, CGRect(x: 140, y: 352, width: 360, height: 220))
+        assertContains(leftTarget.chooserFrame, inside: visibleFrame)
+        assertContains(rightTarget.chooserFrame, inside: visibleFrame)
     }
 
     func testSharedBoundaryResolutionPresentsTheHalfOpenFrameOwner() throws {

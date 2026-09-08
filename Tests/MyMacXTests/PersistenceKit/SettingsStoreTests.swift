@@ -2,6 +2,27 @@ import XCTest
 @testable import MyMacX
 
 final class SettingsStoreTests: XCTestCase {
+    func testSaveAndLoadConfigurationAtomicallyPreservesAllSprint6Settings() async throws {
+        let documents = InMemorySettingsDocumentAdapter()
+        let store = SettingsStore(documents: documents, actionRegistry: .builtIn)
+        let identifier = try XCTUnwrap(ApplicationBundleIdentifier("com.example.Editor"))
+        let snapshot = ConfigurationSnapshot(
+            general: GeneralSettings(launchesAtLogin: true),
+            snapping: SnappingSettings(isEnabled: false, trigger: .topCenter, dwellMilliseconds: 275, showsPlacementPreview: false, usesReducedEffects: true),
+            hotkeySettings: HotkeySettings(bindings: [fixtureBinding]),
+            layouts: [LayoutDraft(id: "wide", name: "Wide", regions: [LayoutRegionDraft(id: LayoutRegionID(rawValue: "all"), normalizedFrame: CGRect(x: 0, y: 0, width: 1, height: 1))])],
+            displayProfiles: [try DisplayProfile(stableDisplayID: StableDisplayID(rawValue: "uuid:main"), gap: 8, layoutIDs: ["wide"])],
+            appRulePolicy: AppRulePolicy(unmatched: .included, rules: [AppRule(bundleIdentifier: identifier, decision: .excluded)])
+        )
+
+        let saveResult = await store.saveConfiguration(snapshot)
+        let loadResult = await store.loadConfiguration()
+        XCTAssertEqual(saveResult, .saved(schemaVersion: 3))
+        XCTAssertEqual(
+            loadResult,
+            .loaded(snapshot, origin: .persisted(schemaVersion: 3))
+        )
+    }
     func testMissingDocumentLoadsEmptyDefaultsWithoutWriting() async {
         let documents = InMemorySettingsDocumentAdapter()
         let store: any SettingsStoring = SettingsStore(
@@ -19,32 +40,76 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertNil(persistedDocument)
     }
 
-    func testSaveAndFreshStoreLoadPreserveExactBindingSnapshot() async {
+    func testSaveAndFreshStoreLoadPreservePrefixTimeoutAndCommandPaths() async {
         let documents = InMemorySettingsDocumentAdapter()
-        let settings = HotkeySettings(bindings: [fixtureBinding])
-        let store: any SettingsStoring = SettingsStore(documents: documents, actionRegistry: .builtIn)
+        let settings = HotkeySettings(
+            bindings: [fixtureBinding],
+            superModeConfiguration: fixtureConfiguration
+        )
+        let store: any SettingsStoring = SettingsStore(
+            documents: documents,
+            actionRegistry: .builtIn
+        )
 
         let saveResult = await store.save(settings)
-        XCTAssertEqual(saveResult, .saved(schemaVersion: 1))
+        XCTAssertEqual(saveResult, .saved(schemaVersion: 3))
 
-        let reloaded: any SettingsStoring = SettingsStore(documents: documents, actionRegistry: .builtIn)
+        let reloaded: any SettingsStoring = SettingsStore(
+            documents: documents,
+            actionRegistry: .builtIn
+        )
         let reloadedResult = await reloaded.load()
-        XCTAssertEqual(reloadedResult, .loaded(settings, origin: .persisted(schemaVersion: 1)))
+        XCTAssertEqual(
+            reloadedResult,
+            .loaded(settings, origin: .persisted(schemaVersion: 3))
+        )
     }
 
-    func testV0DocumentMigratesThenFreshStoreReportsV1Persistence() async {
+    func testV0DocumentMigratesToV2WithDefaultSuperModeConfiguration() async {
         let documents = InMemorySettingsDocumentAdapter(document: Data("""
         {"bindings":[{"id":"90E0D434-DA13-4DB4-8CB2-54E5A832D62B","keyCode":123,"modifiers":3,"actionID":"window.left-half"}]}
         """.utf8))
         let settings = HotkeySettings(bindings: [fixtureBinding])
-        let store: any SettingsStoring = SettingsStore(documents: documents, actionRegistry: .builtIn)
+        let store: any SettingsStoring = SettingsStore(
+            documents: documents,
+            actionRegistry: .builtIn
+        )
 
         let migratedResult = await store.load()
-        XCTAssertEqual(migratedResult, .loaded(settings, origin: .migrated(fromVersion: 0, toVersion: 1)))
+        XCTAssertEqual(
+            migratedResult,
+            .loaded(settings, origin: .migrated(fromVersion: 0, toVersion: 3))
+        )
 
-        let reloaded: any SettingsStoring = SettingsStore(documents: documents, actionRegistry: .builtIn)
+        let reloaded: any SettingsStoring = SettingsStore(
+            documents: documents,
+            actionRegistry: .builtIn
+        )
         let reloadedResult = await reloaded.load()
-        XCTAssertEqual(reloadedResult, .loaded(settings, origin: .persisted(schemaVersion: 1)))
+        XCTAssertEqual(
+            reloadedResult,
+            .loaded(settings, origin: .persisted(schemaVersion: 3))
+        )
+    }
+
+    func testV1DocumentMigratesToV2WithoutChangingHotkeys() async {
+        let documents = InMemorySettingsDocumentAdapter(document: Data("""
+        {"schemaVersion":1,"hotkeyBindings":[{"id":"90E0D434-DA13-4DB4-8CB2-54E5A832D62B","hardwareKeyCode":123,"modifiers":3,"actionID":"window.left-half"}]}
+        """.utf8))
+        let settings = HotkeySettings(bindings: [fixtureBinding])
+        let store: any SettingsStoring = SettingsStore(
+            documents: documents,
+            actionRegistry: .builtIn
+        )
+
+        let result = await store.load()
+        let replacementCallCount = await documents.replacementCallCount
+
+        XCTAssertEqual(
+            result,
+            .loaded(settings, origin: .migrated(fromVersion: 1, toVersion: 3))
+        )
+        XCTAssertEqual(replacementCallCount, 1)
     }
 
     func testMalformedDocumentQuarantinesThenAllowsSave() async {
@@ -54,7 +119,7 @@ final class SettingsStoreTests: XCTestCase {
         let loadResult = await store.load()
         XCTAssertEqual(loadResult, .loaded(HotkeySettings(bindings: []), origin: .defaults(reason: .corruptDocumentQuarantined)))
         let saveResult = await store.save(HotkeySettings(bindings: [fixtureBinding]))
-        XCTAssertEqual(saveResult, .saved(schemaVersion: 1))
+        XCTAssertEqual(saveResult, .saved(schemaVersion: 3))
     }
 
     func testUnquarantinableCorruptDocumentBlocksSave() async {
@@ -73,7 +138,7 @@ final class SettingsStoreTests: XCTestCase {
         let documents = InMemorySettingsDocumentAdapter()
         let initialStore: any SettingsStoring = SettingsStore(documents: documents, actionRegistry: .builtIn)
         let initialSaveResult = await initialStore.save(settings)
-        XCTAssertEqual(initialSaveResult, .saved(schemaVersion: 1))
+        XCTAssertEqual(initialSaveResult, .saved(schemaVersion: 3))
         await documents.setReplacementOutcome(.fails)
 
         let failedSaveResult = await initialStore.save(HotkeySettings(bindings: []))
@@ -81,7 +146,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let reloaded: any SettingsStoring = SettingsStore(documents: documents, actionRegistry: .builtIn)
         let reloadedResult = await reloaded.load()
-        XCTAssertEqual(reloadedResult, .loaded(settings, origin: .persisted(schemaVersion: 1)))
+        XCTAssertEqual(reloadedResult, .loaded(settings, origin: .persisted(schemaVersion: 3)))
     }
 
     func testUnsafePersistedBindingRecoversWithoutReturningIt() async {
@@ -108,11 +173,17 @@ final class SettingsStoreTests: XCTestCase {
         let store: any SettingsStoring = SettingsStore(documents: documents, actionRegistry: ActionRegistry(actions: [unavailable]))
 
         let loadResult = await store.load()
-        XCTAssertEqual(loadResult, .loaded(HotkeySettings(bindings: [binding]), origin: .persisted(schemaVersion: 1)))
+        XCTAssertEqual(
+            loadResult,
+            .loaded(
+                HotkeySettings(bindings: [binding]),
+                origin: .migrated(fromVersion: 1, toVersion: 3)
+            )
+        )
     }
 
     func testFutureVersionIsPreservedAndSaveIsBlocked() async {
-        let future = Data("{\"schemaVersion\":2,\"hotkeyBindings\":[]}".utf8)
+        let future = Data("{\"schemaVersion\":4,\"hotkeyBindings\":[]}".utf8)
         let documents = InMemorySettingsDocumentAdapter(document: future)
         let store: any SettingsStoring = SettingsStore(documents: documents, actionRegistry: .builtIn)
 
@@ -133,6 +204,20 @@ final class SettingsStoreTests: XCTestCase {
         let persistedDocument = await documents.document
         XCTAssertEqual(saveResult, .failed(.structurallyInvalid))
         XCTAssertNil(persistedDocument)
+    }
+
+    private var fixtureConfiguration: SuperModeConfiguration {
+        SuperModeConfiguration(
+            prefix: HotkeyChord(hardwareKeyCode: 49, modifiers: [.control, .option]),
+            timeoutMilliseconds: 1_750,
+            commandBindings: [
+                SuperModeCommandBinding(hardwareKeyCodes: [0], actionID: .maximize),
+                SuperModeCommandBinding(
+                    hardwareKeyCodes: [1, 2],
+                    actionID: .rightHalf
+                ),
+            ]
+        )
     }
 
     private var fixtureBinding: HotkeyBinding {

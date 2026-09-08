@@ -3,6 +3,35 @@ import XCTest
 @testable import MyMacX
 
 final class TriggerDwellEngineTests: XCTestCase {
+    func testUpdatedConfigurationAppliesToNextDwellWithoutRecreatingEngine() async throws {
+        let clock = ManualTriggerDwellClock()
+        let engine = TriggerDwellEngine(
+            configuration: try TriggerDwellConfiguration(dwellDuration: .milliseconds(120)),
+            clock: clock
+        )
+        let probe = TriggerDwellEventProbe()
+        await probe.start(events: await engine.events)
+        let first = DisplayID(rawValue: 91)
+        let second = DisplayID(rawValue: 92)
+
+        await engine.update(.inside(first))
+        await advanceRegisteredDwell(clock, by: .milliseconds(120))
+        await engine.update(.outside)
+        await clock.advance(by: TriggerDwellConfiguration.exitHysteresisDuration)
+        await engine.updateConfiguration(
+            try TriggerDwellConfiguration(dwellDuration: .milliseconds(180))
+        )
+        await engine.update(.inside(second))
+        await clock.advance(by: .milliseconds(179))
+        await assertEvents([.activated(first), .deactivated(first)], in: probe)
+        await clock.advance(by: .milliseconds(1))
+
+        await assertEvents(
+            [.activated(first), .deactivated(first), .activated(second)],
+            in: probe
+        )
+    }
+
     func testRepeatedInsideSamplesDoNotPostponeConfiguredDwell() async throws {
         let clock = ManualTriggerDwellClock()
         let engine = TriggerDwellEngine(

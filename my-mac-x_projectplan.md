@@ -1,7 +1,7 @@
 # My Mac X — Product, Design & Engineering Project Plan
 
-> Phiên bản kế hoạch: 1.0  
-> Ngày lập: 23/08/2026  
+> Phiên bản kế hoạch: 1.1
+> Ngày lập: 23/08/2026 · Cập nhật: 08/09/2026
 > Nền tảng: macOS native — Swift 6, AppKit + SwiftUI  
 > Trạng thái: Blueprint để bắt đầu discovery và implementation  
 > Phạm vi phát hành chính: Developer ID + Hardened Runtime + notarization
@@ -28,7 +28,7 @@ Các quyết định nền tảng:
 - Chỉ yêu cầu Accessibility; Input Monitoring chỉ được yêu cầu nếu runtime preflight chứng minh cấu hình event tap cần quyền này.
 - Minimum deployment target đề xuất: **macOS 14 Sonoma** để giảm ma trận QA. Spike kỹ thuật có thể đánh giá hạ xuống macOS 13 nếu cần mở rộng người dùng.
 - Tổng UI cần thiết kế: **16 surface chính + 4 dialog/toast hỗ trợ = 20 product surfaces**, tối thiểu **38 trạng thái** cần kiểm thử.
-- Tổng effort v1 dự kiến: **125–145 person-days**; khoảng **14–16 tuần** với hai luồng kỹ sư chính và sub-agents. Một technical MVP có thể đạt trong 10–12 tuần nếu scope được giữ chặt và có ba luồng agent song song.
+- Tổng effort v1 dự kiến: **145–170 person-days**; khoảng **16–18 tuần** với hai luồng kỹ sư chính và sub-agents. Một technical MVP có thể đạt trong 10–12 tuần; Sprint 7 dành riêng cho chất lượng UI/UX trước release.
 
 ### 1.1 Mốc phát hành
 
@@ -37,8 +37,9 @@ Các quyết định nền tảng:
 | Technical prototype | Resize app thật, hotkey PoC, overlay top-center | Cuối tuần 2 |
 | Internal alpha | Core layout, hotkey, menu bar, permission flow | Tuần 5–6 |
 | Feature-complete MVP | Notch Snap, Super Mode, Settings | Tuần 8–10 |
-| Signed beta | Hardened Runtime, notarized build, closed beta | Tuần 11–12 |
-| v1.0 | Hardening, release package, privacy docs | Tuần 14–16 |
+| Experience-complete beta | macOS-native UI/UX, refined Notch Snap và Settings | Tuần 11–12 |
+| Signed beta | Hardened Runtime, notarized build, closed beta | Tuần 13–14 |
+| v1.0 | Hardening, release package, privacy docs | Tuần 16–18 |
 | Post-v1 R&D | Spaces/Desktop, tiling nhiều cửa sổ | Sau v1.0 |
 
 ---
@@ -903,26 +904,45 @@ Estimate dùng **person-day (PD)**. Model code tham chiếu mục 7.1.
 
 **Gate G6:** public beta: Settings đầy đủ, config backup được, UI có keyboard/VoiceOver path.
 
-### Phase 7 / Sprint 7 — QA, security và release
+### Phase 7 / Sprint 7 — macOS-native UI/UX refinement
 
 | ID | Task | Output / Acceptance | Est. | Dependency | Model |
 |---|---|---|---:|---|---|
-| R7-01 | Regression suite + hardware matrix | Automated + manual report đầy đủ | 4 PD | G6 | TERRA-H |
-| R7-02 | Permission/TCC lifecycle matrix | Fresh/deny/grant/revoke/update pass | 3 PD | F1-03, G6 | SOL-H |
-| R7-03 | Event/AX privacy-security review | Call sites, logs, entitlements, data inventory pass | 3 PD | P0-07, G6 | SOL-XH |
-| R7-04 | Soak/performance | 8h soak, 500 actions, attach/detach stable | 4 PD | G6 | SOL-H |
-| R7-05 | Beta crash/hang/race triage buffer | Fix toàn bộ P0/P1 | 5–8 PD | R7-01…04 | SOL-H/XH |
-| R7-06 | Hardened Runtime + minimal entitlements | Release archive pass security checks | 2 PD | R7-03 | SOL-H |
-| R7-07 | Developer ID signing/notarization/staple | Gatekeeper pass trên máy sạch | 3 PD | R7-06 | TERRA-H + SOL review |
-| R7-08 | DMG/ZIP + checksum | Immutable versioned artifact | 2 PD | R7-07 | TERRA-M |
-| R7-09 | Updater/manual-update + rollback | Config preserved; signature/rollback verified | 3 PD | R7-07…08 | SOL-H |
-| R7-10 | Privacy policy, FAQ, release notes | Giải thích permission/data rõ ràng | 2 PD | R7-03 | LUNA-L |
-| R7-11 | Clean install/upgrade smoke test | Signed build chạy trên clean machine | 2 PD | R7-07…10 | TERRA-H |
-| R7-12 | Go/No-Go review | Test report, known limits, rollback package | 1 PD | R7-01…11 | SOL-H |
+| X7-01 | Audit toàn bộ trải nghiệm | Danh sách P0–P2 có screenshot và expected behavior cho mọi surface | 2 PD | G6 | TERRA-H |
+| X7-02 | Visual system native macOS | Token semantic và state control nhất quán, không one-off decoration | 3 PD | X7-01 | TERRA-H |
+| X7-03 | Refine Layout Chooser | Appearance, hierarchy, density và states được duyệt ở Light/Dark | 4 PD | N4-04…06, X7-02 | TERRA-H |
+| X7-04 | Sửa vị trí control khi drag | Gần pointer, không jump/che preview/notch/window, đúng multi-display | 4 PD | X7-03, N4-07…08 | TERRA-H + SOL review |
+| X7-05 | Preview + motion polish | Quan hệ chooser/preview rõ, transition ổn định, reduced effects pass | 2 PD | X7-03…04 | TERRA-H |
+| X7-06 | Hotkey label dễ hiểu | Hiển thị glyph + tên phím localized; UI không lộ bare key code | 3 PD | H3-03, U6-03 | TERRA-H |
+| X7-07 | Settings hierarchy/control placement | Group/alignment/action placement nhất quán, không clip ở min size | 3 PD | X7-01…02 | TERRA-H |
+| X7-08 | Remaining surfaces consistency pass | Menu bar, Super HUD, onboarding, toast dùng cùng visual language | 2 PD | X7-01…02 | TERRA-H |
+| X7-09 | Accessibility/appearance matrix | Keyboard, VoiceOver, contrast, motion, transparency pass | 3 PD | X7-03…08 | TERRA-M |
+| X7-10 | Visual regression + usability test | Snapshot duyệt; real-pointer notch/non-notch; 5 user tasks không cần hướng dẫn | 3 PD | X7-03…09 | TERRA-H |
 
-**Gate G7:** v1.0 signed/notarized, không P0/P1, rollback sẵn sàng.
+**Gate G7:** experience-complete beta; không còn P0/P1 UI/UX, Notch Snap mượt trên máy thật, và Hotkey Settings không hiển thị số mã phím khó hiểu.
 
-### Phase 8 — Post-v1 R&D
+Tracker chi tiết: [docs/sprint-7/README.md](./docs/sprint-7/README.md).
+
+### Phase 8 / Sprint 8 — QA, security và release
+
+| ID | Task | Output / Acceptance | Est. | Dependency | Model |
+|---|---|---|---:|---|---|
+| R8-01 | Regression suite + hardware matrix | Automated + manual report đầy đủ | 4 PD | G7 | TERRA-H |
+| R8-02 | Permission/TCC lifecycle matrix | Fresh/deny/grant/revoke/update pass | 3 PD | F1-03, G7 | SOL-H |
+| R8-03 | Event/AX privacy-security review | Call sites, logs, entitlements, data inventory pass | 3 PD | P0-07, G7 | SOL-XH |
+| R8-04 | Soak/performance | 8h soak, 500 actions, attach/detach stable | 4 PD | G7 | SOL-H |
+| R8-05 | Beta crash/hang/race triage buffer | Fix toàn bộ P0/P1 | 5–8 PD | R8-01…04 | SOL-H/XH |
+| R8-06 | Hardened Runtime + minimal entitlements | Release archive pass security checks | 2 PD | R8-03 | SOL-H |
+| R8-07 | Developer ID signing/notarization/staple | Gatekeeper pass trên máy sạch | 3 PD | R8-06 | TERRA-H + SOL review |
+| R8-08 | DMG/ZIP + checksum | Immutable versioned artifact | 2 PD | R8-07 | TERRA-M |
+| R8-09 | Updater/manual-update + rollback | Config preserved; signature/rollback verified | 3 PD | R8-07…08 | SOL-H |
+| R8-10 | Privacy policy, FAQ, release notes | Giải thích permission/data rõ ràng | 2 PD | R8-03 | LUNA-L |
+| R8-11 | Clean install/upgrade smoke test | Signed build chạy trên clean machine | 2 PD | R8-07…10 | TERRA-H |
+| R8-12 | Go/No-Go review | Test report, known limits, rollback package | 1 PD | R8-01…11 | SOL-H |
+
+**Gate G8:** v1.0 signed/notarized, không P0/P1, rollback sẵn sàng.
+
+### Phase 9 — Post-v1 R&D
 
 | ID | Task | Output / Acceptance | Est. | Dependency | Model |
 |---|---|---|---:|---|---|
@@ -946,7 +966,8 @@ Estimate dùng **person-day (PD)**. Model code tham chiếu mục 7.1.
 | Sprint 4 | 2 tuần | G4 — Notch Snap alpha |
 | Sprint 5 | 2 tuần | G5 — Super Mode beta |
 | Sprint 6 | 2 tuần | G6 — Settings/public beta |
-| Sprint 7 | 2 tuần | G7 — release v1 |
+| Sprint 7 | 2 tuần | G7 — macOS-native experience beta |
+| Sprint 8 | 2 tuần | G8 — release v1 |
 
 ### 9.2 Luồng agent theo tuần
 
@@ -958,8 +979,9 @@ Estimate dùng **person-day (PD)**. Model code tham chiếu mục 7.1.
 | 5–6 | Special windows/full-screen | Drag overlay/preview | Multi-display tests | End-to-end alpha gate |
 | 7–8 | Event Tap/input safety review | Super Mode/HUD | Input/state tests | G5 integration |
 | 9–10 | App rules/diagnostics | Settings/editor/polish | UI/accessibility QA | Schema freeze, beta |
-| 11–12 | Performance/bug fixes | Bug fixes | Signing/notarization/soak | RC decision |
-| 13–16 | Compatibility/beta fixes | UX polish | Regression/release | Go/No-Go + v1 |
+| 11–12 | Interaction support | Notch/Settings/UI refinement | Visual/accessibility/usability QA | Experience gate |
+| 13–14 | Performance/bug fixes | Bug fixes | Signing/notarization/soak | RC decision |
+| 15–18 | Compatibility/beta fixes | Final UX fixes | Regression/release | Go/No-Go + v1 |
 
 ### 9.3 Critical path
 
@@ -972,12 +994,13 @@ flowchart LR
     H3 --> S5[Super Mode]
     N4 --> U6[Settings + Polish]
     S5 --> U6
-    U6 --> Q7[Regression + Security]
-    Q7 --> SIGN[Sign + Notarize]
+    U6 --> X7[macOS-native UX refinement]
+    X7 --> Q8[Regression + Security]
+    Q8 --> SIGN[Sign + Notarize]
     SIGN --> V1[v1.0]
 ```
 
-Critical path lớn nhất: `P0-03/P0-05 → F1-04/F1-05 → W2-02/W2-03 → N4-01/N4-07 → U6-11 → R7`.
+Critical path lớn nhất: `P0-03/P0-05 → F1-04/F1-05 → W2-02/W2-03 → N4-01/N4-07 → U6-11 → X7-04/X7-10 → R8`.
 
 ---
 

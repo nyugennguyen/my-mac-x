@@ -5,6 +5,135 @@ import XCTest
 
 @MainActor
 final class OverlayCoordinatorTests: XCTestCase {
+    func testActiveChooserKeyboardAdapterRoutesArrowReturnAndEscapeWithoutRetainingRawInput() async {
+        let renderer = RecordingOverlayRenderer()
+        let events = OverlayChooserEventRecorder()
+        let coordinator = OverlayCoordinator(renderer: renderer, onEvent: events.record)
+        let keyboard = LayoutChooserKeyboardInputAdapter()
+        coordinator.installKeyboardInputAdapter(keyboard)
+        _ = coordinator.presentChooser(chooserPresentation())
+
+        XCTAssertEqual(keyboard.handle(keyDown(124)), .consume)
+        await eventually { renderer.chooserModels.last?.selectedAction == .leftHalf }
+        XCTAssertEqual(keyboard.handle(keyDown(36)), .consume)
+        await eventually { renderer.dismissCount == 1 }
+        XCTAssertEqual(
+            events.events,
+            [.selectionChanged(action: .leftHalf), .confirmed(action: .leftHalf)]
+        )
+
+        _ = coordinator.presentChooser(chooserPresentation(initialSelection: .rightHalf))
+        XCTAssertEqual(keyboard.handle(keyDown(53)), .consume)
+        await eventually { renderer.dismissCount == 2 }
+        XCTAssertEqual(events.events.last, .cancelled)
+
+        XCTAssertFalse(keyboard.isAcceptingInput)
+        XCTAssertEqual(keyboard.handle(keyDown(0)), .passThrough)
+    }
+
+    func testChooserKeyboardAdapterRoutesEveryArrowInVisualDirections() async {
+        let renderer = RecordingOverlayRenderer()
+        let coordinator = OverlayCoordinator(renderer: renderer)
+        let keyboard = LayoutChooserKeyboardInputAdapter()
+        coordinator.installKeyboardInputAdapter(keyboard)
+        _ = coordinator.presentChooser(
+            chooserPresentation(
+                choices: [
+                    choice(.maximize), choice(.leftHalf), choice(.rightHalf),
+                    choice(.topHalf), choice(.bottomHalf), choice(.topLeftQuarter),
+                ],
+                columnCount: 3,
+                initialSelection: .bottomHalf
+            )
+        )
+
+        XCTAssertEqual(keyboard.handle(keyDown(123)), .consume)
+        await eventually { renderer.chooserModels.last?.selectedAction == .topHalf }
+        XCTAssertEqual(keyboard.handle(keyDown(126)), .consume)
+        await eventually { renderer.chooserModels.last?.selectedAction == .maximize }
+        XCTAssertEqual(keyboard.handle(keyDown(124)), .consume)
+        await eventually { renderer.chooserModels.last?.selectedAction == .leftHalf }
+        XCTAssertEqual(keyboard.handle(keyDown(125)), .consume)
+        await eventually { renderer.chooserModels.last?.selectedAction == .bottomHalf }
+    }
+
+    func testChooserKeyboardAdapterPassesUnrelatedModifiedAndNonKeyDownInputThrough() {
+        let coordinator = OverlayCoordinator(renderer: RecordingOverlayRenderer())
+        let keyboard = LayoutChooserKeyboardInputAdapter()
+        coordinator.installKeyboardInputAdapter(keyboard)
+        _ = coordinator.presentChooser(chooserPresentation())
+
+        XCTAssertEqual(keyboard.handle(keyDown(0)), .passThrough)
+        XCTAssertEqual(
+            keyboard.handle(keyDown(124, modifiers: CGEventFlags.maskCommand.rawValue)),
+            .passThrough
+        )
+        XCTAssertEqual(
+            keyboard.handle(
+                .key(
+                    EventTapKeySignal(
+                        kind: .keyUp,
+                        hardwareKeyCode: 124,
+                        modifierFlags: 0,
+                        isRepeat: false
+                    )
+                )
+            ),
+            .passThrough
+        )
+        XCTAssertEqual(keyboard.handle(.disabledByTimeout), .passThrough)
+        XCTAssertTrue(keyboard.isAcceptingInput)
+    }
+
+    func testChooserUsesCompactMacOSNativeVisualSystem() {
+        let renderer = RecordingOverlayRenderer()
+        let coordinator = OverlayCoordinator(renderer: renderer)
+
+        _ = coordinator.presentChooser(chooserPresentation())
+
+        let style = try! XCTUnwrap(renderer.chooserModels.last?.visualStyle)
+        XCTAssertEqual(style.cornerRadius, 16)
+        XCTAssertEqual(style.contentPadding, 14)
+        XCTAssertEqual(style.itemSpacing, 8)
+        XCTAssertEqual(style.minimumTargetSize, CGSize(width: 64, height: 52))
+        XCTAssertTrue(style.showsOnlySelectedTitle)
+        XCTAssertTrue(style.usesLayoutGlyphs)
+    }
+
+    func testPointerHitTestingUsesTheSameContentPaddingAsTheRenderedChooser() {
+        let renderer = RecordingOverlayRenderer()
+        let coordinator = OverlayCoordinator(renderer: renderer)
+        let panel = CGRect(x: 100, y: 100, width: 360, height: 220)
+        _ = coordinator.presentChooser(chooserPresentation(panelFrame: panel))
+
+        XCTAssertEqual(
+            coordinator.trackPointer(at: CGPoint(x: panel.minX + 13, y: panel.midY)),
+            .insideChooser(displayID: DisplayID(rawValue: 1), action: nil)
+        )
+        XCTAssertEqual(
+            coordinator.trackPointer(at: CGPoint(x: panel.minX + 15, y: panel.maxY - 15)),
+            .insideChooser(displayID: DisplayID(rawValue: 1), action: .maximize)
+        )
+    }
+
+    func testRuntimePreferenceUpdateRedrawsVisibleChooserAndAppliesToNextPreview() {
+        let renderer = RecordingOverlayRenderer()
+        let coordinator = OverlayCoordinator(renderer: renderer)
+        _ = coordinator.presentChooser(chooserPresentation())
+
+        coordinator.updateAccessibilityPreferences(.init(
+            reduceMotion: true,
+            reduceTransparency: true
+        ))
+        _ = coordinator.showPreview(previewPresentation())
+
+        XCTAssertEqual(renderer.chooserModels.count, 2)
+        XCTAssertEqual(renderer.chooserModels.last?.presentationPolicy.motion, .immediate)
+        XCTAssertEqual(renderer.chooserModels.last?.presentationPolicy.background, .opaque)
+        XCTAssertEqual(renderer.previewModels.last?.presentationPolicy.motion, .immediate)
+        XCTAssertEqual(renderer.previewModels.last?.presentationPolicy.background, .opaque)
+    }
+
     func testOverlayPresentationPanelIsNonActivatingAndExcludedFromNormalWindowCycling() {
         let panel = OverlayPresentationPanel()
 
@@ -324,4 +453,31 @@ private func choice(_ action: ActionID) -> OverlayLayoutChoice {
         title: action.rawValue,
         accessibilityLabel: action.rawValue
     )
+}
+
+private func keyDown(
+    _ hardwareKeyCode: UInt16,
+    modifiers: UInt64 = 0,
+    isRepeat: Bool = false
+) -> EventTapSignal {
+    .key(
+        EventTapKeySignal(
+            kind: .keyDown,
+            hardwareKeyCode: hardwareKeyCode,
+            modifierFlags: modifiers,
+            isRepeat: isRepeat
+        )
+    )
+}
+
+@MainActor
+private func eventually(
+    timeout: Duration = .seconds(1),
+    condition: @escaping @MainActor () -> Bool
+) async {
+    let clock = ContinuousClock()
+    let deadline = clock.now.advanced(by: timeout)
+    while !condition(), clock.now < deadline {
+        await Task.yield()
+    }
 }

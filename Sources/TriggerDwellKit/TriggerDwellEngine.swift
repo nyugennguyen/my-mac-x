@@ -82,7 +82,7 @@ actor TriggerDwellEngine {
         case leaving(displayID: DisplayID)
     }
 
-    private let configuration: TriggerDwellConfiguration
+    private var configuration: TriggerDwellConfiguration
     private let clock: any TriggerDwellClock
     private let continuation: AsyncStream<TriggerDwellEvent>.Continuation
 
@@ -149,6 +149,12 @@ actor TriggerDwellEngine {
                 }
             }
         }
+    }
+
+    /// Applies the latest Settings value without restarting the input pipeline. A dwell already
+    /// in progress keeps the deadline captured when it began; the next entry uses this value.
+    func updateConfiguration(_ configuration: TriggerDwellConfiguration) {
+        self.configuration = configuration
     }
 
     private func beginDwell(for displayID: DisplayID) async {

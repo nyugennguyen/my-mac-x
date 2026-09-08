@@ -136,9 +136,11 @@ final class PointerDragTrackerTests: XCTestCase {
         let windowMovements = GatedPointerDragWindowMovementAdapter(window: capturedWindow)
         let monitor = PointerDragMonitor(
             pointerEvents: pointerEvents,
-            windowMovements: windowMovements
+            windowMovements: windowMovements,
+            releaseTimeoutScheduler: ManualPointerDragReleaseTimeoutScheduler()
         )
         let events = await monitor.events
+        let recorder = PointerDragEventRecorder(events: events)
 
         let started = await monitor.start()
         XCTAssertEqual(started, .active)
@@ -149,7 +151,7 @@ final class PointerDragTrackerTests: XCTestCase {
         await windowMovements.sendMovement()
         await windowMovements.releaseObservation()
 
-        let observed = try await firstPointerDragEvents(count: 2, from: events)
+        let observed = try await recorder.waitForCount(2)
         guard case let .began(context) = observed[0] else {
             return XCTFail("Expected a verified drag before release")
         }
@@ -206,9 +208,11 @@ final class PointerDragTrackerTests: XCTestCase {
         )
         let monitor = PointerDragMonitor(
             pointerEvents: pointerEvents,
-            windowMovements: windowMovements
+            windowMovements: windowMovements,
+            releaseTimeoutScheduler: ManualPointerDragReleaseTimeoutScheduler()
         )
         let events = await monitor.events
+        let recorder = PointerDragEventRecorder(events: events)
 
         _ = await monitor.start()
 
@@ -222,7 +226,13 @@ final class PointerDragTrackerTests: XCTestCase {
         await windowMovements.sendMovement(at: 0)
         await windowMovements.releaseObservation(at: 0)
 
-        let replayed = try await firstPointerDragEvents(count: 2, from: events)
+        let replayed: [PointerDragEvent]
+        do {
+            replayed = try await recorder.waitForCount(2)
+        } catch {
+            XCTFail("First replay did not publish: \(error)")
+            throw error
+        }
         guard case let .began(firstContext) = replayed[0] else {
             return XCTFail("Expected replayed began from first press")
         }
@@ -236,7 +246,13 @@ final class PointerDragTrackerTests: XCTestCase {
         await windowMovements.sendMovement(at: 1)
         await windowMovements.releaseObservation(at: 1)
 
-        let secondEvent = try await firstPointerDragEvent(from: events)
+        let secondEvent: PointerDragEvent
+        do {
+            secondEvent = try await recorder.waitForCount(3)[2]
+        } catch {
+            XCTFail("Second press did not publish: \(error)")
+            throw error
+        }
         guard case let .began(secondContext) = secondEvent else {
             return XCTFail("Expected the second press to begin dragging")
         }
@@ -420,6 +436,78 @@ private actor GatedPointerDragWindowMovementAdapter: PointerDragWindowMovementAd
     func releaseObservation() {
         observationContinuation?.resume()
         observationContinuation = nil
+    }
+}
+
+private final class ManualPointerDragReleaseTimeoutScheduler:
+    PointerDragReleaseTimeoutScheduling,
+    @unchecked Sendable
+{
+    func schedule(
+        afterMilliseconds _: UInt64,
+        _ operation: @escaping @Sendable () -> Void
+    ) -> any PointerDragScheduledTimeout {
+        ManualPointerDragScheduledTimeout(operation: operation)
+    }
+}
+
+private final class ManualPointerDragScheduledTimeout:
+    PointerDragScheduledTimeout,
+    @unchecked Sendable
+{
+    private let operation: @Sendable () -> Void
+    private var isCancelled = false
+    private let lock = NSLock()
+
+    init(operation: @escaping @Sendable () -> Void) {
+        self.operation = operation
+    }
+
+    func cancel() {
+        lock.withLock { isCancelled = true }
+    }
+
+    func fire() {
+        let shouldFire = lock.withLock { !isCancelled }
+        if shouldFire { operation() }
+    }
+}
+
+private final class PointerDragEventRecorder: @unchecked Sendable {
+    private final class Storage: @unchecked Sendable {
+        let lock = NSLock()
+        var events: [PointerDragEvent] = []
+    }
+
+    private let storage = Storage()
+    private let task: Task<Void, Never>
+
+    init(events: AsyncStream<PointerDragEvent>) {
+        let storage = storage
+        task = Task {
+            for await event in events {
+                guard !Task.isCancelled else { return }
+                storage.lock.withLock { storage.events.append(event) }
+            }
+        }
+    }
+
+    deinit {
+        task.cancel()
+    }
+
+    func waitForCount(
+        _ count: Int,
+        within duration: Duration = .seconds(1)
+    ) async throws -> [PointerDragEvent] {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: duration)
+        while true {
+            let recorded = storage.lock.withLock { storage.events }
+            if recorded.count >= count { return recorded }
+            if clock.now >= deadline { throw PointerDragMonitorTestFailure.timedOut }
+            try await Task.sleep(for: .milliseconds(1))
+        }
     }
 }
 

@@ -9,7 +9,8 @@ import CoreFoundation
 actor SystemWindowAdapter: AccessibilityWindowAdapting,
         AccessibilityWindowMutationAdapting,
         NativeFullScreenAccessibilityAdapting,
-        PointerDragWindowMovementAdapting {
+        PointerDragWindowMovementAdapting,
+        CapturedWindowApplicationIdentifying {
     /// Bounds every synchronous public AX message made by this Adapter.
     static let messagingTimeoutSeconds: Float = 1
     static let shared = SystemWindowAdapter()
@@ -260,6 +261,18 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
                 )
             )
         )
+    }
+
+    /// Resolves only the owning bundle identifier for the exact cached window identity.
+    /// Both APIs used here are public; no title or document metadata is read.
+    func bundleIdentifier(for identity: WindowIdentity) -> String? {
+        guard let window = identityCache.element(for: identity) else { return nil }
+
+        var processID: pid_t = 0
+        guard AXUIElementGetPid(window, &processID) == .success, processID > 0 else {
+            return nil
+        }
+        return NSRunningApplication(processIdentifier: processID)?.bundleIdentifier
     }
 
     func writeFrame(

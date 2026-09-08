@@ -20,6 +20,10 @@ _Avoid_: Current window, target app
 A physical screen available to macOS.
 _Avoid_: Desktop, monitor space
 
+**Stable Display ID**:
+A reconnect-stable identifier used to bind a Display Profile to the same physical Display across topology changes. It is distinct from the transient `DisplayID` used by one runtime topology snapshot.
+_Avoid_: DisplayID, screen index
+
 **Space**:
 A macOS virtual workspace managed through Mission Control.
 _Avoid_: Display, screen, Desktop when referring to hardware
@@ -89,4 +93,3 @@ _Avoid_: Leader mode, command mode
 **Prefix**:
 The configurable key combination that arms Super Mode for a bounded time.
 _Avoid_: Super key, leader key
-

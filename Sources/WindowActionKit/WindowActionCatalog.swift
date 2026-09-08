@@ -2,7 +2,7 @@ import CoreGraphics
 
 struct WindowActionCatalog: Sendable {
     enum Operation: Sendable {
-        case layout(LayoutRegion)
+        case layout(layoutID: String, region: LayoutRegion)
         case moveDisplay(DisplayMoveDirection)
         case restore
         case cycle(CycleGroup)
@@ -31,7 +31,7 @@ struct WindowActionCatalog: Sendable {
     static let builtIn: Self = {
         var definitions: [Definition] = Layout.builtIn.regions.compactMap { region in
             guard let action = placementAction(for: region.id) else { return nil }
-            return Definition(id: action, operation: .layout(region))
+            return Definition(id: action, operation: .layout(layoutID: Layout.builtIn.id, region: region))
         }
 
         let leftThird = try! LayoutRegion(
@@ -44,8 +44,8 @@ struct WindowActionCatalog: Sendable {
         )
         let leftThirdID = ActionID(rawValue: "window.left-third")
         let leftTwoThirdsID = ActionID(rawValue: "window.left-two-thirds")
-        definitions.append(Definition(id: leftThirdID, operation: .layout(leftThird)))
-        definitions.append(Definition(id: leftTwoThirdsID, operation: .layout(leftTwoThirds)))
+        definitions.append(Definition(id: leftThirdID, operation: .layout(layoutID: Layout.builtIn.id, region: leftThird)))
+        definitions.append(Definition(id: leftTwoThirdsID, operation: .layout(layoutID: Layout.builtIn.id, region: leftTwoThirds)))
         definitions.append(
             Definition(
                 id: .moveDisplayNext,

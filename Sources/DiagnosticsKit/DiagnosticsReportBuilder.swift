@@ -1,0 +1,100 @@
+import Foundation
+
+public enum PermissionDiagnosticsStatus: String, Codable, Equatable, Sendable {
+    case notRequested = "not-requested"
+    case denied
+    case granted
+}
+
+public enum EventTapDiagnosticsStatus: String, Codable, Equatable, Sendable {
+    case stopped
+    case active
+    case recovering
+    case unavailable
+}
+
+public enum AppDiagnosticsStatus: String, Codable, Equatable, Sendable {
+    case starting
+    case ready
+    case limited
+}
+
+/// A content-free numeric version. Free-form platform or application strings are intentionally
+/// excluded from diagnostics input so they cannot smuggle user or machine data into a report.
+public struct DiagnosticsVersion: Codable, Equatable, Sendable {
+    public let major: UInt
+    public let minor: UInt
+    public let patch: UInt
+
+    public init(major: UInt, minor: UInt, patch: UInt) {
+        self.major = major
+        self.minor = minor
+        self.patch = patch
+    }
+}
+
+/// The complete typed input accepted by the diagnostics report Module.
+///
+/// It deliberately has no host name, user name, hardware identifier, bundle identifier, window
+/// identity, title, document text, input event, path, or arbitrary error-message field.
+public struct DiagnosticsStatusSnapshot: Codable, Equatable, Sendable {
+    public let accessibility: PermissionDiagnosticsStatus
+    public let inputMonitoring: PermissionDiagnosticsStatus
+    public let eventTap: EventTapDiagnosticsStatus
+    public let operatingSystem: DiagnosticsVersion
+    public let appVersion: DiagnosticsVersion
+    public let appBuild: UInt
+    public let app: AppDiagnosticsStatus
+
+    public init(
+        accessibility: PermissionDiagnosticsStatus,
+        inputMonitoring: PermissionDiagnosticsStatus,
+        eventTap: EventTapDiagnosticsStatus,
+        operatingSystem: DiagnosticsVersion,
+        appVersion: DiagnosticsVersion,
+        appBuild: UInt,
+        app: AppDiagnosticsStatus
+    ) {
+        self.accessibility = accessibility
+        self.inputMonitoring = inputMonitoring
+        self.eventTap = eventTap
+        self.operatingSystem = operatingSystem
+        self.appVersion = appVersion
+        self.appBuild = appBuild
+        self.app = app
+    }
+}
+
+public struct DiagnosticsReport: Equatable, Sendable {
+    public let text: String
+
+    fileprivate init(text: String) {
+        self.text = text
+    }
+}
+
+/// Produces a deterministic, copyable report exclusively from privacy-safe typed status.
+public struct DiagnosticsReportBuilder: Sendable {
+    public init() {}
+
+    public func makeReport(from snapshot: DiagnosticsStatusSnapshot) -> DiagnosticsReport {
+        DiagnosticsReport(
+            text: """
+            My Mac X Diagnostics
+            App version: \(snapshot.appVersion.reportValue) (\(snapshot.appBuild))
+            App status: \(snapshot.app.rawValue)
+            macOS: \(snapshot.operatingSystem.reportValue)
+            Accessibility: \(snapshot.accessibility.rawValue)
+            Input Monitoring: \(snapshot.inputMonitoring.rawValue)
+            Event Tap: \(snapshot.eventTap.rawValue)
+            Privacy: window titles, document text, key input, host identity, and bundle identifiers are not collected
+            """
+        )
+    }
+}
+
+private extension DiagnosticsVersion {
+    var reportValue: String {
+        "\(major).\(minor).\(patch)"
+    }
+}

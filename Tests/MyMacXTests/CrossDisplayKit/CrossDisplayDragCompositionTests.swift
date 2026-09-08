@@ -5,6 +5,35 @@ import XCTest
 
 @MainActor
 final class CrossDisplayDragCompositionTests: XCTestCase {
+    func testCompositionReleasesItsLongLivedObservationTasksOnDeallocation() async throws {
+        weak var releasedComposition: CrossDisplayDragComposition?
+
+        do {
+            let composition = CrossDisplayDragComposition(
+                overlay: OverlayCoordinator(renderer: CompositionRecordingOverlayRenderer()),
+                topologyObserving: InMemoryDisplayTopologyObserver(
+                    initial: available(
+                        generation: 1,
+                        displays: [builtInDisplay()],
+                        primary: builtInDisplay().id
+                    )
+                ),
+                triggerEngine: try TriggerDwellEngine(
+                    configuration: TriggerDwellConfiguration(dwellDuration: .milliseconds(120))
+                ),
+                pointerMonitor: PointerDragMonitor(
+                    pointerEvents: InMemoryCompositionPointerAdapter(),
+                    windowMovements: InMemoryCompositionWindowMovementAdapter(window: WindowIdentity())
+                )
+            )
+            releasedComposition = composition
+            await Task.yield()
+        }
+
+        await eventually(timeout: .seconds(1)) { releasedComposition == nil }
+        XCTAssertNil(releasedComposition)
+    }
+
     func testDraggingCapturedWindowIntoNotchTriggerPresentsLayoutChooser() async throws {
         let display = builtInDisplay()
         let topology = InMemoryDisplayTopologyObserver(
@@ -23,7 +52,16 @@ final class CrossDisplayDragCompositionTests: XCTestCase {
             overlay: overlay,
             topologyObserving: topology,
             triggerEngine: dwell,
-            pointerMonitor: monitor
+            pointerMonitor: monitor,
+            snappingSettings: InMemorySnappingRuntimeSettingsAdapter(
+                settings: .init(
+                    isEnabled: true,
+                    trigger: .topCenter,
+                    dwellMilliseconds: 120,
+                    showsPlacementPreview: true,
+                    usesReducedEffects: false
+                )
+            )
         )
         _ = composition
 
@@ -243,6 +281,64 @@ final class CrossDisplayDragCompositionTests: XCTestCase {
             XCTFail("Expected preview intent")
         }
     }
+    func testProductionSettingsRuntimeLoadsSchemaV3AndReplacesSharedAppRules() async throws {
+        let excluded = try XCTUnwrap(ApplicationBundleIdentifier("com.example.blocked"))
+        let persisted = ConfigurationSnapshot(
+            general: GeneralSettings(launchesAtLogin: true),
+            snapping: SnappingSettings(
+                isEnabled: false,
+                trigger: .topCenter,
+                dwellMilliseconds: 180,
+                showsPlacementPreview: false,
+                usesReducedEffects: true
+            ),
+            hotkeySettings: HotkeySettings(bindings: []),
+            layouts: [],
+            displayProfiles: [],
+            appRulePolicy: AppRulePolicy(
+                rules: [AppRule(bundleIdentifier: excluded, decision: .excluded)]
+            )
+        )
+        let documents = InMemorySettingsDocumentAdapter(
+            document: try ConfigurationArchive(actionRegistry: .builtIn).export(persisted)
+        )
+        let store = SettingsStore(documents: documents, actionRegistry: .builtIn)
+        let rules = AppRuleRuntime()
+        let profileLayouts = try DisplayProfileLayoutRuntime(stableDisplays: TestStableDisplayAdapter())
+        let runtime = ProductionSettingsRuntime(
+            store: store,
+            appRules: rules,
+            profileLayouts: profileLayouts,
+            accessibilityPermissionStatus: { .granted },
+            inputMonitoringAccess: { true },
+            eventTapStatus: { .recovering },
+            appStatus: { .limited },
+            openSystemSettings: {},
+            openGlobalHotkeySettings: {},
+            openSuperModeSettings: {}
+        )
+
+        runtime.start()
+
+        await eventually {
+            runtime.currentSettings().snapping.dwellMilliseconds == 180
+        }
+        XCTAssertFalse(runtime.currentSettings().snapping.isEnabled)
+        XCTAssertEqual(runtime.currentSettings().snapping.trigger, .topCenter)
+        XCTAssertEqual(runtime.currentSettings().diagnostics.status.eventTap, .recovering)
+        XCTAssertEqual(runtime.currentSettings().diagnostics.status.app, .limited)
+        let decision = await rules.decision(for: "com.example.blocked")
+        XCTAssertEqual(decision, .excluded)
+    }
+}
+
+@MainActor
+private final class InMemorySnappingRuntimeSettingsAdapter: SnappingRuntimeSettingsProviding {
+    var settings: SnappingRuntimeSettings
+
+    init(settings: SnappingRuntimeSettings) { self.settings = settings }
+
+    func currentSnappingSettings() -> SnappingRuntimeSettings { settings }
 }
 
 private actor InMemoryDisplayTopologyObserver: DisplayTopologyObserving {
@@ -255,6 +351,10 @@ private actor InMemoryDisplayTopologyObserver: DisplayTopologyObserving {
             continuation.yield(initial)
         }
     }
+}
+
+private struct TestStableDisplayAdapter: StableDisplayIdentifying {
+    func stableDisplayID(for displayID: DisplayID) -> StableDisplayID? { nil }
 }
 
 private actor InMemoryCompositionPointerAdapter: PointerEventAdapting {

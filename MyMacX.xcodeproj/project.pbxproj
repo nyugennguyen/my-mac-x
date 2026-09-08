@@ -76,6 +76,40 @@
 		100000000000000000000043 /* HotkeyRuntimeBindingUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000048 /* HotkeyRuntimeBindingUpdater.swift */; };
 		100000000000000000000059 /* CrossDisplayDragComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000059 /* CrossDisplayDragComposition.swift */; };
 		10000000000000000000005A /* CrossDisplayDragCompositionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000005A /* CrossDisplayDragCompositionTests.swift */; };
+		10000000000000000000005B /* EventTapManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000005B /* EventTapManager.swift */; };
+		10000000000000000000005C /* MacOSEventTapSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000005C /* MacOSEventTapSystem.swift */; };
+		10000000000000000000005D /* EventTapManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000005D /* EventTapManagerTests.swift */; };
+		10000000000000000000005E /* InMemoryEventTapSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000005E /* InMemoryEventTapSystem.swift */; };
+		10000000000000000000005F /* SuperModeStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000005F /* SuperModeStateMachine.swift */; };
+		100000000000000000000060 /* SuperModeActionDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000060 /* SuperModeActionDispatcher.swift */; };
+		100000000000000000000061 /* SuperModeStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000061 /* SuperModeStateMachineTests.swift */; };
+		100000000000000000000062 /* SuperModeActionDispatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000062 /* SuperModeActionDispatcherTests.swift */; };
+		100000000000000000000063 /* RecordingSuperModeWindowActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000063 /* RecordingSuperModeWindowActions.swift */; };
+		100000000000000000000064 /* SuperModeConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000064 /* SuperModeConfiguration.swift */; };
+		100000000000000000000065 /* SuperModeConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000065 /* SuperModeConfigurationTests.swift */; };
+		100000000000000000000066 /* SuperHUDCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000066 /* SuperHUDCoordinator.swift */; };
+		100000000000000000000067 /* SuperHUDCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000067 /* SuperHUDCoordinatorTests.swift */; };
+		100000000000000000000068 /* SuperModeAdvancedActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000068 /* SuperModeAdvancedActions.swift */; };
+		100000000000000000000069 /* SuperModeAdvancedActionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000069 /* SuperModeAdvancedActionsTests.swift */; };
+		10000000000000000000006A /* SuperModeInputSafetyController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000006A /* SuperModeInputSafetyController.swift */; };
+		10000000000000000000006B /* SuperModeInputSafetyControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000006B /* SuperModeInputSafetyControllerTests.swift */; };
+		10000000000000000000006C /* SuperModeSettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000006C /* SuperModeSettingsWindowController.swift */; };
+		10000000000000000000006D /* SuperModeSettingsWindowControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000006D /* SuperModeSettingsWindowControllerTests.swift */; };
+		10000000000000000000006E /* SettingsShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000006E /* SettingsShell.swift */; };
+		10000000000000000000006F /* SettingsShellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000006F /* SettingsShellTests.swift */; };
+		100000000000000000000070 /* LayoutLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000070 /* LayoutLibrary.swift */; };
+		100000000000000000000071 /* LayoutLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000071 /* LayoutLibraryTests.swift */; };
+		100000000000000000000072 /* DisplayProfileLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000072 /* DisplayProfileLibrary.swift */; };
+		100000000000000000000073 /* DisplayProfileLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000073 /* DisplayProfileLibraryTests.swift */; };
+		100000000000000000000074 /* ConfigurationArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000074 /* ConfigurationArchive.swift */; };
+		100000000000000000000075 /* ConfigurationArchiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000075 /* ConfigurationArchiveTests.swift */; };
+		100000000000000000000076 /* AppRulePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000076 /* AppRulePolicy.swift */; };
+		100000000000000000000077 /* AppRulePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000077 /* AppRulePolicyTests.swift */; };
+		100000000000000000000078 /* DiagnosticsReportBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000078 /* DiagnosticsReportBuilder.swift */; };
+		100000000000000000000079 /* DiagnosticsReportBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000079 /* DiagnosticsReportBuilderTests.swift */; };
+		10000000000000000000007A /* PerformanceBudgetPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000007A /* PerformanceBudgetPolicy.swift */; };
+		10000000000000000000007B /* PerformanceBudgetPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000007B /* PerformanceBudgetPolicyTests.swift */; };
+		10000000000000000000007C /* OverlaySnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000007C /* OverlaySnapshotTests.swift */; };
 		100000000000000000000044 /* HotkeyRuntimeBindingUpdaterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000049 /* HotkeyRuntimeBindingUpdaterTests.swift */; };
 		10000000000000000000004A /* OverlayCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000004A /* OverlayCoordinator.swift */; };
 		10000000000000000000004B /* OverlayCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000004B /* OverlayCoordinatorTests.swift */; };
@@ -117,6 +151,8 @@
 		20000000000000000000000A /* AccessibilityPermissionManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityPermissionManagerTests.swift; sourceTree = "<group>"; };
 		20000000000000000000000B /* AppLifecycleCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLifecycleCoordinator.swift; sourceTree = "<group>"; };
 		20000000000000000000000C /* AppLifecycleCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLifecycleCoordinatorTests.swift; sourceTree = "<group>"; };
+		20000000000000000000006C /* SuperModeSettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeSettingsWindowController.swift; sourceTree = "<group>"; };
+		20000000000000000000006D /* SuperModeSettingsWindowControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeSettingsWindowControllerTests.swift; sourceTree = "<group>"; };
 		20000000000000000000000D /* PrivacySafeDiagnosticsLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySafeDiagnosticsLogger.swift; sourceTree = "<group>"; };
 		20000000000000000000000E /* PrivacySafeDiagnosticsLoggerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySafeDiagnosticsLoggerTests.swift; sourceTree = "<group>"; };
 		20000000000000000000000F /* WindowModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowModels.swift; sourceTree = "<group>"; };
@@ -178,6 +214,38 @@
 		200000000000000000000047 /* HotkeyConflictDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyConflictDetectorTests.swift; sourceTree = "<group>"; };
 		200000000000000000000059 /* CrossDisplayDragComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossDisplayDragComposition.swift; sourceTree = "<group>"; };
 		20000000000000000000005A /* CrossDisplayDragCompositionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossDisplayDragCompositionTests.swift; sourceTree = "<group>"; };
+		20000000000000000000005B /* EventTapManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTapManager.swift; sourceTree = "<group>"; };
+		20000000000000000000005C /* MacOSEventTapSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacOSEventTapSystem.swift; sourceTree = "<group>"; };
+		20000000000000000000005D /* EventTapManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTapManagerTests.swift; sourceTree = "<group>"; };
+		20000000000000000000005E /* InMemoryEventTapSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemoryEventTapSystem.swift; sourceTree = "<group>"; };
+		20000000000000000000005F /* SuperModeStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeStateMachine.swift; sourceTree = "<group>"; };
+		200000000000000000000060 /* SuperModeActionDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeActionDispatcher.swift; sourceTree = "<group>"; };
+		200000000000000000000061 /* SuperModeStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeStateMachineTests.swift; sourceTree = "<group>"; };
+		200000000000000000000062 /* SuperModeActionDispatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeActionDispatcherTests.swift; sourceTree = "<group>"; };
+		200000000000000000000063 /* RecordingSuperModeWindowActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingSuperModeWindowActions.swift; sourceTree = "<group>"; };
+		200000000000000000000064 /* SuperModeConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeConfiguration.swift; sourceTree = "<group>"; };
+		200000000000000000000065 /* SuperModeConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeConfigurationTests.swift; sourceTree = "<group>"; };
+		200000000000000000000066 /* SuperHUDCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperHUDCoordinator.swift; sourceTree = "<group>"; };
+		200000000000000000000067 /* SuperHUDCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperHUDCoordinatorTests.swift; sourceTree = "<group>"; };
+		200000000000000000000068 /* SuperModeAdvancedActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeAdvancedActions.swift; sourceTree = "<group>"; };
+		200000000000000000000069 /* SuperModeAdvancedActionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeAdvancedActionsTests.swift; sourceTree = "<group>"; };
+		20000000000000000000006A /* SuperModeInputSafetyController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeInputSafetyController.swift; sourceTree = "<group>"; };
+		20000000000000000000006B /* SuperModeInputSafetyControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuperModeInputSafetyControllerTests.swift; sourceTree = "<group>"; };
+		20000000000000000000006E /* SettingsShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsShell.swift; sourceTree = "<group>"; };
+		20000000000000000000006F /* SettingsShellTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsShellTests.swift; sourceTree = "<group>"; };
+		200000000000000000000070 /* LayoutLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutLibrary.swift; sourceTree = "<group>"; };
+		200000000000000000000071 /* LayoutLibraryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutLibraryTests.swift; sourceTree = "<group>"; };
+		200000000000000000000072 /* DisplayProfileLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayProfileLibrary.swift; sourceTree = "<group>"; };
+		200000000000000000000073 /* DisplayProfileLibraryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayProfileLibraryTests.swift; sourceTree = "<group>"; };
+		200000000000000000000074 /* ConfigurationArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationArchive.swift; sourceTree = "<group>"; };
+		200000000000000000000075 /* ConfigurationArchiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationArchiveTests.swift; sourceTree = "<group>"; };
+		20000000000000000000007C /* OverlaySnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlaySnapshotTests.swift; sourceTree = "<group>"; };
+		200000000000000000000076 /* AppRulePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRulePolicy.swift; sourceTree = "<group>"; };
+		200000000000000000000077 /* AppRulePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRulePolicyTests.swift; sourceTree = "<group>"; };
+		200000000000000000000078 /* DiagnosticsReportBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsReportBuilder.swift; sourceTree = "<group>"; };
+		200000000000000000000079 /* DiagnosticsReportBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsReportBuilderTests.swift; sourceTree = "<group>"; };
+		20000000000000000000007A /* PerformanceBudgetPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceBudgetPolicy.swift; sourceTree = "<group>"; };
+		20000000000000000000007B /* PerformanceBudgetPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceBudgetPolicyTests.swift; sourceTree = "<group>"; };
 		200000000000000000000048 /* HotkeyRuntimeBindingUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRuntimeBindingUpdater.swift; sourceTree = "<group>"; };
 		200000000000000000000049 /* HotkeyRuntimeBindingUpdaterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRuntimeBindingUpdaterTests.swift; sourceTree = "<group>"; };
 		20000000000000000000004A /* OverlayCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayCoordinator.swift; sourceTree = "<group>"; };
@@ -248,6 +316,9 @@
 				70000000000000000000002B /* TriggerDwellKit */,
 				70000000000000000000002D /* SnapInteractionKit */,
 				70000000000000000000002F /* CrossDisplayKit */,
+				700000000000000000000031 /* AppRuleKit */,
+				700000000000000000000033 /* PerformanceKit */,
+				700000000000000000000035 /* ProfileKit */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -257,6 +328,8 @@
 			children = (
 				200000000000000000000001 /* MyMacXApplication.swift */,
 				20000000000000000000000B /* AppLifecycleCoordinator.swift */,
+				20000000000000000000006C /* SuperModeSettingsWindowController.swift */,
+				20000000000000000000006E /* SettingsShell.swift */,
 				20000000000000000000003A /* HotkeyRuntimeCoordinator.swift */,
 				200000000000000000000048 /* HotkeyRuntimeBindingUpdater.swift */,
 				200000000000000000000059 /* CrossDisplayDragComposition.swift */,
@@ -298,6 +371,9 @@
 				70000000000000000000002C /* TriggerDwellKit */,
 				70000000000000000000002E /* SnapInteractionKit */,
 				700000000000000000000030 /* CrossDisplayKit */,
+				700000000000000000000032 /* AppRuleKit */,
+				700000000000000000000034 /* PerformanceKit */,
+				700000000000000000000036 /* ProfileKit */,
 			);
 			path = MyMacXTests;
 			sourceTree = "<group>";
@@ -350,6 +426,8 @@
 			isa = PBXGroup;
 			children = (
 				20000000000000000000000C /* AppLifecycleCoordinatorTests.swift */,
+				20000000000000000000006D /* SuperModeSettingsWindowControllerTests.swift */,
+				20000000000000000000006F /* SettingsShellTests.swift */,
 				200000000000000000000049 /* HotkeyRuntimeBindingUpdaterTests.swift */,
 			);
 			path = AppShell;
@@ -359,6 +437,7 @@
 			isa = PBXGroup;
 			children = (
 				20000000000000000000000D /* PrivacySafeDiagnosticsLogger.swift */,
+				200000000000000000000078 /* DiagnosticsReportBuilder.swift */,
 			);
 			path = DiagnosticsKit;
 			sourceTree = "<group>";
@@ -367,6 +446,7 @@
 			isa = PBXGroup;
 			children = (
 				20000000000000000000000E /* PrivacySafeDiagnosticsLoggerTests.swift */,
+				200000000000000000000079 /* DiagnosticsReportBuilderTests.swift */,
 			);
 			path = DiagnosticsKit;
 			sourceTree = "<group>";
@@ -425,6 +505,7 @@
 			isa = PBXGroup;
 			children = (
 				20000000000000000000001A /* Layout.swift */,
+				200000000000000000000070 /* LayoutLibrary.swift */,
 				20000000000000000000001B /* LayoutCalculator.swift */,
 			);
 			path = LayoutKit;
@@ -434,6 +515,7 @@
 			isa = PBXGroup;
 			children = (
 				20000000000000000000001C /* LayoutKitTests.swift */,
+				200000000000000000000071 /* LayoutLibraryTests.swift */,
 			);
 			path = LayoutKit;
 			sourceTree = "<group>";
@@ -543,6 +625,13 @@
 				200000000000000000000046 /* HotkeyConflictDetector.swift */,
 				20000000000000000000003F /* MacOSHotkeyKeyLabelResolver.swift */,
 				200000000000000000000038 /* MacOSGlobalHotkeySystem.swift */,
+				20000000000000000000005B /* EventTapManager.swift */,
+				20000000000000000000005C /* MacOSEventTapSystem.swift */,
+				20000000000000000000005F /* SuperModeStateMachine.swift */,
+				200000000000000000000060 /* SuperModeActionDispatcher.swift */,
+				200000000000000000000064 /* SuperModeConfiguration.swift */,
+				200000000000000000000068 /* SuperModeAdvancedActions.swift */,
+				20000000000000000000006A /* SuperModeInputSafetyController.swift */,
 			);
 			path = InputKit;
 			sourceTree = "<group>";
@@ -556,6 +645,14 @@
 				20000000000000000000003D /* InMemoryHotkeyRecorderInputAdapter.swift */,
 				200000000000000000000040 /* HotkeyKeyLabelResolverTests.swift */,
 				200000000000000000000047 /* HotkeyConflictDetectorTests.swift */,
+				20000000000000000000005D /* EventTapManagerTests.swift */,
+				20000000000000000000005E /* InMemoryEventTapSystem.swift */,
+				200000000000000000000061 /* SuperModeStateMachineTests.swift */,
+				200000000000000000000062 /* SuperModeActionDispatcherTests.swift */,
+				200000000000000000000063 /* RecordingSuperModeWindowActions.swift */,
+				200000000000000000000069 /* SuperModeAdvancedActionsTests.swift */,
+				200000000000000000000065 /* SuperModeConfigurationTests.swift */,
+				20000000000000000000006B /* SuperModeInputSafetyControllerTests.swift */,
 			);
 			path = InputKit;
 			sourceTree = "<group>";
@@ -574,6 +671,7 @@
 				200000000000000000000041 /* SettingsStore.swift */,
 				200000000000000000000042 /* LocalSettingsDocumentAdapter.swift */,
 				200000000000000000000043 /* StrictJSONParser.swift */,
+				200000000000000000000074 /* ConfigurationArchive.swift */,
 			);
 			path = PersistenceKit;
 			sourceTree = "<group>";
@@ -583,6 +681,7 @@
 			children = (
 				200000000000000000000044 /* SettingsStoreTests.swift */,
 				200000000000000000000045 /* InMemorySettingsDocumentAdapter.swift */,
+				200000000000000000000075 /* ConfigurationArchiveTests.swift */,
 			);
 			path = PersistenceKit;
 			sourceTree = "<group>";
@@ -591,6 +690,7 @@
 			isa = PBXGroup;
 			children = (
 				20000000000000000000004A /* OverlayCoordinator.swift */,
+				200000000000000000000066 /* SuperHUDCoordinator.swift */,
 				200000000000000000000051 /* PlacementPreviewPlanner.swift */,
 			);
 			path = OverlayKit;
@@ -600,6 +700,8 @@
 			isa = PBXGroup;
 			children = (
 				20000000000000000000004B /* OverlayCoordinatorTests.swift */,
+				20000000000000000000007C /* OverlaySnapshotTests.swift */,
+				200000000000000000000067 /* SuperHUDCoordinatorTests.swift */,
 				200000000000000000000052 /* PlacementPreviewPlannerTests.swift */,
 			);
 			path = OverlayKit;
@@ -687,6 +789,12 @@
 			path = CrossDisplayKit;
 			sourceTree = "<group>";
 		};
+		700000000000000000000031 /* AppRuleKit */ = { isa = PBXGroup; children = (200000000000000000000076 /* AppRulePolicy.swift */,); path = AppRuleKit; sourceTree = "<group>"; };
+		700000000000000000000032 /* AppRuleKit */ = { isa = PBXGroup; children = (200000000000000000000077 /* AppRulePolicyTests.swift */,); path = AppRuleKit; sourceTree = "<group>"; };
+		700000000000000000000033 /* PerformanceKit */ = { isa = PBXGroup; children = (20000000000000000000007A /* PerformanceBudgetPolicy.swift */,); path = PerformanceKit; sourceTree = "<group>"; };
+		700000000000000000000034 /* PerformanceKit */ = { isa = PBXGroup; children = (20000000000000000000007B /* PerformanceBudgetPolicyTests.swift */,); path = PerformanceKit; sourceTree = "<group>"; };
+		700000000000000000000035 /* ProfileKit */ = { isa = PBXGroup; children = (200000000000000000000072 /* DisplayProfileLibrary.swift */,); path = ProfileKit; sourceTree = "<group>"; };
+		700000000000000000000036 /* ProfileKit */ = { isa = PBXGroup; children = (200000000000000000000073 /* DisplayProfileLibraryTests.swift */,); path = ProfileKit; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -794,6 +902,7 @@
 				100000000000000000000003 /* ActionID.swift in Sources */,
 				100000000000000000000004 /* AccessibilityPermissionManager.swift in Sources */,
 				100000000000000000000006 /* AppLifecycleCoordinator.swift in Sources */,
+				10000000000000000000006C /* SuperModeSettingsWindowController.swift in Sources */,
 				100000000000000000000008 /* PrivacySafeDiagnosticsLogger.swift in Sources */,
 				10000000000000000000000A /* WindowModels.swift in Sources */,
 				10000000000000000000000B /* FocusedWindowProvider.swift in Sources */,
@@ -821,6 +930,14 @@
 				100000000000000000000035 /* HotkeyRuntimeCoordinator.swift in Sources */,
 				100000000000000000000043 /* HotkeyRuntimeBindingUpdater.swift in Sources */,
 				100000000000000000000059 /* CrossDisplayDragComposition.swift in Sources */,
+				10000000000000000000005B /* EventTapManager.swift in Sources */,
+				10000000000000000000005C /* MacOSEventTapSystem.swift in Sources */,
+				10000000000000000000005F /* SuperModeStateMachine.swift in Sources */,
+				100000000000000000000060 /* SuperModeActionDispatcher.swift in Sources */,
+				100000000000000000000064 /* SuperModeConfiguration.swift in Sources */,
+				100000000000000000000066 /* SuperHUDCoordinator.swift in Sources */,
+				100000000000000000000068 /* SuperModeAdvancedActions.swift in Sources */,
+				10000000000000000000006A /* SuperModeInputSafetyController.swift in Sources */,
 				100000000000000000000036 /* HotkeyRecorder.swift in Sources */,
 				100000000000000000000039 /* HotkeyChordPresenter.swift in Sources */,
 				10000000000000000000003A /* MacOSHotkeyKeyLabelResolver.swift in Sources */,
@@ -836,6 +953,13 @@
 				100000000000000000000053 /* TriggerDwellEngine.swift in Sources */,
 				100000000000000000000055 /* SnapInteractionStateMachine.swift in Sources */,
 				100000000000000000000057 /* CrossDisplayDragCoordinator.swift in Sources */,
+				10000000000000000000006E /* SettingsShell.swift in Sources */,
+				100000000000000000000070 /* LayoutLibrary.swift in Sources */,
+				100000000000000000000072 /* DisplayProfileLibrary.swift in Sources */,
+				100000000000000000000074 /* ConfigurationArchive.swift in Sources */,
+				100000000000000000000076 /* AppRulePolicy.swift in Sources */,
+				100000000000000000000078 /* DiagnosticsReportBuilder.swift in Sources */,
+				10000000000000000000007A /* PerformanceBudgetPolicy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -846,6 +970,7 @@
 				100000000000000000000002 /* ActionIDTests.swift in Sources */,
 				100000000000000000000005 /* AccessibilityPermissionManagerTests.swift in Sources */,
 				100000000000000000000007 /* AppLifecycleCoordinatorTests.swift in Sources */,
+				10000000000000000000006D /* SuperModeSettingsWindowControllerTests.swift in Sources */,
 				100000000000000000000044 /* HotkeyRuntimeBindingUpdaterTests.swift in Sources */,
 				100000000000000000000009 /* PrivacySafeDiagnosticsLoggerTests.swift in Sources */,
 				10000000000000000000000D /* FocusedWindowProviderTests.swift in Sources */,
@@ -872,9 +997,19 @@
 				100000000000000000000038 /* InMemoryHotkeyRecorderInputAdapter.swift in Sources */,
 				10000000000000000000003B /* HotkeyKeyLabelResolverTests.swift in Sources */,
 				100000000000000000000042 /* HotkeyConflictDetectorTests.swift in Sources */,
+				10000000000000000000005D /* EventTapManagerTests.swift in Sources */,
+				10000000000000000000005E /* InMemoryEventTapSystem.swift in Sources */,
+				100000000000000000000061 /* SuperModeStateMachineTests.swift in Sources */,
+				100000000000000000000062 /* SuperModeActionDispatcherTests.swift in Sources */,
+				100000000000000000000063 /* RecordingSuperModeWindowActions.swift in Sources */,
+				100000000000000000000065 /* SuperModeConfigurationTests.swift in Sources */,
+				100000000000000000000067 /* SuperHUDCoordinatorTests.swift in Sources */,
+				100000000000000000000069 /* SuperModeAdvancedActionsTests.swift in Sources */,
+				10000000000000000000006B /* SuperModeInputSafetyControllerTests.swift in Sources */,
 				10000000000000000000003F /* SettingsStoreTests.swift in Sources */,
 				100000000000000000000040 /* InMemorySettingsDocumentAdapter.swift in Sources */,
 				10000000000000000000004B /* OverlayCoordinatorTests.swift in Sources */,
+				10000000000000000000007C /* OverlaySnapshotTests.swift in Sources */,
 				10000000000000000000004D /* PointerDragTrackerTests.swift in Sources */,
 				100000000000000000000050 /* NotchTriggerEngineTests.swift in Sources */,
 				100000000000000000000052 /* PlacementPreviewPlannerTests.swift in Sources */,
@@ -882,6 +1017,13 @@
 				100000000000000000000056 /* SnapInteractionStateMachineTests.swift in Sources */,
 				100000000000000000000058 /* CrossDisplayDragCoordinatorTests.swift in Sources */,
 				10000000000000000000005A /* CrossDisplayDragCompositionTests.swift in Sources */,
+				10000000000000000000006F /* SettingsShellTests.swift in Sources */,
+				100000000000000000000071 /* LayoutLibraryTests.swift in Sources */,
+				100000000000000000000073 /* DisplayProfileLibraryTests.swift in Sources */,
+				100000000000000000000075 /* ConfigurationArchiveTests.swift in Sources */,
+				100000000000000000000077 /* AppRulePolicyTests.swift in Sources */,
+				100000000000000000000079 /* DiagnosticsReportBuilderTests.swift in Sources */,
+				10000000000000000000007B /* PerformanceBudgetPolicyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,0 +1,329 @@
+{
+  "" : {
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacX-primary.dia",
+    "emit-module-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacX-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacX-primary-emit-module.dia",
+    "pch" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacX-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacX-primary.swiftdeps"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AXWindowKit/FocusedWindowProvider.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AXWindowKit/NativeFullScreenActionStrategy.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AXWindowKit/SystemWindowAdapter.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AXWindowKit/WindowModels.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AXWindowKit/WindowMutationModule.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AppShell/AppLifecycleCoordinator.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AppLifecycleCoordinator.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AppLifecycleCoordinator.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AppLifecycleCoordinator.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AppLifecycleCoordinator.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AppLifecycleCoordinator.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AppLifecycleCoordinator.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AppLifecycleCoordinator.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AppLifecycleCoordinator~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AppShell/HotkeyRuntimeCoordinator.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRuntimeCoordinator.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRuntimeCoordinator.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRuntimeCoordinator.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRuntimeCoordinator.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRuntimeCoordinator.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRuntimeCoordinator.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRuntimeCoordinator.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRuntimeCoordinator~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AppShell/MyMacXApplication.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacXApplication.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacXApplication.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacXApplication.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacXApplication.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacXApplication.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacXApplication.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacXApplication.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MyMacXApplication~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/CommandKit/ActionID.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionID.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionID.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionID.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionID.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionID.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionID.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionID.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionID~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/CommandKit/ActionRegistry.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionRegistry.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionRegistry.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionRegistry.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionRegistry.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionRegistry.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionRegistry.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionRegistry.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ActionRegistry~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/CycleKit/CycleGroup.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CycleGroup.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CycleGroup.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CycleGroup.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CycleGroup.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CycleGroup.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CycleGroup.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CycleGroup.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CycleGroup~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/DiagnosticsKit/PrivacySafeDiagnosticsLogger.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/PrivacySafeDiagnosticsLogger.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/PrivacySafeDiagnosticsLogger.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/PrivacySafeDiagnosticsLogger.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/PrivacySafeDiagnosticsLogger.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/PrivacySafeDiagnosticsLogger.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/PrivacySafeDiagnosticsLogger.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/PrivacySafeDiagnosticsLogger.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/PrivacySafeDiagnosticsLogger~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/DisplayMoveKit/DisplayMovePlanner.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DisplayMovePlanner.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DisplayMovePlanner.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DisplayMovePlanner.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DisplayMovePlanner.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DisplayMovePlanner.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DisplayMovePlanner.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DisplayMovePlanner.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DisplayMovePlanner~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/GeometryKit/CoordinateConverter.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CoordinateConverter.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CoordinateConverter.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CoordinateConverter.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CoordinateConverter.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CoordinateConverter.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CoordinateConverter.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CoordinateConverter.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CoordinateConverter~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/HistoryKit/WindowHistory.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowHistory.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowHistory.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowHistory.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowHistory.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowHistory.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowHistory.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowHistory.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowHistory~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/InputKit/DefaultHotkeyBindings.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DefaultHotkeyBindings.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DefaultHotkeyBindings.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DefaultHotkeyBindings.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DefaultHotkeyBindings.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DefaultHotkeyBindings.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DefaultHotkeyBindings.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DefaultHotkeyBindings.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/DefaultHotkeyBindings~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/InputKit/GlobalHotkeyManager.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/GlobalHotkeyManager.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/GlobalHotkeyManager.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/GlobalHotkeyManager.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/GlobalHotkeyManager.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/GlobalHotkeyManager.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/GlobalHotkeyManager.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/GlobalHotkeyManager.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/GlobalHotkeyManager~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/InputKit/HotkeyChordPresenter.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyChordPresenter.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyChordPresenter.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyChordPresenter.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyChordPresenter.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyChordPresenter.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyChordPresenter.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyChordPresenter.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyChordPresenter~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/InputKit/HotkeyRecorder.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRecorder.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRecorder.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRecorder.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRecorder.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRecorder.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRecorder.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRecorder.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/HotkeyRecorder~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/InputKit/MacOSGlobalHotkeySystem.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSGlobalHotkeySystem.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSGlobalHotkeySystem.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSGlobalHotkeySystem.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSGlobalHotkeySystem.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSGlobalHotkeySystem.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSGlobalHotkeySystem.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSGlobalHotkeySystem.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSGlobalHotkeySystem~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/InputKit/MacOSHotkeyKeyLabelResolver.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSHotkeyKeyLabelResolver.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSHotkeyKeyLabelResolver.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSHotkeyKeyLabelResolver.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSHotkeyKeyLabelResolver.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSHotkeyKeyLabelResolver.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSHotkeyKeyLabelResolver.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSHotkeyKeyLabelResolver.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/MacOSHotkeyKeyLabelResolver~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/LayoutKit/Layout.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/Layout.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/Layout.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/Layout.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/Layout.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/Layout.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/Layout.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/Layout.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/Layout~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/LayoutKit/LayoutCalculator.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/LayoutCalculator.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/LayoutCalculator.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/LayoutCalculator.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/LayoutCalculator.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/LayoutCalculator.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/LayoutCalculator.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/LayoutCalculator.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/LayoutCalculator~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/PermissionKit/AccessibilityPermissionManager.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AccessibilityPermissionManager.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AccessibilityPermissionManager.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AccessibilityPermissionManager.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AccessibilityPermissionManager.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AccessibilityPermissionManager.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AccessibilityPermissionManager.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AccessibilityPermissionManager.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/AccessibilityPermissionManager~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/ScreenKit/ScreenGeometry.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometry.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometry.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometry.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometry.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometry.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometry.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometry.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometry~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/ScreenKit/ScreenGeometryService.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometryService.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometryService.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometryService.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometryService.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometryService.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometryService.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometryService.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/ScreenGeometryService~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/ScreenKit/SystemScreenGeometryAdapter.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemScreenGeometryAdapter.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemScreenGeometryAdapter.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemScreenGeometryAdapter.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemScreenGeometryAdapter.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemScreenGeometryAdapter.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemScreenGeometryAdapter.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemScreenGeometryAdapter.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemScreenGeometryAdapter~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/WindowActionKit/CapturedWindowFrameProvider.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CapturedWindowFrameProvider.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CapturedWindowFrameProvider.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CapturedWindowFrameProvider.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CapturedWindowFrameProvider.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CapturedWindowFrameProvider.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CapturedWindowFrameProvider.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CapturedWindowFrameProvider.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/CapturedWindowFrameProvider~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/WindowActionKit/WindowActionCatalog.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionCatalog.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionCatalog.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionCatalog.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionCatalog.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionCatalog.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionCatalog.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionCatalog.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionCatalog~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/WindowActionKit/WindowActionEngine.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionEngine.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionEngine.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionEngine.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionEngine.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionEngine.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionEngine.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionEngine.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionEngine~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/WindowActionKit/WindowActionModels.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionModels.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionModels.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionModels.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionModels.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionModels.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionModels.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionModels.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionModels~partial.swiftmodule"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/WindowActionKit/WindowActionTopology.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionTopology.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionTopology.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionTopology.dia",
+    "index-unit-output-path" : "/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionTopology.o",
+    "llvm-bc" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionTopology.bc",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionTopology.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionTopology.swiftdeps",
+    "swiftmodule" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowActionTopology~partial.swiftmodule"
+  }
+}

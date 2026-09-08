@@ -131,7 +131,6 @@ struct CrossDisplayDragCoordinator {
             }
             return refresh(
                 in: versionedTopology,
-                chooserSize: chooserSize,
                 preview: preview
             )
         }
@@ -158,7 +157,6 @@ struct CrossDisplayDragCoordinator {
 
     private mutating func refresh(
         in topology: VersionedDisplayTopology,
-        chooserSize: CGSize,
         preview: OverlayPreviewPresentation?
     ) -> CrossDisplaySurfaceTransition {
         guard let activeTarget else { return .unchanged }
@@ -167,14 +165,12 @@ struct CrossDisplayDragCoordinator {
         }) else {
             return dismissIfNeeded(reason: .activeDisplayUnavailable)
         }
-        return transition(
-            to: target(
-                display: display,
-                generation: topology.generation,
-                chooserSize: chooserSize,
-                preview: preview
-            )
-        )
+        return transition(to: CrossDisplaySurfaceTarget(
+            generation: topology.generation,
+            displayID: display.id,
+            chooserFrame: activeTarget.chooserFrame,
+            preview: Self.safePreview(preview, on: display)
+        ))
     }
 
     private func target(

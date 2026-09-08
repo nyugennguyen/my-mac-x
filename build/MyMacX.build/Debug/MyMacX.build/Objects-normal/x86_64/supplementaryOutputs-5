@@ -1,0 +1,37 @@
+{
+  "/Users/mac/Projects/mymac-x/Sources/AXWindowKit/FocusedWindowProvider.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/FocusedWindowProvider.swiftdeps"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AXWindowKit/NativeFullScreenActionStrategy.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/NativeFullScreenActionStrategy.swiftdeps"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AXWindowKit/SystemWindowAdapter.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/SystemWindowAdapter.swiftdeps"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AXWindowKit/WindowModels.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowModels.swiftdeps"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/AXWindowKit/WindowMutationModule.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/x86_64/WindowMutationModule.swiftdeps"
+  }
+}

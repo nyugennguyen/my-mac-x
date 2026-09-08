@@ -7,6 +7,7 @@ actor InMemorySettingsDocumentAdapter: SettingsDocumentPersisting {
     private(set) var document: Data?
     private(set) var replacementOutcome: ReplacementOutcome = .succeeds
     private(set) var quarantineSucceeds = true
+    private(set) var replacementCallCount = 0
 
     init(document: Data? = nil) { self.document = document }
 
@@ -16,6 +17,7 @@ actor InMemorySettingsDocumentAdapter: SettingsDocumentPersisting {
     func readDocument() async throws -> Data? { document }
 
     func replaceDocumentAtomically(with data: Data) async throws {
+        replacementCallCount += 1
         switch replacementOutcome {
         case .succeeds: document = data
         case .fails: throw SettingsDocumentPersistenceError.atomicReplacementFailed

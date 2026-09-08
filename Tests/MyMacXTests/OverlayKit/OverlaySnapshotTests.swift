@@ -1,239 +1,180 @@
 import AppKit
-import CoreGraphics
 import XCTest
 
 @testable import MyMacX
 
-// MARK: - Recording renderer (snapshot variant)
-
-@MainActor
-private final class SnapshotOverlayRenderer: OverlayRendering {
-    private(set) var chooserModels: [OverlayChooserRenderModel] = []
-    private(set) var previewModels: [OverlayPreviewRenderModel] = []
-    private(set) var dismissCount = 0
-
-    func showChooser(
-        _ model: OverlayChooserRenderModel,
-        onSelect: @escaping @MainActor @Sendable (ActionID) -> Void
-    ) {
-        chooserModels.append(model)
-    }
-
-    func showPreview(_ model: OverlayPreviewRenderModel) {
-        previewModels.append(model)
-    }
-
-    func dismiss() {
-        dismissCount += 1
-    }
-}
-
-// MARK: - Test helpers
-
-private func snapshotChoices() -> [OverlayLayoutChoice] {
-    [
-        OverlayLayoutChoice(action: .maximize, title: "Maximize", accessibilityLabel: "Maximize"),
-        OverlayLayoutChoice(action: .leftHalf, title: "Left Half", accessibilityLabel: "Left Half"),
-        OverlayLayoutChoice(action: .rightHalf, title: "Right Half", accessibilityLabel: "Right Half"),
-        OverlayLayoutChoice(action: .topHalf, title: "Top Half", accessibilityLabel: "Top Half"),
-        OverlayLayoutChoice(action: .bottomHalf, title: "Bottom Half", accessibilityLabel: "Bottom Half"),
-        OverlayLayoutChoice(action: .topLeftQuarter, title: "Top Left", accessibilityLabel: "Top Left"),
-    ]
-}
-
-private func snapshotChooserPresentation(
-    panelFrame: CGRect = CGRect(x: 540, y: 720, width: 360, height: 220),
-    choices: [OverlayLayoutChoice] = snapshotChoices(),
-    columnCount: Int = 3,
-    initialSelection: ActionID? = nil
-) -> OverlayChooserPresentation {
-    OverlayChooserPresentation(
-        displayID: DisplayID(rawValue: 1),
-        panelFrame: panelFrame,
-        choices: choices,
-        columnCount: columnCount,
-        initialSelection: initialSelection
-    )
-}
-
-private func snapshotPreviewPresentation(
-    targetFrame: CGRect = CGRect(x: 0, y: 25, width: 720, height: 875),
-    constrained: Bool = false
-) -> OverlayPreviewPresentation {
-    OverlayPreviewPresentation(
-        displayID: DisplayID(rawValue: 1),
-        targetFrame: targetFrame,
-        isConstrainedByMinimumSize: constrained
-    )
-}
-
-// MARK: - Assertion helpers
-
-private func assertChooserBaseline(
-    _ model: OverlayChooserRenderModel,
-    expectedPanelFrame: CGRect,
-    expectedChoiceCount: Int,
-    expectedSelectedAction: ActionID,
-    expectedColumnCount: Int,
-    expectedMotion: OverlayMotionTreatment,
-    expectedBackground: OverlayBackgroundTreatment,
-    expectedContrast: OverlayContrastTreatment,
-    file: StaticString = #filePath,
-    line: UInt = #line
-) {
-    XCTAssertEqual(model.panelFrame, expectedPanelFrame, "panelFrame", file: file, line: line)
-    XCTAssertEqual(model.choices.count, expectedChoiceCount, "choice count", file: file, line: line)
-    XCTAssertEqual(model.selectedAction, expectedSelectedAction, "selectedAction", file: file, line: line)
-    XCTAssertEqual(model.columnCount, expectedColumnCount, "columnCount", file: file, line: line)
-    XCTAssertEqual(model.presentationPolicy.motion, expectedMotion, "motion", file: file, line: line)
-    XCTAssertEqual(model.presentationPolicy.background, expectedBackground, "background", file: file, line: line)
-    XCTAssertEqual(model.presentationPolicy.contrast, expectedContrast, "contrast", file: file, line: line)
-}
-
-private func assertPreviewBaseline(
-    _ model: OverlayPreviewRenderModel,
-    expectedTargetFrame: CGRect,
-    expectedConstrained: Bool,
-    expectedMotion: OverlayMotionTreatment,
-    expectedBackground: OverlayBackgroundTreatment,
-    expectedContrast: OverlayContrastTreatment,
-    file: StaticString = #filePath,
-    line: UInt = #line
-) {
-    XCTAssertEqual(model.targetFrame, expectedTargetFrame, "targetFrame", file: file, line: line)
-    XCTAssertEqual(model.isConstrainedByMinimumSize, expectedConstrained, "isConstrainedByMinimumSize", file: file, line: line)
-    XCTAssertEqual(model.presentationPolicy.motion, expectedMotion, "motion", file: file, line: line)
-    XCTAssertEqual(model.presentationPolicy.background, expectedBackground, "background", file: file, line: line)
-    XCTAssertEqual(model.presentationPolicy.contrast, expectedContrast, "contrast", file: file, line: line)
-}
-
-// MARK: - Snapshot tests
-
 @MainActor
 final class OverlaySnapshotTests: XCTestCase {
-
-    // MARK: Chooser — light mode, standard accessibility
-
-    func testChooserRenderModel_LightMode_StandardAccessibility() {
-        let renderer = SnapshotOverlayRenderer()
-        let coordinator = OverlayCoordinator(renderer: renderer)
-        let panelFrame = CGRect(x: 540, y: 720, width: 360, height: 220)
-        let choices = snapshotChoices()
-
-        let result = coordinator.presentChooser(
-            snapshotChooserPresentation(panelFrame: panelFrame, choices: choices)
-        )
-
-        XCTAssertEqual(result, .shown(action: .maximize))
-        let model = try! XCTUnwrap(renderer.chooserModels.last)
-        assertChooserBaseline(
-            model,
-            expectedPanelFrame: panelFrame,
-            expectedChoiceCount: 6,
-            expectedSelectedAction: .maximize,
-            expectedColumnCount: 3,
-            expectedMotion: .standard,
-            expectedBackground: .translucent,
-            expectedContrast: .standard
-        )
+  func testProductionViewsRenderPixelsAcrossAppearanceMatrix() throws {
+    let variants: [(NSAppearance.Name, OverlayAccessibilityPreferences)] = [
+      (.aqua, .init()), (.aqua, .init(reduceTransparency: true)),
+      (.aqua, .init(increaseContrast: true)),
+      (.aqua, .init(reduceTransparency: true, increaseContrast: true)),
+      (.darkAqua, .init()), (.darkAqua, .init(reduceTransparency: true)),
+      (.darkAqua, .init(increaseContrast: true)),
+      (.darkAqua, .init(reduceTransparency: true, increaseContrast: true)),
+    ]
+    for (appearance, preferences) in variants {
+      let policy = OverlayPresentationPolicy(accessibilityPreferences: preferences)
+      let fixtures: [(String, NSView, CGSize)] = [
+        (
+          "chooser",
+          OverlayProductionViewFactory.makeChooserView(model: chooser(policy), onSelect: { _ in }),
+          .init(width: 360, height: 220)
+        ),
+        (
+          "preview", OverlayProductionViewFactory.makePreviewView(model: preview(policy)),
+          .init(width: 320, height: 180)
+        ),
+        (
+          "hud", OverlayProductionViewFactory.makeSuperHUDView(model: hud(policy)),
+          .init(width: 320, height: 64)
+        ),
+      ]
+      for (name, view, size) in fixtures {
+        let result = try signature(of: view, size: size, appearance: appearance)
+        XCTAssertEqual(result.width, Int(size.width * 2), name)
+        XCTAssertEqual(result.height, Int(size.height * 2), name)
+        XCTAssertGreaterThan(result.visiblePixels, 0, name)
+        XCTAssertNotEqual(result.digest, 0, name)
+      }
     }
+  }
 
-    // MARK: Chooser — dark mode, reduce motion
+  func testFixedProductionRenderIsDeterministic() throws {
+    let policy = OverlayPresentationPolicy(
+      accessibilityPreferences: .init(reduceTransparency: true))
+    let a = OverlayProductionViewFactory.makeChooserView(model: chooser(policy), onSelect: { _ in })
+    let b = OverlayProductionViewFactory.makeChooserView(model: chooser(policy), onSelect: { _ in })
+    XCTAssertEqual(
+      try signature(of: a, size: .init(width: 360, height: 220), appearance: .aqua).stable,
+      try signature(of: b, size: .init(width: 360, height: 220), appearance: .aqua).stable
+    )
+  }
 
-    func testChooserRenderModel_DarkMode_ReduceMotion() {
-        let renderer = SnapshotOverlayRenderer()
-        let coordinator = OverlayCoordinator(
-            renderer: renderer,
-            accessibilityPreferences: OverlayAccessibilityPreferences(
-                reduceMotion: true,
-                reduceTransparency: true
-            )
-        )
-
-        let result = coordinator.presentChooser(snapshotChooserPresentation())
-
-        XCTAssertEqual(result, .shown(action: .maximize))
-        let model = try! XCTUnwrap(renderer.chooserModels.last)
-        assertChooserBaseline(
-            model,
-            expectedPanelFrame: CGRect(x: 540, y: 720, width: 360, height: 220),
-            expectedChoiceCount: 6,
-            expectedSelectedAction: .maximize,
-            expectedColumnCount: 3,
-            expectedMotion: .immediate,
-            expectedBackground: .opaque,
-            expectedContrast: .standard
-        )
+  func testMeaningfulStateChangesProducePixelDiffs() throws {
+    let p = OverlayPresentationPolicy(accessibilityPreferences: .init(reduceTransparency: true))
+    let views: [(NSView, NSView, CGSize)] = [
+      (
+        OverlayProductionViewFactory.makeChooserView(
+          model: chooser(p, .maximize), onSelect: { _ in }),
+        OverlayProductionViewFactory.makeChooserView(
+          model: chooser(p, .rightHalf), onSelect: { _ in }), .init(width: 360, height: 220)
+      ),
+      (
+        OverlayProductionViewFactory.makePreviewView(model: preview(p)),
+        OverlayProductionViewFactory.makePreviewView(model: preview(p, true)),
+        .init(width: 320, height: 180)
+      ),
+      (
+        OverlayProductionViewFactory.makeSuperHUDView(model: hud(p)),
+        OverlayProductionViewFactory.makeSuperHUDView(model: hud(p, .error)),
+        .init(width: 320, height: 64)
+      ),
+    ]
+    for (before, after, size) in views {
+      XCTAssertNotEqual(
+        try signature(of: before, size: size, appearance: .aqua).digest,
+        try signature(of: after, size: size, appearance: .aqua).digest
+      )
     }
+  }
+}
 
-    // MARK: Chooser — high contrast
+private struct StablePixelSignature: Equatable {
+  let width: Int
+  let height: Int
+  let visiblePixels: Int
+  let quantizedColorHistogram: [Int]
+}
 
-    func testChooserRenderModel_HighContrast() {
-        let renderer = SnapshotOverlayRenderer()
-        let coordinator = OverlayCoordinator(
-            renderer: renderer,
-            accessibilityPreferences: OverlayAccessibilityPreferences(increaseContrast: true)
-        )
+private struct PixelSignature: Equatable {
+  let width: Int
+  let height: Int
+  let visiblePixels: Int
+  let digest: UInt64
+  let quantizedColorHistogram: [Int]
 
-        let result = coordinator.presentChooser(snapshotChooserPresentation())
+  var stable: StablePixelSignature {
+    .init(
+      width: width,
+      height: height,
+      visiblePixels: visiblePixels,
+      quantizedColorHistogram: quantizedColorHistogram
+    )
+  }
+}
+private enum SnapshotFailure: Error { case bitmapAllocation, missingPixels }
 
-        XCTAssertEqual(result, .shown(action: .maximize))
-        let model = try! XCTUnwrap(renderer.chooserModels.last)
-        assertChooserBaseline(
-            model,
-            expectedPanelFrame: CGRect(x: 540, y: 720, width: 360, height: 220),
-            expectedChoiceCount: 6,
-            expectedSelectedAction: .maximize,
-            expectedColumnCount: 3,
-            expectedMotion: .standard,
-            expectedBackground: .translucent,
-            expectedContrast: .increased
-        )
+@MainActor private func signature(of view: NSView, size: CGSize, appearance: NSAppearance.Name)
+  throws -> PixelSignature
+{
+  view.appearance = NSAppearance(named: appearance)
+  view.frame = .init(origin: .zero, size: size)
+  view.layoutSubtreeIfNeeded()
+  guard
+    let bitmap = NSBitmapImageRep(
+      bitmapDataPlanes: nil, pixelsWide: Int(size.width * 2), pixelsHigh: Int(size.height * 2),
+      bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+      colorSpaceName: .deviceRGB, bitmapFormat: [], bytesPerRow: 0, bitsPerPixel: 0)
+  else { throw SnapshotFailure.bitmapAllocation }
+  bitmap.size = size
+  view.cacheDisplay(in: view.bounds, to: bitmap)
+  guard let bytes = bitmap.bitmapData else { throw SnapshotFailure.missingPixels }
+  var digest: UInt64 = 14_695_981_039_346_656_037
+  var visible = 0
+  var colorHistogram = Array(repeating: 0, count: 64)
+  for offset in stride(from: 0, to: bitmap.bytesPerRow * bitmap.pixelsHigh, by: 4) {
+    if bytes[offset + 3] != 0 { visible += 1 }
+    let bucket =
+      Int(bytes[offset] >> 6) * 16
+      + Int(bytes[offset + 1] >> 6) * 4
+      + Int(bytes[offset + 2] >> 6)
+    colorHistogram[bucket] += 1
+    for channel in 0..<4 {
+      digest ^= UInt64(bytes[offset + channel])
+      digest &*= 1_099_511_628_211
     }
+  }
+  let stableHistogram = colorHistogram.map { (($0 + 127) / 256) * 256 }
+  return .init(
+    width: bitmap.pixelsWide,
+    height: bitmap.pixelsHigh,
+    visiblePixels: visible,
+    digest: digest,
+    quantizedColorHistogram: stableHistogram
+  )
+}
 
-    // MARK: Preview — standard
+private func chooser(_ policy: OverlayPresentationPolicy, _ selected: ActionID = .maximize)
+  -> OverlayChooserRenderModel
+{
+  .init(
+    panelFrame: .init(x: 540, y: 720, width: 360, height: 220),
+    choices: [
+      .init(action: .maximize, title: "Maximize", accessibilityLabel: "Maximize"),
+      .init(action: .leftHalf, title: "Left Half", accessibilityLabel: "Left Half"),
+      .init(action: .rightHalf, title: "Right Half", accessibilityLabel: "Right Half"),
+      .init(action: .topHalf, title: "Top Half", accessibilityLabel: "Top Half"),
+      .init(action: .bottomHalf, title: "Bottom Half", accessibilityLabel: "Bottom Half"),
+      .init(action: .topLeftQuarter, title: "Top Left", accessibilityLabel: "Top Left"),
+    ], selectedAction: selected, columnCount: 3, presentationPolicy: policy)
+}
 
-    func testPreviewRenderModel_Standard() {
-        let renderer = SnapshotOverlayRenderer()
-        let coordinator = OverlayCoordinator(renderer: renderer)
-        let targetFrame = CGRect(x: 0, y: 25, width: 720, height: 875)
+private func preview(_ policy: OverlayPresentationPolicy, _ constrained: Bool = false)
+  -> OverlayPreviewRenderModel
+{
+  .init(
+    targetFrame: .init(x: 0, y: 25, width: 320, height: 180),
+    isConstrainedByMinimumSize: constrained, presentationPolicy: policy)
+}
 
-        let result = coordinator.showPreview(
-            snapshotPreviewPresentation(targetFrame: targetFrame, constrained: false)
-        )
-
-        XCTAssertEqual(result, .shown)
-        let model = try! XCTUnwrap(renderer.previewModels.last)
-        assertPreviewBaseline(
-            model,
-            expectedTargetFrame: targetFrame,
-            expectedConstrained: false,
-            expectedMotion: .standard,
-            expectedBackground: .translucent,
-            expectedContrast: .standard
-        )
-    }
-
-    // MARK: Preview — constrained by minimum size
-
-    func testPreviewRenderModel_ConstrainedByMinimumSize() {
-        let renderer = SnapshotOverlayRenderer()
-        let coordinator = OverlayCoordinator(renderer: renderer)
-        let targetFrame = CGRect(x: -1_440, y: 25, width: 720, height: 875)
-
-        let result = coordinator.showPreview(
-            snapshotPreviewPresentation(targetFrame: targetFrame, constrained: true)
-        )
-
-        XCTAssertEqual(result, .shown)
-        let model = try! XCTUnwrap(renderer.previewModels.last)
-        assertPreviewBaseline(
-            model,
-            expectedTargetFrame: targetFrame,
-            expectedConstrained: true,
-            expectedMotion: .standard,
-            expectedBackground: .translucent,
-            expectedContrast: .standard
-        )
-    }
+private func hud(_ policy: OverlayPresentationPolicy, _ state: SuperHUDState = .waiting)
+  -> SuperHUDRenderModel
+{
+  .init(
+    panelFrame: .init(x: 520, y: 440, width: 320, height: 64), state: state,
+    title: state == .error ? "Action unavailable" : "Super Mode",
+    detail: state == .error ? "Try another action" : "Waiting for a key",
+    accessibilityLabel: "Super Mode status", presentationPolicy: policy)
 }

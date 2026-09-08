@@ -5,6 +5,115 @@ import XCTest
 @testable import MyMacX
 
 final class WindowActionEngineTests: XCTestCase {
+    func testExcludedFocusedApplicationRejectsDirectCommitBeforeMutation() async {
+        let window = WindowIdentity()
+        let mutation = RecordingWindowMutation(
+            frames: [window: axFrame(x: 100, y: 100, width: 400, height: 300)]
+        )
+        let identities = ScriptedCapturedWindowApplications([
+            window: "com.example.excluded",
+        ])
+        let engine = makeEngine(
+            focus: ScriptedFocusedWindows([.found(eligible(window))]),
+            mutation: mutation,
+            applicationIdentities: identities,
+            appRules: AppRuleRuntime(policy: policy(excluding: "com.example.excluded"))
+        )
+
+        let result = await engine.perform(.commit(action: .leftHalf, source: .menuBar))
+        let mutations = await mutation.mutationCalls
+        let requestedWindows = await identities.requestedWindows
+
+        XCTAssertEqual(result.disposition, .rejected(.applicationExcluded))
+        XCTAssertTrue(mutations.isEmpty)
+        XCTAssertEqual(requestedWindows, [window])
+    }
+
+    func testExplicitPreviewEvaluatesRulesForExactCapturedIdentityWithoutRefocusingOrMutation() async {
+        let pointerCaptured = WindowIdentity()
+        let laterFocused = WindowIdentity()
+        let focus = ScriptedFocusedWindows([.found(eligible(laterFocused))])
+        let mutation = RecordingWindowMutation(
+            frames: [
+                pointerCaptured: axFrame(x: 100, y: 100, width: 400, height: 300),
+                laterFocused: axFrame(x: 700, y: 100, width: 300, height: 250),
+            ]
+        )
+        let identities = ScriptedCapturedWindowApplications([
+            pointerCaptured: "com.example.excluded",
+            laterFocused: "com.example.included",
+        ])
+        let engine = makeEngine(
+            focus: focus,
+            mutation: mutation,
+            applicationIdentities: identities,
+            appRules: AppRuleRuntime(policy: policy(excluding: "com.example.excluded"))
+        )
+
+        let result = await engine.perform(
+            .preview(
+                action: .leftHalf,
+                interaction: InteractionID(),
+                capturedWindow: pointerCaptured
+            )
+        )
+        let captureCount = await focus.captureCount
+        let requestedWindows = await identities.requestedWindows
+        let mutations = await mutation.mutationCalls
+
+        XCTAssertEqual(result.disposition, .rejected(.applicationExcluded))
+        XCTAssertEqual(captureCount, 0)
+        XCTAssertEqual(requestedWindows, [pointerCaptured])
+        XCTAssertTrue(mutations.isEmpty)
+    }
+
+    func testCommitPreviewRechecksRuntimeRulesForBoundIdentityBeforeMutation() async {
+        let captured = WindowIdentity()
+        let mutation = RecordingWindowMutation(
+            frames: [captured: axFrame(x: 100, y: 100, width: 400, height: 300)]
+        )
+        let runtime = AppRuleRuntime()
+        let identities = ScriptedCapturedWindowApplications([
+            captured: "com.example.editor",
+        ])
+        let engine = makeEngine(
+            focus: ScriptedFocusedWindows([.found(eligible(captured))]),
+            mutation: mutation,
+            applicationIdentities: identities,
+            appRules: runtime
+        )
+        let interaction = InteractionID()
+
+        let preview = await engine.perform(.preview(action: .leftHalf, interaction: interaction))
+        await runtime.replace(with: policy(excluding: "com.example.editor"))
+        let committed = await engine.perform(.commitPreview(interaction: interaction))
+        let requestedWindows = await identities.requestedWindows
+        let mutations = await mutation.mutationCalls
+
+        XCTAssertEqual(preview.disposition, .succeeded)
+        XCTAssertEqual(committed.disposition, .rejected(.applicationExcluded))
+        XCTAssertEqual(requestedWindows, [captured, captured])
+        XCTAssertTrue(mutations.isEmpty)
+    }
+
+    func testMissingApplicationIdentityFailsClosed() async {
+        let window = WindowIdentity()
+        let mutation = RecordingWindowMutation(
+            frames: [window: axFrame(x: 100, y: 100, width: 400, height: 300)]
+        )
+        let engine = makeEngine(
+            focus: ScriptedFocusedWindows([.found(eligible(window))]),
+            mutation: mutation,
+            applicationIdentities: ScriptedCapturedWindowApplications([:])
+        )
+
+        let result = await engine.perform(.commit(action: .leftHalf, source: .menuBar))
+        let mutations = await mutation.mutationCalls
+
+        XCTAssertEqual(result.disposition, .rejected(.applicationExcluded))
+        XCTAssertTrue(mutations.isEmpty)
+    }
+
     func testDirectCommitCapturesFocusOnceAndReturnsVerifiedHistoryToken() async {
         let window = WindowIdentity()
         let focus = ScriptedFocusedWindows([.found(eligible(window))])
@@ -402,7 +511,7 @@ final class WindowActionEngineTests: XCTestCase {
         let disabledCatalog = WindowActionCatalog(definitions: [
             .init(
                 id: .leftHalf,
-                operation: .layout(disabledRegion),
+                operation: .layout(layoutID: "built-in", region: disabledRegion),
                 isEnabled: false
             ),
         ])
@@ -420,6 +529,60 @@ final class WindowActionEngineTests: XCTestCase {
         XCTAssertEqual(disabledResult.disposition, .rejected(.actionDisabled(.leftHalf)))
         XCTAssertEqual(disabledCaptureCount, 0)
     }
+
+    func testDisplayProfileGapIsAppliedByStableDisplayIdentity() async throws {
+        let window = WindowIdentity()
+        let stableID = try StableDisplayID(rawValue: "uuid:main")
+        let profiles = try DisplayProfileLayoutRuntime(
+            stableDisplays: FixedStableDisplays([DisplayID(rawValue: 1): stableID]),
+            profiles: [
+                try DisplayProfile(
+                    stableDisplayID: stableID,
+                    gap: 20,
+                    layoutIDs: ["built-in"]
+                ),
+            ]
+        )
+        let mutation = RecordingWindowMutation(
+            frames: [window: axFrame(x: 100, y: 100, width: 400, height: 300)]
+        )
+        let engine = makeEngine(
+            focus: ScriptedFocusedWindows([.found(eligible(window))]),
+            mutation: mutation,
+            profileLayouts: profiles
+        )
+
+        let result = await engine.perform(.commit(action: .leftHalf, source: .superMode))
+        let calls = await mutation.mutationCalls
+
+        XCTAssertEqual(result.disposition, .succeeded)
+        XCTAssertEqual(calls.map(\.target), [axFrame(x: 0, y: 25, width: 590, height: 775)])
+    }
+
+    func testDisplayProfileRejectsLayoutOutsideItsStableDisplayLayoutSet() async throws {
+        let window = WindowIdentity()
+        let stableID = try StableDisplayID(rawValue: "uuid:main")
+        let profiles = try DisplayProfileLayoutRuntime(
+            stableDisplays: FixedStableDisplays([DisplayID(rawValue: 1): stableID]),
+            profiles: [
+                try DisplayProfile(stableDisplayID: stableID, gap: 20, layoutIDs: ["writing"]),
+            ]
+        )
+        let mutation = RecordingWindowMutation(
+            frames: [window: axFrame(x: 100, y: 100, width: 400, height: 300)]
+        )
+        let engine = makeEngine(
+            focus: ScriptedFocusedWindows([.found(eligible(window))]),
+            mutation: mutation,
+            profileLayouts: profiles
+        )
+
+        let result = await engine.perform(.commit(action: .leftHalf, source: .superMode))
+        let calls = await mutation.mutationCalls
+
+        XCTAssertEqual(result.disposition, .rejected(.actionDisabled(.leftHalf)))
+        XCTAssertTrue(calls.isEmpty)
+    }
 }
 
 private extension WindowActionEngineTests {
@@ -428,7 +591,10 @@ private extension WindowActionEngineTests {
         mutation: any WindowMutationPerforming & CapturedWindowFrameProviding,
         topology: (any WindowActionTopologyProviding)? = nil,
         nativeFullScreen: any NativeFullScreenActionPerforming = ScriptedNativeFullScreen([.rejected]),
-        catalog: WindowActionCatalog = .builtIn
+        catalog: WindowActionCatalog = .builtIn,
+        applicationIdentities: any CapturedWindowApplicationIdentifying = IncludedCapturedWindowApplications(),
+        appRules: AppRuleRuntime = AppRuleRuntime(),
+        profileLayouts: any DisplayProfileLayoutResolving = DefaultDisplayProfileLayoutResolver()
     ) -> WindowActionEngine {
         let topology = topology ?? ScriptedWindowActionTopology([
             .available(topologySnapshot(generation: 1)),
@@ -442,8 +608,20 @@ private extension WindowActionEngineTests {
             history: BoundedSessionWindowHistory(),
             cycles: BoundedSessionCycleGroups(),
             nativeFullScreen: nativeFullScreen,
-            catalog: catalog
+            catalog: catalog,
+            applicationIdentities: applicationIdentities,
+            appRules: appRules,
+            profileLayouts: profileLayouts
         )
+    }
+
+    func policy(excluding bundleIdentifier: String) -> AppRulePolicy {
+        AppRulePolicy(rules: [
+            AppRule(
+                bundleIdentifier: ApplicationBundleIdentifier(bundleIdentifier)!,
+                decision: .excluded
+            ),
+        ])
     }
 
     func eligible(_ identity: WindowIdentity) -> EligibleWindow {
@@ -502,6 +680,26 @@ private extension WindowActionEngineTests {
                 region: CGRect(x: frame.midX - 50, y: frame.maxY - 10, width: 100, height: 10)
             )
         )
+    }
+}
+
+private actor ScriptedCapturedWindowApplications: CapturedWindowApplicationIdentifying {
+    private let bundleIdentifiers: [WindowIdentity: String]
+    private(set) var requestedWindows: [WindowIdentity] = []
+
+    init(_ bundleIdentifiers: [WindowIdentity: String]) {
+        self.bundleIdentifiers = bundleIdentifiers
+    }
+
+    func bundleIdentifier(for window: WindowIdentity) -> String? {
+        requestedWindows.append(window)
+        return bundleIdentifiers[window]
+    }
+}
+
+private struct IncludedCapturedWindowApplications: CapturedWindowApplicationIdentifying {
+    func bundleIdentifier(for window: WindowIdentity) -> String? {
+        "com.example.included"
     }
 }
 
@@ -605,5 +803,17 @@ private actor ScriptedNativeFullScreen: NativeFullScreenActionPerforming {
         windows.append(window)
         if results.count == 1 { return results[0] }
         return results.removeFirst()
+    }
+}
+
+private struct FixedStableDisplays: StableDisplayIdentifying {
+    let values: [DisplayID: StableDisplayID]
+
+    init(_ values: [DisplayID: StableDisplayID]) {
+        self.values = values
+    }
+
+    func stableDisplayID(for displayID: DisplayID) -> StableDisplayID? {
+        values[displayID]
     }
 }

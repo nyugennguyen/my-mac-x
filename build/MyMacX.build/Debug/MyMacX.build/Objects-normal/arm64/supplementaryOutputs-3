@@ -1,0 +1,23 @@
+{
+  "/Users/mac/Projects/mymac-x/Sources/InputKit/GlobalHotkeyManager.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/GlobalHotkeyManager.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/GlobalHotkeyManager.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/GlobalHotkeyManager.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/GlobalHotkeyManager.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/GlobalHotkeyManager.swiftdeps"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/WindowActionKit/WindowActionModels.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/WindowActionModels.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/WindowActionModels.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/WindowActionModels.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/WindowActionModels.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/WindowActionModels.swiftdeps"
+  },
+  "/Users/mac/Projects/mymac-x/Sources/WindowActionKit/WindowActionTopology.swift" : {
+    "const-values" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/WindowActionTopology.swiftconstvalues",
+    "dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/WindowActionTopology.d",
+    "diagnostics" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/WindowActionTopology.dia",
+    "object" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/WindowActionTopology.o",
+    "swift-dependencies" : "/Users/mac/Projects/mymac-x/build/MyMacX.build/Debug/MyMacX.build/Objects-normal/arm64/WindowActionTopology.swiftdeps"
+  }
+}

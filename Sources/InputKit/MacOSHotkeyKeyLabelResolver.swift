@@ -63,6 +63,10 @@ final class MacOSHotkeyKeyLabelResolver: HotkeyKeyLabelResolving, @unchecked Sen
     }
 
     func label(for hardwareKeyCode: UInt16) -> String? {
+        if let label = Self.stableMacKeyLabel(for: hardwareKeyCode) {
+            return label
+        }
+
         lock.lock()
         let key = CacheKey(generation: generation, hardwareKeyCode: hardwareKeyCode)
         if let cached = cache[key] {
@@ -81,6 +85,65 @@ final class MacOSHotkeyKeyLabelResolver: HotkeyKeyLabelResolving, @unchecked Sen
         cache[key] = result.map(CachedLabel.resolved) ?? .unavailable
         lock.unlock()
         return result
+    }
+
+    private static func stableMacKeyLabel(for hardwareKeyCode: UInt16) -> String? {
+        switch hardwareKeyCode {
+        case 0x24: return "Return"
+        case 0x30: return "Tab"
+        case 0x31: return "Space"
+        case 0x33: return "Delete"
+        case 0x35: return "Escape"
+        case 0x40: return "F17"
+        case 0x41: return "Keypad Decimal"
+        case 0x43: return "Keypad Multiply"
+        case 0x45: return "Keypad Plus"
+        case 0x47: return "Keypad Clear"
+        case 0x4B: return "Keypad Divide"
+        case 0x4C: return "Keypad Enter"
+        case 0x4E: return "Keypad Minus"
+        case 0x4F: return "F18"
+        case 0x50: return "F19"
+        case 0x51: return "Keypad Equals"
+        case 0x52: return "Keypad 0"
+        case 0x53: return "Keypad 1"
+        case 0x54: return "Keypad 2"
+        case 0x55: return "Keypad 3"
+        case 0x56: return "Keypad 4"
+        case 0x57: return "Keypad 5"
+        case 0x58: return "Keypad 6"
+        case 0x59: return "Keypad 7"
+        case 0x5A: return "F20"
+        case 0x5B: return "Keypad 8"
+        case 0x5C: return "Keypad 9"
+        case 0x60: return "F5"
+        case 0x61: return "F6"
+        case 0x62: return "F7"
+        case 0x63: return "F3"
+        case 0x64: return "F8"
+        case 0x65: return "F9"
+        case 0x67: return "F11"
+        case 0x69: return "F13"
+        case 0x6A: return "F16"
+        case 0x6B: return "F14"
+        case 0x6D: return "F10"
+        case 0x6F: return "F12"
+        case 0x71: return "F15"
+        case 0x72: return "Help"
+        case 0x73: return "Home"
+        case 0x74: return "Page Up"
+        case 0x75: return "Forward Delete"
+        case 0x76: return "F4"
+        case 0x77: return "End"
+        case 0x78: return "F2"
+        case 0x79: return "Page Down"
+        case 0x7A: return "F1"
+        case 0x7B: return "Left Arrow"
+        case 0x7C: return "Right Arrow"
+        case 0x7D: return "Down Arrow"
+        case 0x7E: return "Up Arrow"
+        default: return nil
+        }
     }
 
     private static func normalize(_ label: String) -> String? {
@@ -112,14 +175,6 @@ private struct SystemMacOSHotkeyLayoutProvider: MacOSHotkeyLayoutProviding {
 
 private struct CarbonMacOSHotkeyLayoutTranslator: MacOSHotkeyLayoutTranslating {
     func label(for hardwareKeyCode: UInt16, in snapshot: MacOSHotkeyLayoutSnapshot) -> String? {
-        switch hardwareKeyCode {
-        case 0x7B: return "Left Arrow"
-        case 0x7C: return "Right Arrow"
-        case 0x7D: return "Down Arrow"
-        case 0x7E: return "Up Arrow"
-        default: break
-        }
-
         guard let pointer = snapshot.data.withUnsafeBytes({ rawBuffer -> UnsafePointer<UCKeyboardLayout>? in
             guard let baseAddress = rawBuffer.baseAddress else { return nil }
             return baseAddress.assumingMemoryBound(to: UCKeyboardLayout.self)
