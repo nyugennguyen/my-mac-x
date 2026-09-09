@@ -47,6 +47,11 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
             return .failure(map(error))
         }
 
+        var processID: pid_t = 0
+        if AXUIElementGetPid(focusedWindow, &processID) == .success, processID == getpid() {
+            return .unsupported
+        }
+
         switch configureMessagingTimeout(on: focusedWindow) {
         case .success:
             break
@@ -192,6 +197,11 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
         }
         guard let window = identityCache.element(for: identity) else {
             return .failure(.windowDisappeared)
+        }
+
+        var processID: pid_t = 0
+        if AXUIElementGetPid(window, &processID) == .success, processID == getpid() {
+            return .failure(.rejected)
         }
 
         switch configureMessagingTimeout(on: window) {
@@ -564,6 +574,10 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
     }
 
     private func setPosition(_ position: CGPoint, on element: AXUIElement) -> AXRead<Void> {
+        var processID: pid_t = 0
+        if AXUIElementGetPid(element, &processID) == .success, processID == getpid() {
+            return .failure(.cannotComplete)
+        }
         var mutablePosition = position
         guard let value = AXValueCreate(.cgPoint, &mutablePosition) else {
             return .failure(.failure)
@@ -577,6 +591,10 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
     }
 
     private func setSize(_ size: CGSize, on element: AXUIElement) -> AXRead<Void> {
+        var processID: pid_t = 0
+        if AXUIElementGetPid(element, &processID) == .success, processID == getpid() {
+            return .failure(.cannotComplete)
+        }
         var mutableSize = size
         guard let value = AXValueCreate(.cgSize, &mutableSize) else {
             return .failure(.failure)

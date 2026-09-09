@@ -47,16 +47,22 @@ semantics or add new Window Actions.
 
 | ID | Deliverable | Owner / model | Status | Dependency | Evidence / exit expectation |
 |---|---|---|---|---|---|
-| X7-01 | Whole-app heuristic and consistency audit | A2 / TERRA-H | DONE — CODE AUDIT; SCREENSHOT REVIEW PENDING | G6 | [Audit](evidence/x7-01-whole-app-audit.md) inventories shipped surfaces and ranks findings without claiming human visual results. |
+| X7-01 | Whole-app heuristic and consistency audit | A2 / TERRA-H | DONE — OWNER ACCEPTED | G6 | [Audit](evidence/x7-01-whole-app-audit.md) inventories shipped surfaces and ranks findings; unexecuted screenshot review is recorded as a Sprint 8 exception. |
 | X7-02 | macOS visual system and reusable tokens | A2 / TERRA-H | IMPLEMENTED — AUTOMATED | X7-01 | [Evidence](evidence/x7-02-through-x7-08-implementation.md): semantic chooser metrics and native control/material treatments are observable at the render seam. |
-| X7-03 | Layout Chooser appearance | A2 / TERRA-H | IMPLEMENTED — AUTOMATED; HUMAN VISUAL QA PENDING | N4-04…06, X7-02 | Native material, layout glyphs, compact density, selected state, contrast fallback and minimum targets are implemented. |
-| X7-04 | Drag-time chooser placement and controls | A2 + A1 review / SOL-H | IMPLEMENTED — AUTOMATED; PHYSICAL QA PENDING | X7-03, N4-07…08 | Same-Display frame stability, destination-display anchoring and visible-frame edge clamping pass focused tests. |
-| X7-05 | Placement Preview and transition refinement | A2 / TERRA-H | IMPLEMENTED — AUTOMATED; HUMAN VISUAL QA PENDING | X7-03…04 | Selection updates preserve the chooser view tree; preview/accessibility policy updates are stable at the public seams. |
+| X7-03 | Layout Chooser appearance | A2 / TERRA-H | DONE — OWNER ACCEPTED | N4-04…06, X7-02 | Native material, layout glyphs, compact density, selected state, contrast fallback and minimum targets are implemented. |
+| X7-04 | Drag-time chooser placement and controls | A2 + A1 review / SOL-H | DONE — OWNER ACCEPTED | X7-03, N4-07…08 | Same-Display frame stability, destination-display anchoring and visible-frame edge clamping pass focused tests; remaining hardware topologies move to Sprint 8. |
+| X7-05 | Placement Preview and transition refinement | A2 / TERRA-H | DONE — OWNER ACCEPTED | X7-03…04 | Selection updates preserve the chooser view tree; preview/accessibility policy updates are stable at the public seams. |
 | X7-06 | Human-readable Hotkey Settings | A2 / TERRA-H | DONE — AUTOMATED | H3-03, U6-03 | Both editors show glyphs/localized labels and a non-numeric unknown-key fallback; numeric editing was removed. |
-| X7-07 | Settings hierarchy and control-placement pass | A2 / TERRA-H | IMPLEMENTED — AUTOMATED RENDER PASS; HUMAN QA PENDING | X7-01…02, U6-02…10 | Hotkey/Super Mode controls use native pickers, grouped forms, consistent status and primary actions; 18 production-view state/size renders pass. |
-| X7-08 | Menu bar, Super HUD, onboarding and feedback pass | A2 / TERRA-H | IMPLEMENTED — AUTOMATED; HUMAN QA PENDING | X7-01…02 | Native first-run Accessibility explanation and live HUD appearance policy are implemented; remaining surfaces require human review. |
-| X7-09 | Accessibility and appearance matrix | A3 / TERRA-M | AUTOMATED MATRIX PASS; HUMAN QA PENDING | X7-03…08 | [Matrix](evidence/x7-09-x7-10-verification-matrix.md) records keyboard, geometry, appearance-policy, Settings render, and production-overlay render coverage; VoiceOver and physical interaction remain human-owned. |
-| X7-10 | Visual regression and human usability gate | A3 / TERRA-H | AUTOMATED PIXEL INTEGRITY PASS; HUMAN QA PENDING | X7-03…09 | [Production pixel rendering](evidence/x7-10-production-pixel-rendering.md) covers chooser/preview/HUD; physical notch/non-notch, multi-Display, baseline approval and five-user protocol remain mandatory. |
+| X7-07 | Settings hierarchy and control-placement pass | A2 / TERRA-H | DONE — OWNER ACCEPTED | X7-01…02, U6-02…10 | Hotkey/Super Mode controls use native pickers, grouped forms, consistent status and primary actions; 18 production-view state/size renders pass. |
+| X7-08 | Menu bar, Super HUD, onboarding and feedback pass | A2 / TERRA-H | DONE — OWNER ACCEPTED | X7-01…02 | Native first-run Accessibility explanation, identifiable menu-bar item, and live HUD appearance policy are implemented. |
+| X7-09 | Accessibility and appearance matrix | A3 / TERRA-M | DONE — ACCEPTED WITH EXCEPTIONS | X7-03…08 | [Matrix](evidence/x7-09-x7-10-verification-matrix.md) preserves automated results and explicitly carries unexecuted VoiceOver/appearance checks into Sprint 8. |
+| X7-10 | Visual regression and human usability gate | A3 / TERRA-H | DONE — ACCEPTED WITH EXCEPTIONS | X7-03…09 | [Production pixel rendering](evidence/x7-10-production-pixel-rendering.md) covers chooser/preview/HUD; remaining hardware topologies, baseline review, and five-user protocol move to Sprint 8. |
+
+Physical-test follow-up on 2026-09-09 fixed the non-notch external-Display
+top-center fallback and made the menu-bar item occupy an explicit 54 pt slot with
+an identifiable glyph and `MX` label. The Settings hotkey rows now switch to a
+compact vertical hierarchy at accessibility text sizes. These fixes are covered
+by the 448-test regression run; the owner confirmed the HKC fallback behavior.
 
 ## Required scenarios
 
@@ -71,7 +77,7 @@ semantics or add new Window Actions.
 
 ## Gate G7
 
-Status: `AUTOMATED IMPLEMENTATION PASS — HUMAN QA PENDING`
+Status: `APPROVED — PROJECT OWNER GO; ACCEPTED EXCEPTIONS RECORDED`
 
 Gate G7 passes only when:
 
@@ -86,3 +92,14 @@ Gate G7 passes only when:
 Human evaluation is mandatory for pointer feel, perceived visual quality,
 VoiceOver usability, and final Go/No-Go. Automated snapshots and geometry tests
 support but do not replace that evaluation.
+
+Project Owner decision, 2026-09-09: **GO for Sprint 7**. The owner accepts the
+remaining unexecuted VoiceOver traversal, full notch/multi-Display topology,
+formal screenshot-baseline review, and five-user protocol as explicit exceptions
+deferred to Sprint 8. Their matrix rows remain unpassed; this approval does not
+relabel missing evidence as `PASS`.
+
+Physical QA update, 2026-09-09: the project owner confirmed the Layout Chooser now
+appears on the HKC external non-notch Display. The status item now installs after
+application launch and uses a fixed slot with both its window glyph and a visible
+`MX` monogram to avoid confusion with generic system icons.

@@ -3,6 +3,13 @@ import Foundation
 @testable import MyMacX
 
 final class SuperModeConfigurationTests: XCTestCase {
+    func testDefaultConfigurationOpensSettingsWithS() {
+        XCTAssertEqual(
+            SuperModeConfiguration.default.commandBindings,
+            [SuperModeCommandBinding(hardwareKeyCodes: [1], actionID: .openSettings)]
+        )
+    }
+
     func testValidationRejectsInvalidCandidatesBeforeDocumentOrRuntimeReplacement() async {
         let documents = InMemorySettingsDocumentAdapter()
         let store: any SettingsStoring = SettingsStore(

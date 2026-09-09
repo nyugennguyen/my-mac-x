@@ -23,6 +23,7 @@ final class AppLifecycleCoordinator {
     private let startSuperModeRuntime: @MainActor () -> Void
     private let stopSuperModeRuntime: @MainActor () -> Void
     private var hasStarted = false
+    private var hasFinishedLaunching = false
 
     init(
         system: AppShellSystem,
@@ -43,9 +44,17 @@ final class AppLifecycleCoordinator {
 
         hasStarted = true
         system.applyAccessoryActivationPolicy()
-        system.installMenuBarItem()
         startHotkeyRuntime()
         startSuperModeRuntime()
+    }
+
+    /// Publishes AppKit scene-backed UI only after NSApplication has finished
+    /// launching. Installing an NSStatusItem during will-finish can race Control
+    /// Center's status-item scene registration on current macOS releases.
+    func applicationDidFinishLaunching() {
+        guard hasStarted, !hasFinishedLaunching else { return }
+        hasFinishedLaunching = true
+        system.installMenuBarItem()
     }
 
     func applicationDidBecomeActive() {
@@ -206,6 +215,20 @@ final class AppShellMenuController: NSObject {
 
 @MainActor
 final class AppKitAppShellSystem: NSObject, AppShellSystem, NSMenuDelegate {
+    struct StatusItemPresentation: Equatable {
+        let length: CGFloat
+        let symbolName: String
+        let title: String
+        let toolTip: String
+
+        static let standard = StatusItemPresentation(
+            length: 54,
+            symbolName: "rectangle.split.2x2",
+            title: "MX",
+            toolTip: "My Mac X"
+        )
+    }
+
     private let application: NSApplication
     private let statusBar: NSStatusBar
     private let menuController: AppShellMenuController
@@ -244,11 +267,28 @@ final class AppKitAppShellSystem: NSObject, AppShellSystem, NSMenuDelegate {
     func installMenuBarItem() {
         guard statusItem == nil else { return }
 
-        let item = statusBar.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.title = "My Mac X"
-        item.button?.setAccessibilityLabel("My Mac X")
+        let presentation = StatusItemPresentation.standard
+        // A fixed slot prevents AppKit from collapsing an image-only item during
+        // accessory-app startup. The short monogram makes the app distinguishable
+        // from other window-shaped menu-bar glyphs.
+        let item = statusBar.statusItem(withLength: presentation.length)
+        let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        if let image = NSImage(
+            systemSymbolName: presentation.symbolName,
+            accessibilityDescription: presentation.toolTip
+        )?.withSymbolConfiguration(config) {
+            image.isTemplate = true
+            item.button?.image = image
+            item.button?.imagePosition = .imageLeading
+            item.button?.title = presentation.title
+        } else {
+            item.button?.title = presentation.title
+        }
+        item.button?.toolTip = presentation.toolTip
+        item.button?.setAccessibilityLabel(presentation.toolTip)
 
         item.menu = makeMenu()
+        item.isVisible = true
         statusItem = item
     }
 

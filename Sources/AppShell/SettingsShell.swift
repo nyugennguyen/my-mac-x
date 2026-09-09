@@ -462,14 +462,35 @@ public struct SettingsCommandTreeItem: Equatable, Identifiable, Sendable {
     public let keySequence: String
     public let actionTitle: String
     public let isAvailable: Bool
+    public let symbolName: String?
+    public let keys: [String]
 
     public var id: String { "\(keySequence)-\(actionTitle)" }
     public var accessibilityLabel: String { "\(keySequence): \(actionTitle)" }
 
-    public init(keySequence: String, actionTitle: String, isAvailable: Bool) {
+    public init(
+        keySequence: String,
+        actionTitle: String,
+        isAvailable: Bool,
+        symbolName: String? = nil,
+        keys: [String] = []
+    ) {
         self.keySequence = keySequence
         self.actionTitle = actionTitle
         self.isAvailable = isAvailable
+        self.symbolName = symbolName
+        self.keys = keys.isEmpty ? Self.parseKeys(from: keySequence) : keys
+    }
+
+    private static func parseKeys(from sequence: String) -> [String] {
+        if sequence.contains(",") {
+            return sequence.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        } else if sequence.contains(" ") {
+            return sequence.split(separator: " ").map(String.init)
+        } else if !sequence.isEmpty {
+            return [sequence]
+        }
+        return []
     }
 }
 
@@ -478,24 +499,32 @@ public struct SettingsHotkeysSnapshot: Equatable, Sendable {
     public var recorder: SettingsShortcutRecorderState
     public var validationMessage: String?
     public var commandTree: [SettingsCommandTreeItem]
+    public var prefixPresentation: String?
+    public var globalHotkeys: [SettingsCommandTreeItem]
 
     public init(
         editor: SettingsHotkeyEditor,
         recorder: SettingsShortcutRecorderState,
-        validationMessage: String?,
-        commandTree: [SettingsCommandTreeItem]
+        validationMessage: String? = nil,
+        commandTree: [SettingsCommandTreeItem],
+        prefixPresentation: String? = nil,
+        globalHotkeys: [SettingsCommandTreeItem] = []
     ) {
         self.editor = editor
         self.recorder = recorder
         self.validationMessage = validationMessage
         self.commandTree = commandTree
+        self.prefixPresentation = prefixPresentation
+        self.globalHotkeys = globalHotkeys
     }
 
     public static let empty = Self(
         editor: .hotkeys,
         recorder: .ready,
         validationMessage: nil,
-        commandTree: []
+        commandTree: [],
+        prefixPresentation: nil,
+        globalHotkeys: []
     )
 
     public var recorderAccessibilityLabel: String { recorder.accessibilityLabel }
@@ -1155,53 +1184,244 @@ private struct SnappingSettingsView: View {
     }
 }
 
+public struct KeycapBadgeView: View {
+    public let label: String
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    public init(label: String) {
+        self.label = label
+    }
+
+    public var body: some View {
+        Text(label)
+            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(Color(nsColor: .controlBackgroundColor))
+                    .shadow(color: Color.black.opacity(0.12), radius: 0.5, x: 0, y: 1)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .strokeBorder(Color(nsColor: .separatorColor).opacity(0.8), lineWidth: 0.75)
+            )
+    }
+}
+
+public struct KeySequenceBadgeView: View {
+    public let item: SettingsCommandTreeItem
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    public init(item: SettingsCommandTreeItem) {
+        self.item = item
+    }
+
+    public var body: some View {
+        let keyList = item.keys.isEmpty ? [item.keySequence] : item.keys
+        HStack(spacing: 4) {
+            ForEach(Array(keyList.enumerated()), id: \.offset) { index, key in
+                if index > 0 {
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+                KeycapBadgeView(label: key)
+            }
+        }
+    }
+}
+
 private struct HotkeySettingsSummaryView: View {
     @ObservedObject var model: SettingsShellModel
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let presentation = model.snapshot.hotkeys
         Form {
-            Section(SettingsCopy.hotkeysSectionTitle) {
-                Text(presentation.recorderAccessibilityLabel)
-                    .accessibilityLabel(presentation.recorderAccessibilityLabel)
-
-                Button(SettingsCopy.editHotkeys) {
-                    model.openHotkeyEditor(.hotkeys)
-                }
-                .accessibilityHint(SettingsCopy.hotkeyEditorHint)
-
-                Button(SettingsCopy.editSuperMode) {
-                    model.openHotkeyEditor(.superMode)
-                }
-                .accessibilityHint(SettingsCopy.hotkeyEditorHint)
-
-                if let message = presentation.validationMessage {
+            if let message = presentation.validationMessage {
+                Section {
                     Label(message, systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.red)
                         .accessibilityLabel("\(SettingsCopy.hotkeyValidationError): \(message)")
                 }
             }
 
-            Section(SettingsCopy.commandTreeTitle) {
+            Section {
+                VStack(alignment: .leading, spacing: 10) {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Super Mode")
+                                .font(.headline)
+                            Text("Fast window placement via short sequential key sequences.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Button(SettingsCopy.editSuperMode) {
+                                model.openHotkeyEditor(.superMode)
+                            }
+                            .accessibilityHint(SettingsCopy.hotkeyEditorHint)
+                        }
+                    } else {
+                        HStack(alignment: .center) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Super Mode")
+                                    .font(.headline)
+                                Text("Fast window placement via short sequential key sequences.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button(SettingsCopy.editSuperMode) {
+                                model.openHotkeyEditor(.superMode)
+                            }
+                            .accessibilityHint(SettingsCopy.hotkeyEditorHint)
+                        }
+                    }
+
+                    if let prefix = presentation.prefixPresentation {
+                        HStack(spacing: 8) {
+                            Text("Prefix Shortcut:")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            KeycapBadgeView(label: prefix)
+                            Text("then press action key(s)")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(.top, 2)
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text(SettingsCopy.hotkeysSectionTitle)
+            }
+
+            Section {
                 if presentation.commandTree.isEmpty {
                     Text(SettingsCopy.hotkeyEmptyState)
                         .foregroundStyle(.secondary)
+                        .padding(.vertical, 4)
                 } else {
                     ForEach(presentation.commandTree) { item in
-                        LabeledContent(item.keySequence) {
-                            Text(item.isAvailable ? item.actionTitle : "\(item.actionTitle) — \(SettingsCopy.unavailable)")
-                        }
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel(item.accessibilityLabel)
+                        row(for: item)
+                            .padding(.vertical, 2)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel(item.accessibilityLabel)
                     }
                 }
+            } header: {
+                Text(SettingsCopy.commandTreeTitle)
             }
             .accessibilityIdentifier(SettingsAccessibilityID.hotkeyCommandTree)
             .accessibilityLabel(presentation.commandTreeAccessibilityLabel)
+
+            Section {
+                VStack(alignment: .leading, spacing: 10) {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Global Hotkeys")
+                                .font(.headline)
+                            Text("Instant keyboard shortcuts available from any application.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Button(SettingsCopy.editHotkeys) {
+                                model.openHotkeyEditor(.hotkeys)
+                            }
+                            .accessibilityHint(SettingsCopy.hotkeyEditorHint)
+                        }
+                    } else {
+                        HStack(alignment: .center) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Global Hotkeys")
+                                    .font(.headline)
+                                Text("Instant keyboard shortcuts available from any application.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button(SettingsCopy.editHotkeys) {
+                                model.openHotkeyEditor(.hotkeys)
+                            }
+                            .accessibilityHint(SettingsCopy.hotkeyEditorHint)
+                        }
+                    }
+
+                    if !presentation.globalHotkeys.isEmpty {
+                        Divider()
+                            .padding(.vertical, 2)
+                        ForEach(presentation.globalHotkeys) { item in
+                            row(for: item)
+                                .padding(.vertical, 2)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel(item.accessibilityLabel)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text("Global Hotkeys")
+            }
+
+            if presentation.recorder != .ready {
+                Section {
+                    HStack(spacing: 8) {
+                        Image(systemName: presentation.recorder == .recording ? "record.circle" : "exclamationmark.circle")
+                            .foregroundStyle(presentation.recorder == .recording ? Color.accentColor : Color.orange)
+                        Text(presentation.recorderAccessibilityLabel)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityLabel(presentation.recorderAccessibilityLabel)
+                }
+            }
         }
         .formStyle(.grouped)
         .navigationTitle(SettingsCopy.hotkeysSectionTitle)
         .padding()
+    }
+
+    @ViewBuilder
+    private func row(for item: SettingsCommandTreeItem) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    if let symbol = item.symbolName {
+                        Image(systemName: symbol)
+                            .font(.system(size: 14))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 18)
+                    }
+                    Text(item.actionTitle)
+                        .foregroundStyle(item.isAvailable ? .primary : .secondary)
+                    if !item.isAvailable {
+                        Text("(\(SettingsCopy.unavailable))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                KeySequenceBadgeView(item: item)
+            }
+        } else {
+            HStack(spacing: 10) {
+                if let symbol = item.symbolName {
+                    Image(systemName: symbol)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 20, alignment: .center)
+                }
+                Text(item.actionTitle)
+                    .foregroundStyle(item.isAvailable ? .primary : .secondary)
+                if !item.isAvailable {
+                    Text("(\(SettingsCopy.unavailable))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                KeySequenceBadgeView(item: item)
+            }
+        }
     }
 }
 

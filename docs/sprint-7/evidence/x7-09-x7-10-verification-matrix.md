@@ -14,8 +14,8 @@ recorded only where the production seam is exercised; visual approval remains hu
 | A05 | Accessibility preference propagation | Adapter/composition tests toggling Reduce Motion, Reduce Transparency, Increase Contrast while visible | Chooser, preview, and HUD update live and consistently; motion policy is actually consumed by renderer | PASS-AUTO — live chooser/preview/HUD policy and redraw tests |
 | A06 | Settings at 880×620 and 760×520; empty/error/loading/disabled/recording states | Render production SwiftUI/AppKit hierarchy | No clipping/overlap; primary actions visible; focus indicators unobscured | PASS-AUTO / TODO-HUMAN — 18 production-view render combinations pass; visual/focus approval remains open |
 | A07 | Chooser/preview/HUD in Light/Dark × normal/high contrast × transparency/reduced transparency | Render production views at fixed backing scale | Approved pixel baselines exist; diffs are intentional; selected/hover/disabled states remain color-independent | PASS-AUTO / TODO-HUMAN — [production pixel-render evidence](x7-10-production-pixel-rendering.md) covers all 24 fixed-scale render combinations; baseline review and visual approval remain open |
-| A08 | Menu bar: granted/denied/revoked, active/paused, enabled/disabled quick actions | Menu hierarchy assertions plus captured menus | Native shortcuts/state/checkmarks are correct; disabled reason is available; no truncation at supported locale | TODO-AUTO + TODO-RENDER — test log and captures |
-| A09 | Dynamic content stress: longest supported localized labels, large accessibility text where macOS permits | Render at minimum sizes | No clipped critical text or unreachable action; labels wrap or expand predictably | TODO-RENDER — PNGs and review record |
+| A08 | Menu bar: granted/denied/revoked, active/paused, enabled/disabled quick actions | Menu hierarchy assertions plus captured menus | Native shortcuts/state/checkmarks are correct; disabled reason is available; no truncation at supported locale | PASS-AUTO / TODO-HUMAN — production AppKit hierarchy, shortcut, checkmark, disabled-reason, numeric-label, and persistent visible status-item tests pass; final visual inspection remains open |
+| A09 | Dynamic content stress: longest supported localized labels, large accessibility text where macOS permits | Render at minimum sizes | No clipped critical text or unreachable action; labels wrap or expand predictably | PASS-AUTO / TODO-HUMAN — production Hotkey editors render longest reasonable action/chord labels at accessibility size 3 within 760 × 520; supported-localization visual review remains open |
 | A10 | Real pixel snapshot integrity | Test must instantiate the production renderer, not only `OverlayRenderModel` | A deliberate padding/color/glyph change causes a meaningful image diff | PASS-AUTO — [production pixel-render evidence](x7-10-production-pixel-rendering.md); selected glyph/title, constrained warning, and HUD state changes each produce a non-equal RGBA digest |
 
 ## Human accessibility and appearance checks (X7-09)
@@ -41,7 +41,7 @@ editor, menu bar, Layout Chooser, Placement Preview, Super HUD, and onboarding.
 | ID | Hardware/topology | Required scenarios | Status |
 |---|---|---|---|
 | P01 | Apple Silicon MacBook with notch, single Display | Slow/fast drag, traverse all regions, reverse, commit, cancel; menu bar visible/auto-hidden | TODO-HUMAN |
-| P02 | Mac without notch (desktop or non-notch MacBook), single Display | Top-center fallback; same traversal and commit/cancel scenarios | TODO-HUMAN |
+| P02 | Mac without notch (desktop or non-notch MacBook), single Display | Top-center fallback; same traversal and commit/cancel scenarios | PASS-HUMAN — project owner confirmed HKC external non-notch popup on 2026-09-09 after fallback fix; detailed commit/cancel notes remain part of final usability record |
 | P03 | Notch Mac + external Display | Cross both directions; Display origins left/right and, if available, above/below | TODO-HUMAN |
 | P04 | Non-notch Mac + two Displays | Cross both directions; reconnect/reorder Displays during a fresh interaction | TODO-HUMAN |
 
@@ -69,10 +69,18 @@ no P0/P1 issue is opened from observation.
 
 ## Final acceptance record
 
-Gate G7 may be proposed only when:
+The original proposal criteria were:
 
 - A01–A10 have retained passing evidence;
 - H01–H08 and P01–P04 have named human results;
 - five-user protocol results meet the rule above;
 - all P0/P1 audit findings are closed with links to their proving evidence; and
 - the project owner records an explicit experience Go/No-Go decision.
+
+### Project Owner decision — 2026-09-09
+
+Decision: **GO; Sprint 7 approved**. Automated checks A01–A10 pass, and the owner
+confirmed the HKC external non-notch popup behavior. The owner explicitly accepts
+H01–H08, P01/P03/P04, formal pixel-baseline review, and the five-user protocol as
+exceptions deferred to Sprint 8. Their statuses above intentionally remain
+`TODO-HUMAN`; approval is not evidence that these checks passed.

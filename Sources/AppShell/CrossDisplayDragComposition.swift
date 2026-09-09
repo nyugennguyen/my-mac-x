@@ -221,10 +221,11 @@ final class CrossDisplayDragComposition {
                     pointerLocation: context.pointerLocation,
                     topology: snapshot
                 ) {
-                    let matchesConfiguredTrigger = settings.trigger == .topCenter
-                        || resolution.trigger.classification == .notch
+                    // Every Display exposes one resolved Notch Trigger. On hardware
+                    // without a notch, ScreenKit intentionally resolves that same
+                    // domain concept to the top-center fallback. Do not discard the
+                    // fallback when the persisted preference is `.notch`.
                     let presence: TriggerDwellPresence = resolution.pointerIsInsideTrigger
-                        && matchesConfiguredTrigger
                         ? .inside(resolution.displayID)
                         : .outside
                     await dwellEngine.update(presence)
@@ -301,9 +302,10 @@ final class CrossDisplayDragComposition {
                 }
             }
 
+            // Align flush below the notch trigger so dragging from notch into chooser is seamless
             let chooserFrame = CGRect(
                 x: display.notchTrigger.region.midX - chooserSize.width / 2,
-                y: display.notchTrigger.region.minY - 12 - chooserSize.height,
+                y: display.notchTrigger.region.minY - chooserSize.height,
                 width: chooserSize.width,
                 height: chooserSize.height
             )

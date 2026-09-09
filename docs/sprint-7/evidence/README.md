@@ -17,10 +17,11 @@ item is never evidence that a corresponding human-only item passed.
 
 ## Current conclusion
 
-Gate G7 has an automated implementation candidate but remains **HUMAN QA
-PENDING**. No VoiceOver, real-pointer, physical notch/non-notch, multi-Display,
-approved pixel snapshot, or representative-user result is claimed here. Automated
-pixel signatures are regression evidence, not aesthetic approval.
+Gate G7 is **APPROVED — PROJECT OWNER GO** as of 2026-09-09. Automated evidence
+passes and the owner confirmed the HKC external non-notch fallback. VoiceOver,
+remaining physical topologies, formal pixel-baseline approval, and the five-user
+protocol were not executed; they are accepted exceptions deferred to Sprint 8,
+not claimed passing evidence.
 
 ## Evidence conventions
 

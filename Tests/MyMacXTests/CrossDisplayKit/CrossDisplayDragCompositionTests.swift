@@ -128,6 +128,57 @@ final class CrossDisplayDragCompositionTests: XCTestCase {
 
         XCTAssertEqual(renderer.dismissCount, 0)
     }
+
+    func testNotchSettingUsesTopCenterFallbackOnExternalNonNotchDisplay() async throws {
+        let external = display(
+            id: 11,
+            frame: CGRect(x: 1_000, y: 0, width: 1_920, height: 1_080),
+            visibleFrame: CGRect(x: 1_000, y: 0, width: 1_920, height: 1_055),
+            scale: 1,
+            trigger: CGRect(x: 1_870, y: 1_064, width: 180, height: 16)
+        )
+        let topology = InMemoryDisplayTopologyObserver(
+            initial: available(generation: 1, displays: [builtInDisplay(), external], primary: builtInDisplay().id)
+        )
+        let pointer = InMemoryCompositionPointerAdapter()
+        let window = WindowIdentity()
+        let movements = InMemoryCompositionWindowMovementAdapter(window: window)
+        let renderer = CompositionRecordingOverlayRenderer()
+        let composition = CrossDisplayDragComposition(
+            overlay: OverlayCoordinator(renderer: renderer),
+            topologyObserving: topology,
+            triggerEngine: try TriggerDwellEngine(
+                configuration: TriggerDwellConfiguration(dwellDuration: .milliseconds(120))
+            ),
+            pointerMonitor: PointerDragMonitor(pointerEvents: pointer, windowMovements: movements),
+            snappingSettings: InMemorySnappingRuntimeSettingsAdapter(
+                settings: .init(
+                    isEnabled: true,
+                    trigger: .notch,
+                    dwellMilliseconds: 120,
+                    showsPlacementPreview: true,
+                    usesReducedEffects: false
+                )
+            )
+        )
+        _ = composition
+
+        await eventually { await pointer.hasStarted }
+        try await Task.sleep(for: .milliseconds(100))
+        let triggerPoint = CGPoint(x: external.notchTrigger.region.midX, y: external.notchTrigger.region.midY)
+        await pointer.send(.leftButtonPressed(location: triggerPoint))
+        await eventually { await movements.isObserving }
+        await pointer.send(.leftButtonDragged(location: triggerPoint))
+        await movements.send(window)
+        for _ in 0..<20 {
+            await pointer.send(.leftButtonDragged(location: triggerPoint))
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        await eventually(timeout: .seconds(1)) { renderer.chooserModels.count == 1 }
+        let chooserFrame = try XCTUnwrap(renderer.chooserModels.first?.panelFrame)
+        XCTAssertEqual(chooserFrame.midX, external.notchTrigger.region.midX, accuracy: 0.5)
+    }
     func testTopologyChangeDuringCrossDisplayDragEmitsReplaceTransition() {
         // Arrange: start a drag on the external display
         var coordinator = CrossDisplayDragCoordinator()

@@ -142,6 +142,7 @@ final class AppKitHotkeyRecorderInputAdapter: HotkeyRecorderInputMonitoring {
             case .keyDown:
                 if Self.isModifierKey(event.keyCode) {
                     self.handler?(.modifierTransition)
+                    return event
                 } else {
                     self.handler?(
                         .keyDown(
@@ -149,6 +150,7 @@ final class AppKitHotkeyRecorderInputAdapter: HotkeyRecorderInputMonitoring {
                             modifiers: Self.normalizedModifiers(from: event.modifierFlags)
                         )
                     )
+                    return nil
                 }
             default:
                 break

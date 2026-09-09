@@ -601,6 +601,9 @@ final class LayoutChooserView: NSVisualEffectView {
     if model.presentationPolicy.contrast == .increased {
       layer?.borderWidth = 2
       layer?.borderColor = NSColor.labelColor.cgColor
+    } else {
+      layer?.borderWidth = 1
+      layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.6).cgColor
     }
 
     let grid = NSGridView()
@@ -608,6 +611,7 @@ final class LayoutChooserView: NSVisualEffectView {
     grid.columnSpacing = model.visualStyle.itemSpacing
     grid.translatesAutoresizingMaskIntoConstraints = false
 
+    var allButtons: [OverlayChoiceButton] = []
     for start in stride(from: 0, to: model.choices.count, by: model.columnCount) {
       let rowChoices = model.choices[start..<min(start + model.columnCount, model.choices.count)]
       let rowButtons = rowChoices.map { choice in
@@ -619,9 +623,25 @@ final class LayoutChooserView: NSVisualEffectView {
           onSelect: onSelect
         )
         buttons[choice.action] = button
+        allButtons.append(button)
         return button
       }
       grid.addRow(with: rowButtons)
+    }
+
+    // Ensure all columns and rows have equal, stable sizing so buttons never shift
+    for colIndex in 0..<grid.numberOfColumns {
+      grid.column(at: colIndex).xPlacement = .fill
+    }
+    for rowIndex in 0..<grid.numberOfRows {
+      grid.row(at: rowIndex).yPlacement = .fill
+    }
+
+    if let firstButton = allButtons.first {
+      for button in allButtons.dropFirst() {
+        button.widthAnchor.constraint(equalTo: firstButton.widthAnchor).isActive = true
+        button.heightAnchor.constraint(equalTo: firstButton.heightAnchor).isActive = true
+      }
     }
 
     addSubview(grid)
@@ -664,6 +684,9 @@ private final class OverlayChoiceButton: NSButton {
   private let contrast: OverlayContrastTreatment
   private var onSelect: @MainActor @Sendable (ActionID) -> Void
 
+  private let glyphImageView = NSImageView()
+  private let titleLabel = NSTextField()
+
   init(
     choice: OverlayLayoutChoice,
     isSelected: Bool,
@@ -677,42 +700,68 @@ private final class OverlayChoiceButton: NSButton {
     self.contrast = contrast
     self.onSelect = onSelect
     super.init(frame: .zero)
-    title = style.showsOnlySelectedTitle && !isSelected ? "" : choice.title
-    image =
-      style.usesLayoutGlyphs
-      ? NSImage(
-        systemSymbolName: Self.symbolName(for: choice.action), accessibilityDescription: nil)
-      : nil
-    imagePosition = isSelected ? .imageAbove : .imageOnly
-    imageScaling = .scaleProportionallyDown
-    font = .systemFont(ofSize: 11, weight: isSelected ? .semibold : .regular)
+    title = ""
+    image = nil
+    imagePosition = .noImage
     setAccessibilityLabel(choice.accessibilityLabel)
+    setAccessibilityTitle(choice.title)
     setButtonType(.momentaryPushIn)
-    bezelStyle = .accessoryBarAction
+    isBordered = false
     state = isSelected ? .on : .off
-    contentTintColor =
-      contrast == .increased
-      ? .labelColor
-      : (isSelected ? .controlAccentColor : .secondaryLabelColor)
     wantsLayer = true
     layer?.cornerRadius = 8
     layer?.cornerCurve = .continuous
-    layer?.backgroundColor =
-      isSelected
-      ? NSColor.controlAccentColor.withAlphaComponent(0.14).cgColor
-      : NSColor.clear.cgColor
-    if contrast == .increased {
-      contentTintColor = .labelColor
-      wantsLayer = true
-      layer?.borderWidth = 2
-      layer?.borderColor = NSColor.labelColor.cgColor
-    }
+    layer?.masksToBounds = true
+    updateAppearance(isSelected: isSelected)
+
     target = self
     action = #selector(didPress)
     translatesAutoresizingMaskIntoConstraints = false
+
+    glyphImageView.translatesAutoresizingMaskIntoConstraints = false
+    glyphImageView.imageScaling = .scaleProportionallyUpOrDown
+    if style.usesLayoutGlyphs {
+      glyphImageView.image = WindowsSnapGlyphRenderer.image(
+        for: choice.action,
+        isSelected: isSelected,
+        contrast: contrast
+      )
+    }
+    addSubview(glyphImageView)
+
+    titleLabel.translatesAutoresizingMaskIntoConstraints = false
+    titleLabel.isBezeled = false
+    titleLabel.drawsBackground = false
+    titleLabel.isEditable = false
+    titleLabel.isSelectable = false
+    titleLabel.alignment = .center
+    titleLabel.lineBreakMode = .byTruncatingTail
+    titleLabel.font = .systemFont(ofSize: 10, weight: isSelected ? .semibold : .regular)
+    titleLabel.textColor = contrast == .increased
+      ? .labelColor
+      : (isSelected ? .controlAccentColor : .secondaryLabelColor)
+    titleLabel.stringValue = style.showsOnlySelectedTitle && !isSelected ? "" : choiceTitle
+    // Never allow title text width to force-expand the button or grid
+    titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+    titleLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+    addSubview(titleLabel)
+
+    setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+    setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+
     NSLayoutConstraint.activate([
       widthAnchor.constraint(greaterThanOrEqualToConstant: style.minimumTargetSize.width),
       heightAnchor.constraint(greaterThanOrEqualToConstant: style.minimumTargetSize.height),
+
+      glyphImageView.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+      glyphImageView.centerXAnchor.constraint(equalTo: centerXAnchor),
+      glyphImageView.widthAnchor.constraint(equalToConstant: 46),
+      glyphImageView.heightAnchor.constraint(equalToConstant: 28),
+
+      titleLabel.topAnchor.constraint(equalTo: glyphImageView.bottomAnchor, constant: 2),
+      titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
+      titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
+      titleLabel.heightAnchor.constraint(equalToConstant: 14),
     ])
   }
 
@@ -730,18 +779,234 @@ private final class OverlayChoiceButton: NSButton {
     onSelect: @escaping @MainActor @Sendable (ActionID) -> Void
   ) {
     self.onSelect = onSelect
-    title = style.showsOnlySelectedTitle && !isSelected ? "" : choiceTitle
-    imagePosition = isSelected ? .imageAbove : .imageOnly
-    font = .systemFont(ofSize: 11, weight: isSelected ? .semibold : .regular)
     state = isSelected ? .on : .off
-    contentTintColor =
-      contrast == .increased
+    updateAppearance(isSelected: isSelected)
+
+    if style.usesLayoutGlyphs {
+      glyphImageView.image = WindowsSnapGlyphRenderer.image(
+        for: actionID,
+        isSelected: isSelected,
+        contrast: contrast
+      )
+    }
+    titleLabel.stringValue = style.showsOnlySelectedTitle && !isSelected ? "" : choiceTitle
+    titleLabel.font = .systemFont(ofSize: 10, weight: isSelected ? .semibold : .regular)
+    titleLabel.textColor = contrast == .increased
       ? .labelColor
       : (isSelected ? .controlAccentColor : .secondaryLabelColor)
-    layer?.backgroundColor =
-      isSelected
-      ? NSColor.controlAccentColor.withAlphaComponent(0.14).cgColor
-      : NSColor.clear.cgColor
+  }
+
+  private func updateAppearance(isSelected: Bool) {
+    contentTintColor = contrast == .increased
+      ? .labelColor
+      : (isSelected ? .controlAccentColor : .secondaryLabelColor)
+
+    if contrast == .increased {
+      layer?.borderWidth = isSelected ? 2.5 : 1.5
+      layer?.borderColor = isSelected ? NSColor.labelColor.cgColor : NSColor.secondaryLabelColor.cgColor
+      layer?.backgroundColor = isSelected
+        ? NSColor.controlAccentColor.withAlphaComponent(0.25).cgColor
+        : NSColor.clear.cgColor
+    } else {
+      layer?.borderWidth = isSelected ? 1.5 : 0.5
+      layer?.borderColor = isSelected
+        ? NSColor.controlAccentColor.cgColor
+        : NSColor.separatorColor.withAlphaComponent(0.5).cgColor
+      layer?.backgroundColor = isSelected
+        ? NSColor.controlAccentColor.withAlphaComponent(0.18).cgColor
+        : NSColor.labelColor.withAlphaComponent(0.04).cgColor
+    }
+  }
+}
+
+/// Renders crisp Windows 11 Snap Bar style layout glyphs depicting screen zones and accent states.
+@MainActor
+enum WindowsSnapGlyphRenderer {
+  static func image(
+    for action: ActionID,
+    isSelected: Bool,
+    contrast: OverlayContrastTreatment
+  ) -> NSImage {
+    let size = CGSize(width: 46, height: 28)
+    return NSImage(size: size, flipped: false) { _ in
+      let bounds = CGRect(origin: .zero, size: size).insetBy(dx: 1, dy: 1)
+
+      // Outer screen bezel
+      let screenPath = NSBezierPath(roundedRect: bounds, xRadius: 3.5, yRadius: 3.5)
+      let screenFill = NSColor.windowBackgroundColor.withAlphaComponent(0.5)
+      screenFill.setFill()
+      screenPath.fill()
+
+      let screenBorderColor: NSColor = contrast == .increased
+        ? .labelColor
+        : (isSelected
+            ? NSColor.controlAccentColor.withAlphaComponent(0.9)
+            : NSColor.separatorColor.withAlphaComponent(0.8))
+      screenBorderColor.setStroke()
+      screenPath.lineWidth = contrast == .increased ? 1.5 : 1.0
+      screenPath.stroke()
+
+      // Inner area for window snap zones
+      let innerRect = bounds.insetBy(dx: 2.5, dy: 2.5)
+      let gap: CGFloat = 1.5
+
+      let activeColor: NSColor = contrast == .increased
+        ? (isSelected ? .labelColor : .secondaryLabelColor)
+        : (isSelected ? .controlAccentColor : .secondaryLabelColor.withAlphaComponent(0.5))
+      let inactiveColor: NSColor = NSColor.quaternaryLabelColor.withAlphaComponent(0.25)
+      let zoneRadius: CGFloat = 1.5
+
+      func drawZone(_ zoneRect: CGRect, active: Bool) {
+        let path = NSBezierPath(roundedRect: zoneRect, xRadius: zoneRadius, yRadius: zoneRadius)
+        if active {
+          activeColor.setFill()
+          path.fill()
+        } else {
+          inactiveColor.setFill()
+          path.fill()
+          if contrast == .increased {
+            NSColor.separatorColor.setStroke()
+            path.lineWidth = 0.5
+            path.stroke()
+          }
+        }
+      }
+
+      let halfW = (innerRect.width - gap) / 2
+      let halfH = (innerRect.height - gap) / 2
+
+      switch action {
+      case .maximize:
+        drawZone(innerRect, active: true)
+
+      case .leftHalf:
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY, width: halfW, height: innerRect.height),
+          active: true
+        )
+        drawZone(
+          CGRect(x: innerRect.minX + halfW + gap, y: innerRect.minY, width: halfW, height: innerRect.height),
+          active: false
+        )
+
+      case .rightHalf:
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY, width: halfW, height: innerRect.height),
+          active: false
+        )
+        drawZone(
+          CGRect(x: innerRect.minX + halfW + gap, y: innerRect.minY, width: halfW, height: innerRect.height),
+          active: true
+        )
+
+      case .topHalf:
+        // AppKit coordinates: top half is at innerRect.minY + halfH + gap
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY + halfH + gap, width: innerRect.width, height: halfH),
+          active: true
+        )
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY, width: innerRect.width, height: halfH),
+          active: false
+        )
+
+      case .bottomHalf:
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY + halfH + gap, width: innerRect.width, height: halfH),
+          active: false
+        )
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY, width: innerRect.width, height: halfH),
+          active: true
+        )
+
+      case .topLeftQuarter:
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY + halfH + gap, width: halfW, height: halfH),
+          active: true
+        )
+        drawZone(
+          CGRect(x: innerRect.minX + halfW + gap, y: innerRect.minY + halfH + gap, width: halfW, height: halfH),
+          active: false
+        )
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY, width: halfW, height: halfH),
+          active: false
+        )
+        drawZone(
+          CGRect(x: innerRect.minX + halfW + gap, y: innerRect.minY, width: halfW, height: halfH),
+          active: false
+        )
+
+      case .topRightQuarter:
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY + halfH + gap, width: halfW, height: halfH),
+          active: false
+        )
+        drawZone(
+          CGRect(x: innerRect.minX + halfW + gap, y: innerRect.minY + halfH + gap, width: halfW, height: halfH),
+          active: true
+        )
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY, width: halfW, height: halfH),
+          active: false
+        )
+        drawZone(
+          CGRect(x: innerRect.minX + halfW + gap, y: innerRect.minY, width: halfW, height: halfH),
+          active: false
+        )
+
+      case .bottomLeftQuarter:
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY + halfH + gap, width: halfW, height: halfH),
+          active: false
+        )
+        drawZone(
+          CGRect(x: innerRect.minX + halfW + gap, y: innerRect.minY + halfH + gap, width: halfW, height: halfH),
+          active: false
+        )
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY, width: halfW, height: halfH),
+          active: true
+        )
+        drawZone(
+          CGRect(x: innerRect.minX + halfW + gap, y: innerRect.minY, width: halfW, height: halfH),
+          active: false
+        )
+
+      case .bottomRightQuarter:
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY + halfH + gap, width: halfW, height: halfH),
+          active: false
+        )
+        drawZone(
+          CGRect(x: innerRect.minX + halfW + gap, y: innerRect.minY + halfH + gap, width: halfW, height: halfH),
+          active: false
+        )
+        drawZone(
+          CGRect(x: innerRect.minX, y: innerRect.minY, width: halfW, height: halfH),
+          active: false
+        )
+        drawZone(
+          CGRect(x: innerRect.minX + halfW + gap, y: innerRect.minY, width: halfW, height: halfH),
+          active: true
+        )
+
+      default:
+        let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        if let symbol = NSImage(systemSymbolName: symbolName(for: action), accessibilityDescription: nil)?
+          .withSymbolConfiguration(config) {
+          let iconRect = CGRect(
+            x: innerRect.midX - 7,
+            y: innerRect.midY - 7,
+            width: 14,
+            height: 14
+          )
+          symbol.draw(in: iconRect)
+        }
+      }
+      return true
+    }
   }
 
   private static func symbolName(for action: ActionID) -> String {

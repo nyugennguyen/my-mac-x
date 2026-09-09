@@ -18,7 +18,9 @@ struct SuperModeConfiguration: Equatable, Sendable {
     static let `default` = SuperModeConfiguration(
         prefix: HotkeyChord(hardwareKeyCode: 49, modifiers: [.control]),
         timeoutMilliseconds: defaultTimeoutMilliseconds,
-        commandBindings: []
+        commandBindings: [
+            SuperModeCommandBinding(hardwareKeyCodes: [1], actionID: .openSettings),
+        ]
     )
 
     let prefix: HotkeyChord

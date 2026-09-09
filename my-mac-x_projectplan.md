@@ -919,7 +919,10 @@ Estimate dùng **person-day (PD)**. Model code tham chiếu mục 7.1.
 | X7-09 | Accessibility/appearance matrix | Keyboard, VoiceOver, contrast, motion, transparency pass | 3 PD | X7-03…08 | TERRA-M |
 | X7-10 | Visual regression + usability test | Snapshot duyệt; real-pointer notch/non-notch; 5 user tasks không cần hướng dẫn | 3 PD | X7-03…09 | TERRA-H |
 
-**Gate G7:** experience-complete beta; không còn P0/P1 UI/UX, Notch Snap mượt trên máy thật, và Hotkey Settings không hiển thị số mã phím khó hiểu.
+**Gate G7 — APPROVED 2026-09-09:** Project Owner GO cho experience-complete beta.
+Automated suite pass và HKC external non-notch đã được xác nhận. VoiceOver, các
+topology phần cứng còn lại, formal screenshot-baseline review và five-user protocol
+là ngoại lệ được chấp thuận, chuyển sang Sprint 8; không được ghi nhận giả là pass.
 
 Tracker chi tiết: [docs/sprint-7/README.md](./docs/sprint-7/README.md).
 

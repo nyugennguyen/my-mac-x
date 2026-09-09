@@ -1,3 +1,4 @@
+import Foundation
 import CoreGraphics
 
 public actor WindowActionEngine: WindowActionPerforming {
@@ -746,6 +747,9 @@ public actor WindowActionEngine: WindowActionPerforming {
         appRules: any AppRuleDeciding
     ) async -> Bool {
         let bundleIdentifier = await applicationIdentities.bundleIdentifier(for: window)
+        if let bundleIdentifier, let ownID = Bundle.main.bundleIdentifier, bundleIdentifier.caseInsensitiveCompare(ownID) == .orderedSame {
+            return false
+        }
         return await appRules.decision(for: bundleIdentifier) == .included
     }
 

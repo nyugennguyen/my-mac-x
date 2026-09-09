@@ -80,6 +80,7 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
                 dwellDuration: .milliseconds(150)
             )
         )
+        var settingsRuntimeRef: ProductionSettingsRuntime?
         let superModeSettingsWindowController = SuperModeSettingsWindowController(
             actionRegistry: actionRegistry,
             hasInputMonitoringAccess: {
@@ -94,8 +95,25 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
             load: {
                 await superModeComposition.currentSettings()
             },
-            apply: { configuration in
-                await superModeComposition.apply(configuration)
+            apply: { [weak superModeComposition] configuration in
+                guard let superModeComposition else {
+                    return .rejected(.invalidTimeout(milliseconds: configuration.timeoutMilliseconds))
+                }
+                let result = await superModeComposition.apply(configuration)
+                if case .applied = result {
+                    let current = await superModeComposition.currentSettings()
+                    settingsRuntimeRef?.replaceHotkeySettings(current)
+                }
+                return result
+            },
+            suspendHotkeys: { [weak hotkeyManager] in
+                _ = await hotkeyManager?.reconcile([])
+            },
+            resumeHotkeys: { [weak hotkeyManager, weak settingsStore] in
+                guard let hotkeyManager, let settingsStore else { return }
+                if case let .loaded(settings, _) = await settingsStore.load() {
+                    _ = await hotkeyManager.reconcile(settings.bindings)
+                }
             }
         )
         let globalHotkeySettingsRelay = GlobalHotkeySettingsRelay()
@@ -103,6 +121,7 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
             store: settingsStore,
             appRules: appRuleRuntime,
             profileLayouts: profileLayouts,
+            actionRegistry: actionRegistry,
             accessibilityPermissionStatus: { permissionManager.state },
             inputMonitoringAccess: { inputMonitoringAuthorizer.hasAccess() },
             eventTapStatus: { superModeComposition.diagnosticsEventTapStatus },
@@ -133,6 +152,7 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
                 ProductionSettingsRuntime.setLaunchAtLogin(enabled)
             }
         )
+        settingsRuntimeRef = settingsRuntime
         let globalHotkeySettingsWindowController = GlobalHotkeySettingsWindowController(
             actionRegistry: actionRegistry,
             load: {
@@ -144,6 +164,15 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
                 let result = await hotkeyBindingUpdater.applyValidated(settings)
                 if case .applied = result { settingsRuntime.replaceHotkeySettings(settings) }
                 return result
+            },
+            suspendHotkeys: { [weak hotkeyManager] in
+                _ = await hotkeyManager?.reconcile([])
+            },
+            resumeHotkeys: { [weak hotkeyManager, weak settingsStore] in
+                guard let hotkeyManager, let settingsStore else { return }
+                if case let .loaded(settings, _) = await settingsStore.load() {
+                    _ = await hotkeyManager.reconcile(settings.bindings)
+                }
             }
         )
         globalHotkeySettingsRelay.controller = globalHotkeySettingsWindowController
@@ -250,6 +279,7 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        lifecycleCoordinator.applicationDidFinishLaunching()
         onboardingController.presentIfNeeded()
     }
 
@@ -689,6 +719,9 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
     private let store: SettingsStore
     private let appRules: AppRuleRuntime
     private let profileLayouts: DisplayProfileLayoutRuntime
+    private let actionRegistry: ActionRegistry
+    private let keyLabelResolver: any HotkeyKeyLabelResolving
+    private let hotkeyPresenter: any HotkeyChordPresenting
     private let accessibilityPermissionStatus: () -> AccessibilityPermissionState
     private let inputMonitoringAccess: () -> Bool
     private let eventTapStatus: () -> EventTapDiagnosticsStatus
@@ -711,6 +744,8 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
         store: SettingsStore,
         appRules: AppRuleRuntime,
         profileLayouts: DisplayProfileLayoutRuntime,
+        actionRegistry: ActionRegistry = .builtIn,
+        keyLabelResolver: (any HotkeyKeyLabelResolving)? = nil,
         accessibilityPermissionStatus: @escaping () -> AccessibilityPermissionState,
         inputMonitoringAccess: @escaping () -> Bool,
         eventTapStatus: @escaping () -> EventTapDiagnosticsStatus = { .stopped },
@@ -724,6 +759,10 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
         self.store = store
         self.appRules = appRules
         self.profileLayouts = profileLayouts
+        self.actionRegistry = actionRegistry
+        let resolver = keyLabelResolver ?? MacOSHotkeyKeyLabelResolver()
+        self.keyLabelResolver = resolver
+        self.hotkeyPresenter = HotkeyChordPresenter(labelResolver: resolver)
         self.accessibilityPermissionStatus = accessibilityPermissionStatus
         self.inputMonitoringAccess = inputMonitoringAccess
         self.eventTapStatus = eventTapStatus
@@ -771,18 +810,49 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
                 showsPlacementPreview: configuration.snapping.showsPlacementPreview,
                 usesReducedEffects: configuration.snapping.usesReducedEffects
             ),
-            hotkeys: SettingsHotkeysSnapshot(
-                editor: .superMode,
-                recorder: inputMonitoringAccess() ? .ready : .unavailable,
-                validationMessage: nil,
-                commandTree: configuration.hotkeySettings.superModeConfiguration.commandBindings.map {
-                    SettingsCommandTreeItem(
-                        keySequence: $0.hardwareKeyCodes.map(String.init).joined(separator: " "),
-                        actionTitle: $0.actionID.rawValue,
-                        isAvailable: true
+            hotkeys: {
+                let resolver = keyLabelResolver
+                let presenter = hotkeyPresenter
+                let registry = actionRegistry
+                let superMode = configuration.hotkeySettings.superModeConfiguration
+                let prefixPresentation = presenter.present(superMode.prefix).settingsPresentation.visibleLabel
+                let commandTree = superMode.commandBindings.map { binding in
+                    let keyLabels = binding.hardwareKeyCodes.map { code in
+                        Self.keyLabel(for: code, resolver: resolver)
+                    }
+                    let sequenceText = keyLabels.joined(separator: ", ")
+                    let title = Self.actionTitle(for: binding.actionID, registry: registry)
+                    let symbol = Self.actionSymbol(for: binding.actionID, registry: registry)
+                    return SettingsCommandTreeItem(
+                        keySequence: sequenceText,
+                        actionTitle: title,
+                        isAvailable: true,
+                        symbolName: symbol,
+                        keys: keyLabels
                     )
                 }
-            ),
+                let globalHotkeys = configuration.hotkeySettings.bindings.map { binding in
+                    let chord = HotkeyChord(hardwareKeyCode: binding.hardwareKeyCode, modifiers: binding.modifiers)
+                    let presentation = presenter.present(chord).settingsPresentation
+                    let title = Self.actionTitle(for: binding.actionID, registry: registry)
+                    let symbol = Self.actionSymbol(for: binding.actionID, registry: registry)
+                    return SettingsCommandTreeItem(
+                        keySequence: presentation.visibleLabel,
+                        actionTitle: title,
+                        isAvailable: true,
+                        symbolName: symbol,
+                        keys: [presentation.visibleLabel]
+                    )
+                }
+                return SettingsHotkeysSnapshot(
+                    editor: .superMode,
+                    recorder: inputMonitoringAccess() ? .ready : .unavailable,
+                    validationMessage: nil,
+                    commandTree: commandTree,
+                    prefixPresentation: prefixPresentation,
+                    globalHotkeys: globalHotkeys
+                )
+            }(),
             layouts: configuration.layouts.map {
                 SettingsLayoutPresentation(
                     draft: Self.presentation($0),
@@ -1055,6 +1125,101 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
         let report = currentSettings().diagnostics.report
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(report, forType: .string)
+    }
+
+    static func actionTitle(for actionID: ActionID, registry: ActionRegistry) -> String {
+        if let action = registry.action(for: actionID) {
+            return action.title
+        }
+        switch actionID {
+        case .openSettings:
+            return String(localized: "Open Settings")
+        case .toggleGaps:
+            return String(localized: "Toggle Gaps")
+        case .selectProfile:
+            return String(localized: "Select Profile")
+        default:
+            return actionID.rawValue
+        }
+    }
+
+    static func actionSymbol(for actionID: ActionID, registry: ActionRegistry) -> String? {
+        if let action = registry.action(for: actionID) {
+            return action.symbolName
+        }
+        switch actionID {
+        case .openSettings:
+            return "gearshape"
+        case .toggleGaps:
+            return "square.split.2x1"
+        case .selectProfile:
+            return "display.2"
+        default:
+            return nil
+        }
+    }
+
+    static func keyLabel(for hardwareKeyCode: UInt16, resolver: any HotkeyKeyLabelResolving) -> String {
+        if let label = resolver.label(for: hardwareKeyCode) {
+            return label
+        }
+        if let fallback = fallbackAnsiKeyLabel(for: hardwareKeyCode) {
+            return fallback
+        }
+        return String(format: "Key %d", hardwareKeyCode)
+    }
+
+    static func fallbackAnsiKeyLabel(for hardwareKeyCode: UInt16) -> String? {
+        switch hardwareKeyCode {
+        case 0x00: return "A"
+        case 0x01: return "S"
+        case 0x02: return "D"
+        case 0x03: return "F"
+        case 0x04: return "H"
+        case 0x05: return "G"
+        case 0x06: return "Z"
+        case 0x07: return "X"
+        case 0x08: return "C"
+        case 0x09: return "V"
+        case 0x0B: return "B"
+        case 0x0C: return "Q"
+        case 0x0D: return "W"
+        case 0x0E: return "E"
+        case 0x0F: return "R"
+        case 0x10: return "Y"
+        case 0x11: return "T"
+        case 0x12: return "1"
+        case 0x13: return "2"
+        case 0x14: return "3"
+        case 0x15: return "4"
+        case 0x16: return "6"
+        case 0x17: return "5"
+        case 0x18: return "="
+        case 0x19: return "9"
+        case 0x1A: return "7"
+        case 0x1B: return "-"
+        case 0x1C: return "8"
+        case 0x1D: return "0"
+        case 0x1E: return "]"
+        case 0x1F: return "O"
+        case 0x20: return "U"
+        case 0x21: return "["
+        case 0x22: return "I"
+        case 0x23: return "P"
+        case 0x25: return "L"
+        case 0x26: return "J"
+        case 0x27: return "'"
+        case 0x28: return "K"
+        case 0x29: return ";"
+        case 0x2A: return "\\"
+        case 0x2B: return ","
+        case 0x2C: return "/"
+        case 0x2D: return "N"
+        case 0x2E: return "M"
+        case 0x2F: return "."
+        case 0x32: return "`"
+        default: return nil
+        }
     }
 
     private static func presentation(_ draft: LayoutDraft) -> SettingsLayoutDraft {

@@ -7,7 +7,7 @@ struct SettingsHotkeyPresentation: Equatable {
     let accessibilityLabel: String
 }
 
-private extension HotkeyChordPresentation {
+extension HotkeyChordPresentation {
     var settingsPresentation: SettingsHotkeyPresentation {
         let modifierGlyphs = modifierSymbols.map { symbol in
             switch symbol {
@@ -33,7 +33,7 @@ private extension HotkeyChordPresentation {
         )
     }
 
-    private static func keyCapLabel(_ label: String) -> String {
+    static func keyCapLabel(_ label: String) -> String {
         switch label {
         case "Left Arrow": "←"
         case "Right Arrow": "→"
@@ -45,12 +45,14 @@ private extension HotkeyChordPresentation {
 }
 
 @MainActor
-final class SuperModeSettingsWindowController {
+final class SuperModeSettingsWindowController: NSObject, NSWindowDelegate {
     typealias Load = @MainActor @Sendable () async -> HotkeySettings
     typealias Apply = @MainActor @Sendable (SuperModeConfiguration) async -> SuperModeConfigurationApplyResult
     typealias HasInputMonitoringAccess = @MainActor @Sendable () -> Bool
     typealias RequestInputMonitoringAccess = @MainActor @Sendable () -> Bool
     typealias RetrySuperModeRuntime = @MainActor @Sendable () -> Void
+    typealias SuspendHotkeys = @MainActor @Sendable () async -> Void
+    typealias ResumeHotkeys = @MainActor @Sendable () async -> Void
 
     private let model: SuperModeSettingsModel
     private var window: NSWindow?
@@ -64,7 +66,9 @@ final class SuperModeSettingsWindowController {
         presenter: any HotkeyChordPresenting = HotkeyChordPresenter(labelResolver: MacOSHotkeyKeyLabelResolver()),
         load: @escaping Load,
         apply: @escaping Apply,
-        recorder: (any HotkeyRecording)? = nil
+        recorder: (any HotkeyRecording)? = nil,
+        suspendHotkeys: SuspendHotkeys? = nil,
+        resumeHotkeys: ResumeHotkeys? = nil
     ) {
         model = SuperModeSettingsModel(
             actionRegistry: actionRegistry,
@@ -74,8 +78,11 @@ final class SuperModeSettingsWindowController {
             presenter: presenter,
             load: load,
             apply: apply,
-            recorder: recorder
+            recorder: recorder,
+            suspendHotkeys: suspendHotkeys,
+            resumeHotkeys: resumeHotkeys
         )
+        super.init()
     }
 
     func present() {
@@ -122,7 +129,12 @@ final class SuperModeSettingsWindowController {
         window.isReleasedWhenClosed = false
         window.center()
         window.setAccessibilityLabel(String(localized: "Super Mode Settings"))
+        window.delegate = self
         return window
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        model.cancelRecordingPrefix()
     }
 }
 
@@ -182,6 +194,8 @@ final class SuperModeSettingsModel: ObservableObject {
     private let requestInputMonitoringAccess: SuperModeSettingsWindowController.RequestInputMonitoringAccess
     private let retrySuperModeRuntime: SuperModeSettingsWindowController.RetrySuperModeRuntime
     private let presenter: any HotkeyChordPresenting
+    private let suspendHotkeys: SuperModeSettingsWindowController.SuspendHotkeys?
+    private let resumeHotkeys: SuperModeSettingsWindowController.ResumeHotkeys?
     private var recorderUpdatesTask: Task<Void, Never>?
 
     init(
@@ -192,7 +206,9 @@ final class SuperModeSettingsModel: ObservableObject {
         presenter: any HotkeyChordPresenting = HotkeyChordPresenter(labelResolver: MacOSHotkeyKeyLabelResolver()),
         load: @escaping Load,
         apply: @escaping Apply,
-        recorder: (any HotkeyRecording)? = nil
+        recorder: (any HotkeyRecording)? = nil,
+        suspendHotkeys: SuperModeSettingsWindowController.SuspendHotkeys? = nil,
+        resumeHotkeys: SuperModeSettingsWindowController.ResumeHotkeys? = nil
     ) {
         self.load = load
         self.apply = apply
@@ -200,6 +216,8 @@ final class SuperModeSettingsModel: ObservableObject {
         self.requestInputMonitoringAccess = requestInputMonitoringAccess
         self.retrySuperModeRuntime = retrySuperModeRuntime
         self.presenter = presenter
+        self.suspendHotkeys = suspendHotkeys
+        self.resumeHotkeys = resumeHotkeys
         inputMonitoringState = hasInputMonitoringAccess() ? .granted : .required
         self.recorder = recorder ?? HotkeyRecorder(input: AppKitHotkeyRecorderInputAdapter())
 
@@ -337,8 +355,14 @@ final class SuperModeSettingsModel: ObservableObject {
     }
 
     func recordPrefix() {
-        recorderUpdatesTask?.cancel()
+        if isRecordingPrefix {
+            cancelRecordingPrefix()
+            return
+        }
+        cancelRecordingPrefix()
+        isRecordingPrefix = true
         recorderUpdatesTask = Task { [weak self, recorder] in
+            await self?.suspendHotkeys?()
             let updates = await recorder.updates
             await recorder.begin()
             for await update in updates {
@@ -349,12 +373,28 @@ final class SuperModeSettingsModel: ObservableObject {
                 case let .captured(chord):
                     prefix = chord
                     isRecordingPrefix = false
+                    await self.resumeHotkeys?()
                     return
-                case .cancelled, .cleared, .idle:
+                case .cancelled, .cleared:
                     isRecordingPrefix = false
-                    if update != .idle { return }
+                    await self.resumeHotkeys?()
+                    return
+                case .idle:
+                    continue
                 }
             }
+            await self?.resumeHotkeys?()
+        }
+    }
+
+    func cancelRecordingPrefix() {
+        guard isRecordingPrefix || recorderUpdatesTask != nil else { return }
+        isRecordingPrefix = false
+        recorderUpdatesTask?.cancel()
+        recorderUpdatesTask = nil
+        Task { [weak self, recorder] in
+            await recorder.cancel()
+            await self?.resumeHotkeys?()
         }
     }
 
@@ -546,9 +586,31 @@ private struct SuperModeSettingsView: View {
 private struct BindingRow: View {
     @ObservedObject var model: SuperModeSettingsModel
     let binding: SuperModeSettingsModel.BindingDraft
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(spacing: 10) {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    sequenceControls
+                    Spacer(minLength: 8)
+                    deleteButton
+                }
+                LabeledContent("Action") {
+                    actionPicker.frame(maxWidth: 360)
+                }
+            }
+        } else {
+            HStack(spacing: 10) {
+                sequenceControls
+                actionPicker
+                deleteButton
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var sequenceControls: some View {
             Picker("Keys", selection: levelCount) {
                 Text("1 key").tag(1)
                 Text("2 keys").tag(2)
@@ -567,8 +629,10 @@ private struct BindingRow: View {
                 .accessibilityLabel("Command key \(level + 1)")
                 .accessibilityValue(model.bindingKeyPresentation(for: binding, level: level).accessibilityLabel)
             }
+    }
 
-            Picker("Action", selection: actionID) {
+    private var actionPicker: some View {
+        Picker("Action", selection: actionID) {
                 ForEach(model.actionOptions) { option in
                     Text(option.isAvailable ? option.title : "\(option.title) — Unavailable")
                         .tag(option.id)
@@ -577,13 +641,14 @@ private struct BindingRow: View {
             }
             .labelsHidden()
             .accessibilityLabel("Action")
+    }
 
-            Button("Delete", systemImage: "minus.circle", role: .destructive) {
-                model.deleteBinding(id: binding.id)
-            }
-            .labelStyle(.iconOnly)
-            .accessibilityLabel("Delete binding")
+    private var deleteButton: some View {
+        Button("Delete", systemImage: "minus.circle", role: .destructive) {
+            model.deleteBinding(id: binding.id)
         }
+        .labelStyle(.iconOnly)
+        .accessibilityLabel("Delete binding")
     }
 
     private var levelCount: Binding<Int> {
@@ -608,9 +673,11 @@ private struct BindingRow: View {
 }
 
 @MainActor
-final class GlobalHotkeySettingsWindowController {
+final class GlobalHotkeySettingsWindowController: NSObject, NSWindowDelegate {
     typealias Load = @MainActor @Sendable () async -> HotkeySettings
     typealias Apply = @MainActor @Sendable (HotkeySettings) async -> HotkeyRuntimeUpdateResult
+    typealias SuspendHotkeys = @MainActor @Sendable () async -> Void
+    typealias ResumeHotkeys = @MainActor @Sendable () async -> Void
     private let model: GlobalHotkeySettingsModel
     private var window: NSWindow?
 
@@ -619,15 +686,21 @@ final class GlobalHotkeySettingsWindowController {
         load: @escaping Load,
         apply: @escaping Apply,
         recorder: (any HotkeyRecording)? = nil,
-        presenter: any HotkeyChordPresenting = HotkeyChordPresenter(labelResolver: MacOSHotkeyKeyLabelResolver())
+        presenter: any HotkeyChordPresenting = HotkeyChordPresenter(labelResolver: MacOSHotkeyKeyLabelResolver()),
+        suspendHotkeys: SuspendHotkeys? = nil,
+        resumeHotkeys: ResumeHotkeys? = nil
     ) {
         model = GlobalHotkeySettingsModel(
             actionRegistry: actionRegistry,
             load: load,
             apply: apply,
+            validator: HotkeyConflictDetector(),
             recorder: recorder,
-            presenter: presenter
+            presenter: presenter,
+            suspendHotkeys: suspendHotkeys,
+            resumeHotkeys: resumeHotkeys
         )
+        super.init()
     }
 
     func present() {
@@ -668,7 +741,12 @@ final class GlobalHotkeySettingsWindowController {
         window.isReleasedWhenClosed = false
         window.center()
         window.setAccessibilityLabel(String(localized: "Global Hotkey Settings"))
+        window.delegate = self
         return window
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        model.cancelRecording()
     }
 }
 
@@ -681,15 +759,28 @@ final class GlobalHotkeySettingsModel: ObservableObject {
     let actions: [ActionDescriptor]
     private let load: GlobalHotkeySettingsWindowController.Load
     private let apply: GlobalHotkeySettingsWindowController.Apply
+    private let suspendHotkeys: GlobalHotkeySettingsWindowController.SuspendHotkeys?
+    private let resumeHotkeys: GlobalHotkeySettingsWindowController.ResumeHotkeys?
     private let validator: any HotkeyConflictValidating
     private let recorder: any HotkeyRecording
     private let presenter: any HotkeyChordPresenting
     private var recorderTask: Task<Void, Never>?
 
-    init(actionRegistry: ActionRegistry, load: @escaping GlobalHotkeySettingsWindowController.Load, apply: @escaping GlobalHotkeySettingsWindowController.Apply, validator: any HotkeyConflictValidating = HotkeyConflictDetector(), recorder: (any HotkeyRecording)? = nil, presenter: any HotkeyChordPresenting = HotkeyChordPresenter(labelResolver: MacOSHotkeyKeyLabelResolver())) {
+    init(
+        actionRegistry: ActionRegistry,
+        load: @escaping GlobalHotkeySettingsWindowController.Load,
+        apply: @escaping GlobalHotkeySettingsWindowController.Apply,
+        validator: any HotkeyConflictValidating = HotkeyConflictDetector(),
+        recorder: (any HotkeyRecording)? = nil,
+        presenter: any HotkeyChordPresenting = HotkeyChordPresenter(labelResolver: MacOSHotkeyKeyLabelResolver()),
+        suspendHotkeys: GlobalHotkeySettingsWindowController.SuspendHotkeys? = nil,
+        resumeHotkeys: GlobalHotkeySettingsWindowController.ResumeHotkeys? = nil
+    ) {
         actions = actionRegistry.actions
         self.load = load
         self.apply = apply
+        self.suspendHotkeys = suspendHotkeys
+        self.resumeHotkeys = resumeHotkeys
         self.validator = validator
         self.recorder = recorder ?? HotkeyRecorder(input: AppKitHotkeyRecorderInputAdapter())
         self.presenter = presenter
@@ -705,29 +796,60 @@ final class GlobalHotkeySettingsModel: ObservableObject {
     }
 
     func addBinding() {
+        cancelRecording()
         replaceBindings(settings.bindings + [HotkeyBinding(id: UUID(), hardwareKeyCode: 0, modifiers: [.control], actionID: actions.first(where: { $0.availability == .available })?.id ?? .maximize)])
     }
 
-    func deleteBinding(_ id: UUID) { replaceBindings(settings.bindings.filter { $0.id != id }) }
+    func deleteBinding(_ id: UUID) {
+        if recordingBindingID == id {
+            cancelRecording()
+        }
+        replaceBindings(settings.bindings.filter { $0.id != id })
+    }
 
     func setAction(_ actionID: ActionID, for id: UUID) {
         replaceBinding(id) { HotkeyBinding(id: $0.id, hardwareKeyCode: $0.hardwareKeyCode, modifiers: $0.modifiers, actionID: actionID) }
     }
 
     func record(_ id: UUID) {
-        recorderTask?.cancel()
+        if recordingBindingID == id {
+            cancelRecording()
+            return
+        }
+        cancelRecording()
         recordingBindingID = id
         recorderTask = Task { [weak self, recorder] in
+            await self?.suspendHotkeys?()
             let updates = await recorder.updates
             await recorder.begin()
             for await update in updates {
                 guard let self else { return }
                 switch update {
-                case let .captured(chord): self.applyRecorded(chord, to: id); self.recordingBindingID = nil; return
-                case .cancelled, .cleared: self.recordingBindingID = nil; return
-                case .idle, .recording: continue
+                case let .captured(chord):
+                    self.applyRecorded(chord, to: id)
+                    self.recordingBindingID = nil
+                    await self.resumeHotkeys?()
+                    return
+                case .cancelled, .cleared:
+                    self.recordingBindingID = nil
+                    await self.resumeHotkeys?()
+                    return
+                case .idle, .recording:
+                    continue
                 }
             }
+            await self?.resumeHotkeys?()
+        }
+    }
+
+    func cancelRecording() {
+        guard recordingBindingID != nil || recorderTask != nil else { return }
+        recordingBindingID = nil
+        recorderTask?.cancel()
+        recorderTask = nil
+        Task { [weak self, recorder] in
+            await recorder.cancel()
+            await self?.resumeHotkeys?()
         }
     }
 
@@ -736,6 +858,7 @@ final class GlobalHotkeySettingsModel: ObservableObject {
     }
 
     func save() async {
+        cancelRecording()
         for binding in settings.bindings {
             let result = validator.validate(HotkeyValidationRequest(editedBindingID: binding.id, actionID: binding.actionID, candidate: binding.chord, existingBindings: settings.bindings))
             guard result == .valid else { status = .error(Self.validationCopy(result)); return }

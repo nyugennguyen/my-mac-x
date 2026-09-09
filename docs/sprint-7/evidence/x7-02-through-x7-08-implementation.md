@@ -62,12 +62,26 @@ Full regression command:
 xcodebuild test -quiet -project MyMacX.xcodeproj -scheme MyMacX -destination 'platform=macOS,arch=arm64'
 ```
 
-Result: `PASS` — 439 tests, 0 failures, 2 documented skips. The final clean
-derived-data run completed on 2026-09-08. Compiler warnings remain recorded in the
-test result and do not represent Sprint 7 test failures.
+Result: `PASS` — 448 tests, 0 failures, 2 documented skips. The latest clean
+derived-data run completed on 2026-09-09 after physical-test feedback. It includes
+regressions proving that a persisted Notch Trigger uses the top-center fallback on
+a non-notch external Display, the production menu-bar item owns a fixed visible
+slot with identifiable content, and long Hotkey labels fit the minimum Settings window at an
+accessibility text size. Compiler warnings remain recorded in the test result and
+do not represent Sprint 7 test failures.
+
+Follow-up runtime diagnosis found that the reported Control Center
+`No matching scene to invalidate` / `BSBlockSentinel` messages came from two
+simultaneous debug and standalone processes sharing `dev.mymacx.app`. Xcode exposed
+the debug process as paused/traced while Control Center registered the second item
+as a Replicant. The debug session was stopped and the standalone process was
+verified as the sole remaining instance. Unit tests no longer create and remove a
+real system status item; they exercise its pure presentation and lifecycle seams,
+avoiding Control Center scene churn during the suite.
 
 ## Remaining human evidence
 
-This record does not claim pointer feel, VoiceOver quality, notch/non-notch physical
-hardware, five-user usability, or visual approval. Those checks remain in
-`x7-09-x7-10-verification-matrix.md` and are required before Gate G7 can pass.
+This record does not claim unexecuted VoiceOver quality, remaining physical
+topologies, five-user usability, or formal visual approval. The project owner
+approved Gate G7 on 2026-09-09 with those items recorded as accepted exceptions
+deferred to Sprint 8; their matrix rows remain unpassed.

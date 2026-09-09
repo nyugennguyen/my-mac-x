@@ -130,11 +130,27 @@ final class AppLifecycleCoordinatorTests: XCTestCase {
         XCTAssertEqual(pause.accessibilityHelp(), "Super Mode is not currently available.")
     }
 
-    func testStartAppliesAccessoryPolicyAndInstallsMenuBarItem() {
+    func testProductionMenuBarItemPresentationIsDistinctAndNonCollapsible() {
+        let presentation = AppKitAppShellSystem.StatusItemPresentation.standard
+
+        XCTAssertEqual(presentation.length, 54)
+        XCTAssertEqual(presentation.symbolName, "rectangle.split.2x2")
+        XCTAssertEqual(presentation.title, "MX")
+        XCTAssertEqual(presentation.toolTip, "My Mac X")
+    }
+
+    func testStartAppliesAccessoryPolicyButDefersMenuBarItemUntilLaunchFinished() {
         let system = AppShellSystemSpy()
         let coordinator = AppLifecycleCoordinator(system: system)
 
         coordinator.start()
+
+        XCTAssertEqual(
+            system.state,
+            AppShellSystemState(accessoryPolicyApplications: 1, menuBarItemInstallations: 0)
+        )
+
+        coordinator.applicationDidFinishLaunching()
 
         XCTAssertEqual(
             system.state,
@@ -152,6 +168,8 @@ final class AppLifecycleCoordinatorTests: XCTestCase {
 
         coordinatorWithHotkeys.start()
         coordinatorWithHotkeys.start()
+        coordinatorWithHotkeys.applicationDidFinishLaunching()
+        coordinatorWithHotkeys.applicationDidFinishLaunching()
 
         XCTAssertEqual(
             system.state,

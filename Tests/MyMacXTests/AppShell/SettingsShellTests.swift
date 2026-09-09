@@ -410,6 +410,81 @@ final class SettingsShellTests: XCTestCase {
         XCTAssertTrue(runtime.currentSettings().transfer.isError)
     }
 
+    func testProductionSettingsRuntimePresentsHumanReadableKeysAndActionTitles() async throws {
+        let documents = InMemorySettingsDocumentAdapter()
+        let store = SettingsStore(documents: documents, actionRegistry: .builtIn)
+        let profileLayouts = try DisplayProfileLayoutRuntime(
+            stableDisplays: NoStableDisplays()
+        )
+        let runtime = ProductionSettingsRuntime(
+            store: store,
+            appRules: AppRuleRuntime(),
+            profileLayouts: profileLayouts,
+            accessibilityPermissionStatus: { .granted },
+            inputMonitoringAccess: { true },
+            openSystemSettings: {},
+            openGlobalHotkeySettings: {},
+            openSuperModeSettings: {}
+        )
+
+        let superMode = SuperModeConfiguration(
+            prefix: HotkeyChord(hardwareKeyCode: 49, modifiers: [.control]),
+            timeoutMilliseconds: 1500,
+            commandBindings: [
+                SuperModeCommandBinding(hardwareKeyCodes: [4], actionID: .leftHalf),
+                SuperModeCommandBinding(hardwareKeyCodes: [37], actionID: .rightHalf),
+                SuperModeCommandBinding(hardwareKeyCodes: [46], actionID: .maximize),
+                SuperModeCommandBinding(hardwareKeyCodes: [15], actionID: .restore),
+                SuperModeCommandBinding(hardwareKeyCodes: [2, 45], actionID: .moveDisplayNext),
+                SuperModeCommandBinding(hardwareKeyCodes: [1], actionID: .openSettings)
+            ]
+        )
+        let globalBindings = [
+            HotkeyBinding(id: UUID(), hardwareKeyCode: 123, modifiers: [.option, .command], actionID: .leftHalf)
+        ]
+        let hotkeySettings = HotkeySettings(bindings: globalBindings, superModeConfiguration: superMode)
+        runtime.replaceHotkeySettings(hotkeySettings)
+
+        let snapshot = runtime.currentSettings().hotkeys
+        XCTAssertEqual(snapshot.prefixPresentation, "⌃ Space")
+        XCTAssertEqual(snapshot.commandTree.count, 6)
+
+        let leftHalf = snapshot.commandTree[0]
+        XCTAssertEqual(leftHalf.keySequence, "H")
+        XCTAssertEqual(leftHalf.actionTitle, "Left Half")
+        XCTAssertEqual(leftHalf.symbolName, "rectangle.lefthalf.filled")
+        XCTAssertEqual(leftHalf.keys, ["H"])
+
+        let rightHalf = snapshot.commandTree[1]
+        XCTAssertEqual(rightHalf.keySequence, "L")
+        XCTAssertEqual(rightHalf.actionTitle, "Right Half")
+        XCTAssertEqual(rightHalf.symbolName, "rectangle.righthalf.filled")
+
+        let maximize = snapshot.commandTree[2]
+        XCTAssertEqual(maximize.keySequence, "M")
+        XCTAssertEqual(maximize.actionTitle, "Maximize")
+
+        let restore = snapshot.commandTree[3]
+        XCTAssertEqual(restore.keySequence, "R")
+        XCTAssertEqual(restore.actionTitle, "Restore")
+
+        let moveNext = snapshot.commandTree[4]
+        XCTAssertEqual(moveNext.keySequence, "D, N")
+        XCTAssertEqual(moveNext.actionTitle, "Move to Next Display")
+        XCTAssertEqual(moveNext.keys, ["D", "N"])
+
+        let openSettings = snapshot.commandTree[5]
+        XCTAssertEqual(openSettings.keySequence, "S")
+        XCTAssertEqual(openSettings.actionTitle, "Open Settings")
+        XCTAssertEqual(openSettings.symbolName, "gearshape")
+
+        XCTAssertEqual(snapshot.globalHotkeys.count, 1)
+        let globalLeft = snapshot.globalHotkeys[0]
+        XCTAssertEqual(globalLeft.actionTitle, "Left Half")
+        XCTAssertEqual(globalLeft.keySequence, "⌥⌘←")
+        XCTAssertEqual(globalLeft.symbolName, "rectangle.lefthalf.filled")
+    }
+
     private func baselineSnapshot() -> SettingsRuntimeSnapshot {
         .init(
             general: .init(accessibility: .granted, inputMonitoringGranted: true, launchesAtLogin: false),

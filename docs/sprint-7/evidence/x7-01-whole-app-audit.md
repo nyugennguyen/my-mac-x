@@ -187,5 +187,6 @@ behavior.
   semantics. Embedding them is a future information-architecture option, not an
   open P0/P1 Sprint 7 defect.
 - X7-01 has code-level inventory and findings, but screenshot and human review
-  remain in the companion matrix. Gate G7 stays open until those human-only rows
-  are executed.
+  remain in the companion matrix. On 2026-09-09 the project owner approved Gate
+  G7 with those unexecuted human-only rows retained as Sprint 8 exceptions rather
+  than relabeled as passing evidence.
