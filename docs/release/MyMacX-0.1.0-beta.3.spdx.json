@@ -1,0 +1,35 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "MyMacX-0.1.0-beta.3",
+  "documentNamespace": "https://dev.mymacx.app/spdx/MyMacX-0.1.0-beta.3",
+  "creationInfo": {
+    "created": "2026-09-09T07:00:00Z",
+    "creators": ["Tool: My Mac X Sprint 8 release audit"]
+  },
+  "packages": [
+    {
+      "name": "My Mac X",
+      "SPDXID": "SPDXRef-Package-MyMacX",
+      "versionInfo": "0.1.0-beta.3",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": []
+    }
+  ],
+  "relationships": [{
+    "spdxElementId": "SPDXRef-DOCUMENT",
+    "relationshipType": "DESCRIBES",
+    "relatedSpdxElement": "SPDXRef-Package-MyMacX"
+  }],
+  "annotations": [{
+    "annotationDate": "2026-09-09T07:00:00Z",
+    "annotationType": "OTHER",
+    "annotator": "Tool: My Mac X Sprint 8 release audit",
+    "comment": "No third-party package or vendored binary dependency. Runtime frameworks are Apple system frameworks supplied by macOS."
+  }]
+}

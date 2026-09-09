@@ -72,6 +72,64 @@ final class EventTapManagerTests: XCTestCase {
         XCTAssertEqual(installCount, 1)
     }
 
+    func testRepeatedDisableNotificationsFailOpenAfterBoundedRecoveryAttempts() async {
+        let system = InMemoryEventTapSystem()
+        let manager = makeManager(system: system)
+        _ = await manager.start()
+
+        for expectedEnableCount in 2...4 {
+            let disposition = await system.emit(.disabledByTimeout)
+            XCTAssertEqual(disposition, .passThrough)
+            await system.waitUntilEnableCount(expectedEnableCount)
+        }
+        let finalDisableDisposition = await system.emit(.disabledByTimeout)
+        XCTAssertEqual(finalDisableDisposition, .passThrough)
+        await system.waitUntilInvalidateCount(1)
+
+        let status = await manager.status()
+        let enableCount = await system.enableCount
+        let invalidateCount = await system.invalidateCount
+        XCTAssertEqual(status, .unavailable)
+        XCTAssertEqual(enableCount, 4)
+        XCTAssertEqual(invalidateCount, 1)
+        let key = EventTapSignal.key(
+            EventTapKeySignal(
+                kind: .keyDown,
+                hardwareKeyCode: 4,
+                modifierFlags: 0,
+                isRepeat: false
+            )
+        )
+        let keyDisposition = await system.emit(key)
+        XCTAssertEqual(keyDisposition, .passThrough)
+    }
+
+    func testHealthyInputAfterRecoveryResetsTheDisableBudget() async {
+        let system = InMemoryEventTapSystem()
+        let manager = makeManager(system: system)
+        _ = await manager.start()
+        let key = EventTapSignal.key(
+            EventTapKeySignal(
+                kind: .keyDown,
+                hardwareKeyCode: 4,
+                modifierFlags: 0,
+                isRepeat: false
+            )
+        )
+
+        for expectedEnableCount in 2...5 {
+            _ = await system.emit(.disabledByTimeout)
+            await system.waitUntilEnableCount(expectedEnableCount)
+            _ = await system.emit(key)
+            await Task.yield()
+        }
+
+        let status = await manager.status()
+        let invalidateCount = await system.invalidateCount
+        XCTAssertEqual(status, .active)
+        XCTAssertEqual(invalidateCount, 0)
+    }
+
     func testStopInvalidatesOnceAndIsIdempotent() async {
         let system = InMemoryEventTapSystem()
         let manager = makeManager(system: system)

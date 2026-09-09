@@ -69,6 +69,12 @@ actor InMemoryEventTapSystem: EventTapSystem {
         }
     }
 
+    func waitUntilInvalidateCount(_ expectedCount: Int) async {
+        while invalidateCount < expectedCount {
+            await Task.yield()
+        }
+    }
+
     func resumeInstall() {
         installIsPaused = false
         installContinuation?.resume()

@@ -56,6 +56,10 @@ protocol EventTapSystem: Sendable {
 /// Owns Event Tap lifecycle state. Platform callbacks carry a generation so callbacks retained
 /// by the system after stop/restart cannot affect the current tap.
 actor EventTapManager: EventTapManaging {
+    /// A tap that the system disables repeatedly is treated as unhealthy instead of entering an
+    /// unbounded re-enable loop on the global input path.
+    private static let maximumRecoveryAttemptsPerInstallation = 3
+
     private enum Lifecycle {
         case stopped
         case starting(UInt64, Task<EventTapInstallation?, Never>)
@@ -106,18 +110,20 @@ actor EventTapManager: EventTapManaging {
         let callbackGate = callbackGate
         let installationTask = Task { [weak self] in
             await system.install { [weak self, callbackGate] signal in
-                let disposition = callbackGate.handle(
+                let callbackResult = callbackGate.handle(
                     signal,
-                    generation: startGeneration
+                    generation: startGeneration,
+                    maximumRecoveryAttempts: Self.maximumRecoveryAttemptsPerInstallation
                 )
-                if signal.isDisabledNotification {
+                if let recoveryDirective = callbackResult.recoveryDirective {
                     Task {
                         await self?.receiveDisabledNotification(
-                            generation: startGeneration
+                            generation: startGeneration,
+                            recoveryDirective: recoveryDirective
                         )
                     }
                 }
-                return disposition
+                return callbackResult.disposition
             }
         }
         lifecycle = .starting(startGeneration, installationTask)
@@ -201,12 +207,22 @@ actor EventTapManager: EventTapManaging {
         return .active
     }
 
-    private func receiveDisabledNotification(generation callbackGeneration: UInt64) async {
+    private func receiveDisabledNotification(
+        generation callbackGeneration: UInt64,
+        recoveryDirective: EventTapRecoveryDirective
+    ) async {
         guard case let .active(activeGeneration, installation) = lifecycle,
               activeGeneration == callbackGeneration
         else { return }
 
-        await system.enable(installation)
+        switch recoveryDirective {
+        case .invalidate:
+            callbackGate.deactivate()
+            lifecycle = .unavailable
+            await system.invalidate(installation)
+        case .reenable:
+            await system.enable(installation)
+        }
     }
 }
 
@@ -221,12 +237,23 @@ private extension EventTapSignal {
     }
 }
 
+private enum EventTapRecoveryDirective {
+    case reenable
+    case invalidate
+}
+
+private struct EventTapCallbackResult {
+    let disposition: EventTapEventDisposition
+    let recoveryDirective: EventTapRecoveryDirective?
+}
+
 /// A callback-visible lifecycle gate. Deactivation is synchronous, so callbacks already retained by
 /// CoreGraphics fail open before the tap is invalidated or a new generation is installed.
 private final class EventTapCallbackGate: @unchecked Sendable {
     private let lock = NSLock()
     private var activeGeneration: UInt64?
     private var handler: (@Sendable (EventTapSignal) -> EventTapEventDisposition)?
+    private var recoveryAttempts = 0
 
     func activate(
         generation: UInt64,
@@ -235,6 +262,7 @@ private final class EventTapCallbackGate: @unchecked Sendable {
         lock.lock()
         activeGeneration = generation
         self.handler = handler
+        recoveryAttempts = 0
         lock.unlock()
     }
 
@@ -242,20 +270,37 @@ private final class EventTapCallbackGate: @unchecked Sendable {
         lock.lock()
         activeGeneration = nil
         handler = nil
+        recoveryAttempts = 0
         lock.unlock()
     }
 
     func handle(
         _ signal: EventTapSignal,
-        generation callbackGeneration: UInt64
-    ) -> EventTapEventDisposition {
+        generation callbackGeneration: UInt64,
+        maximumRecoveryAttempts: Int
+    ) -> EventTapCallbackResult {
         lock.lock()
         guard activeGeneration == callbackGeneration, let handler else {
             lock.unlock()
-            return .passThrough
+            return EventTapCallbackResult(disposition: .passThrough, recoveryDirective: nil)
         }
         let disposition = handler(signal)
+        let recoveryDirective: EventTapRecoveryDirective?
+        if signal.isDisabledNotification {
+            if recoveryAttempts < maximumRecoveryAttempts {
+                recoveryAttempts += 1
+                recoveryDirective = .reenable
+            } else {
+                recoveryDirective = .invalidate
+            }
+        } else {
+            recoveryAttempts = 0
+            recoveryDirective = nil
+        }
         lock.unlock()
-        return disposition
+        return EventTapCallbackResult(
+            disposition: disposition,
+            recoveryDirective: recoveryDirective
+        )
     }
 }

@@ -24,6 +24,49 @@ private extension WindowMutationModule {
 }
 
 final class WindowMutationModuleTests: XCTestCase {
+    func testFiveHundredVerifiedActionsCompleteWithoutLosingIdentityOrReadBack() async {
+        let identity = WindowIdentity()
+        let firstFrame = CGRect(x: 20, y: 30, width: 640, height: 480)
+        let secondFrame = CGRect(x: 680, y: 30, width: 640, height: 480)
+        var steps: [ScriptedWindowAdapter.MutationStep] = []
+        var currentFrame = firstFrame
+        for index in 0..<500 {
+            let targetFrame = index.isMultiple(of: 2) ? secondFrame : firstFrame
+            steps.append(
+                .inspect(identity, frame: currentFrame, capabilities: .movableAndResizable)
+            )
+            steps.append(
+                .writeTargetAxes(
+                    identity,
+                    frame: targetFrame,
+                    axes: .position,
+                    result: .accepted
+                )
+            )
+            steps.append(
+                .inspect(identity, frame: targetFrame, capabilities: .movableAndResizable)
+            )
+            currentFrame = targetFrame
+        }
+        let adapter = ScriptedWindowAdapter(captures: [.unsupported], mutationSteps: steps)
+        let module = WindowMutationModule(adapter: adapter)
+
+        for index in 0..<500 {
+            let targetFrame = index.isMultiple(of: 2) ? secondFrame : firstFrame
+            let result = await module.mutate(window: identity, to: targetFrame)
+            guard result == .applied(actualFrame: ax(targetFrame), constrained: false) else {
+                return XCTFail("Action \(index + 1) failed: \(result)")
+            }
+        }
+
+        let remainingStepCount = await adapter.remainingMutationStepCount
+        let targetWriteCount = await adapter.targetWriteCount
+        let inspectionCount = await adapter.inspectionCount
+        XCTAssertEqual(remainingStepCount, 0)
+        XCTAssertEqual(targetWriteCount, 500)
+        XCTAssertEqual(inspectionCount, 1_000)
+    }
+
     func testReturnsVerifiedSuccessOnlyAfterReadingBackTheRequestedFrame() async {
         let identity = WindowIdentity()
         let original = CGRect(x: 80, y: 90, width: 900, height: 700)
