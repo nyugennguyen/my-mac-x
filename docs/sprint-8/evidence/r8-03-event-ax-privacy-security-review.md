@@ -83,7 +83,7 @@ Data retained by these Modules is local and bounded:
   production source/project settings.
 - `scripts/release/security-audit.sh` makes the private API, network, prohibited-content API and
   entitlement checks repeatable. The project has no third-party package or vendored binary;
-  `docs/release/MyMacX-0.1.0-beta.3.spdx.json` records that release inventory.
+  `docs/release/MyMacX-0.1.0-beta.4.spdx.json` records that release inventory.
 - R8-06 must inspect the entitlements extracted from the actual Release archive. This source/config
   result is not a substitute for archive verification.
 

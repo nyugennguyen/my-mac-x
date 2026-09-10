@@ -126,6 +126,7 @@
 		100000000000000000000056 /* SnapInteractionStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000056 /* SnapInteractionStateMachineTests.swift */; };
 		100000000000000000000057 /* CrossDisplayDragCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000057 /* CrossDisplayDragCoordinator.swift */; };
 		100000000000000000000058 /* CrossDisplayDragCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000058 /* CrossDisplayDragCoordinatorTests.swift */; };
+		10000000000000000000007D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000007D /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -263,6 +264,7 @@
 		200000000000000000000056 /* SnapInteractionStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapInteractionStateMachineTests.swift; sourceTree = "<group>"; };
 		200000000000000000000057 /* CrossDisplayDragCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossDisplayDragCoordinator.swift; sourceTree = "<group>"; };
 		200000000000000000000058 /* CrossDisplayDragCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossDisplayDragCoordinatorTests.swift; sourceTree = "<group>"; };
+		20000000000000000000007D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -326,6 +328,7 @@
 		700000000000000000000003 /* AppShell */ = {
 			isa = PBXGroup;
 			children = (
+				20000000000000000000007D /* Assets.xcassets */,
 				200000000000000000000001 /* MyMacXApplication.swift */,
 				20000000000000000000000B /* AppLifecycleCoordinator.swift */,
 				20000000000000000000006C /* SuperModeSettingsWindowController.swift */,
@@ -881,6 +884,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				10000000000000000000007D /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1041,6 +1045,8 @@
 		A00000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleIconFile = AppIcon;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1058,6 +1064,8 @@
 		A00000000000000000000002 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleIconFile = AppIcon;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;

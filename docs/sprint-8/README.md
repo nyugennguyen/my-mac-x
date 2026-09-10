@@ -28,3 +28,21 @@ The local ad-hoc beta is suitable for the requested demo. It is not suitable for
 distribution. Gate G8 requires a real Developer ID signature, notarization/staple, clean-machine
 Gatekeeper pass, completed human/hardware/TCC/accessibility/soak evidence, no P0/P1, rollback
 verification, and the project owner's stable-release Go/No-Go.
+
+## Complete the human-only gates
+
+Run the reviewed interactive wizard from the repository root:
+
+```sh
+scripts/release/complete-human-gates.sh
+```
+
+It verifies the selected immutable artifact, walks the operator through all seven approved stages,
+runs the full test suite and security audit before signing, keeps signing credentials in Keychain,
+and writes a timestamped operator record under
+`docs/sprint-8/evidence/human-runs/`. The canonical tracker must be updated only after reviewing
+the retained screenshots, Instruments traces, notary result, Gatekeeper output, and owner decision;
+operator-entered `PASS` text alone is not sufficient evidence, and the wizard never promotes G8.
+The signing stage also writes versioned release metadata containing the exact source commit,
+Developer ID identity, notarization status, artifact checksums, and operator-confirmed download
+location for the independent R8-10/G8 review.

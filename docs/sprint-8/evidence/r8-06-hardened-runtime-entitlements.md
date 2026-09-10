@@ -20,9 +20,9 @@ Run:
 
 ```bash
 plutil -lint Configs/MyMacX.entitlements
-RELEASE_VERSION=0.1.0-beta.3 BUILD_NUMBER=3 SIGNING_MODE=adhoc scripts/release/build-app.sh
-codesign -d --verbose=4 --entitlements :- build/release/0.1.0-beta.3/MyMacX.app
-codesign --verify --deep --strict --verbose=2 build/release/0.1.0-beta.3/MyMacX.app
+RELEASE_VERSION=0.1.0-beta.4 BUILD_NUMBER=4 SIGNING_MODE=adhoc scripts/release/build-app.sh
+codesign -d --verbose=4 --entitlements :- build/release/0.1.0-beta.4/MyMacX.app
+codesign --verify --deep --strict --verbose=2 build/release/0.1.0-beta.4/MyMacX.app
 ```
 
 An ad-hoc signature proves bundle sealing and runtime-option configuration only. It

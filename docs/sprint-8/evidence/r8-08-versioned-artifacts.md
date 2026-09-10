@@ -11,8 +11,8 @@ The app signature is verified before packaging. `verify-artifacts.sh` then check
 both hashes, the DMG structure, ZIP integrity and the source app signature.
 
 ```bash
-RELEASE_VERSION=0.1.0-beta.3 scripts/release/package-artifacts.sh
-RELEASE_VERSION=0.1.0-beta.3 scripts/release/verify-artifacts.sh
+RELEASE_VERSION=0.1.0-beta.4 scripts/release/package-artifacts.sh
+RELEASE_VERSION=0.1.0-beta.4 scripts/release/verify-artifacts.sh
 ```
 
 Publishing remains a separate human action. The artifact filenames, bytes and
@@ -21,13 +21,13 @@ version/build number rather than overwriting a published path.
 
 ## 2026-09-09 final demo artifact evidence
 
-The final post-review ad-hoc `0.1.0-beta.3` (build 3) artifacts were created and verified locally.
+The icon-integrated ad-hoc `0.1.0-beta.4` (build 4) artifacts were created and verified locally.
 DMG CRC, ZIP structure, strict signatures of the source app and each embedded app bundle, and both
 SHA-256 entries passed:
 
 ```text
-7e9777d3ec22f22ad6a8664bd6f7f792a7dfff4b7557997e385066e8047c9f91  MyMacX-0.1.0-beta.3.dmg
-61960989412009b3ecd7ae48c05671f7e79bc2e9e21cbaa4f5d967439809c936  MyMacX-0.1.0-beta.3.zip
+62d40ca48a377fa3749f1073c653e017d9b79aebce0292e72f68713c7f593f30  MyMacX-0.1.0-beta.4.dmg
+d0b5bfe882561b24802e7f11a2497343d9ede9bb3c8da16e7db3832d753e7c23  MyMacX-0.1.0-beta.4.zip
 ```
 
 These files are suitable for a controlled local demo, not external distribution:

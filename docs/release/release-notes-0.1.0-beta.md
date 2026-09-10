@@ -34,7 +34,8 @@ enabling permissions.
 - Full VoiceOver, appearance, notch/multi-Display, Intel, five-user usability, TCC lifecycle,
   soak, signing/notarization, clean-machine install, and final Go/No-Go evidence remain release
   gates. This note does not claim those checks passed.
-- The demo candidate is 0.1.0-beta.3 (build 3). Use only the versioned artifact and checksum
+- The demo candidate is 0.1.0-beta.4 (build 4), including the new Mac-and-X application icon.
+  Use only the versioned artifact and checksum
   supplied by the release owner; a development build is not a notarized release.
 
 ## Verification snapshot

@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
-RELEASE_VERSION="${RELEASE_VERSION:-0.1.0-beta.3}"
+RELEASE_VERSION="${RELEASE_VERSION:-0.1.0-beta.4}"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 OUTPUT_DIR="${OUTPUT_DIR:-$REPO_ROOT/build/release/$RELEASE_VERSION}"
 APP_PATH="${APP_PATH:-$OUTPUT_DIR/MyMacX.app}"

@@ -9,14 +9,14 @@ the profile name through `NOTARY_KEYCHAIN_PROFILE`; the Developer ID identity is
 selected through `DEVELOPER_ID_APPLICATION` and remains in the user's keychain.
 
 ```bash
-RELEASE_VERSION=0.1.0-beta.3 \
+RELEASE_VERSION=0.1.0-beta.4 \
 APP_VERSION=0.1.0 \
-BUILD_NUMBER=3 \
+BUILD_NUMBER=4 \
 SIGNING_MODE=developer-id \
 DEVELOPER_ID_APPLICATION='Developer ID Application: …' \
 scripts/release/build-app.sh
 
-RELEASE_VERSION=0.1.0-beta.3 \
+RELEASE_VERSION=0.1.0-beta.4 \
 NOTARY_KEYCHAIN_PROFILE=mymacx-notary \
 scripts/release/notarize-and-staple.sh
 ```
