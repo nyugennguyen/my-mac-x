@@ -184,11 +184,11 @@ finish() {
 # Replace the example below. Set TOTAL_STAGES to match the stages you write.
 # ──────────────────────────────────────────────────────────────────────────
 
-TOTAL_STAGES=7
+TOTAL_STAGES=6
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
+RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"
 EVIDENCE_DIR="$REPO_ROOT/docs/sprint-8/evidence/human-runs"
 EVIDENCE_PATH="$EVIDENCE_DIR/$RUN_ID.md"
 mkdir -p "$EVIDENCE_DIR"
@@ -230,19 +230,34 @@ require_evidence_path() {
   require_single_line "$label" "$value"
   [[ "$resolved" == /* ]] || resolved="$REPO_ROOT/$resolved"
   [[ -e "$resolved" ]] || { warn "$label does not exist: $resolved"; exit 1; }
+  if [[ -d "$resolved" ]]; then
+    resolved="$(cd "$resolved" && pwd -P)"
+  else
+    resolved="$(cd "$(dirname "$resolved")" && pwd -P)/$(basename "$resolved")"
+  fi
+  [[ "$resolved" == "$EVIDENCE_DIR"/* ]] || {
+    warn "$label must be retained beneath $EVIDENCE_DIR"
+    exit 1
+  }
+  if [[ -f "$resolved" ]]; then
+    [[ -s "$resolved" ]] || { warn "$label file is empty: $resolved"; exit 1; }
+  elif ! find "$resolved" -type f -size +0c -print -quit | grep -q .; then
+    warn "$label directory contains no non-empty evidence file: $resolved"
+    exit 1
+  fi
 }
 
 mark_incomplete() {
   local status=$?
   if (( EVIDENCE_STARTED == 1 && RUN_COMPLETE == 0 )); then
     record ""
-    record "Run status: **INCOMPLETE — interrupted or failed; not eligible for Gate G8 review**"
+    record "Run status: **INCOMPLETE — interrupted or failed; not eligible for demo-readiness review**"
   fi
   return "$status"
 }
 trap mark_incomplete EXIT
 
-banner "My Mac X · Sprint 8 human gates"
+banner "My Mac X · Sprint 8 controlled-demo QA"
 
 stage "Artifact and test-machine preflight"
 say "Verify the exact candidate before changing permissions or installing anything."
@@ -260,7 +275,11 @@ else
   warn "Artifact verifier or candidate files are missing. Stop and rebuild before continuing."
   exit 1
 fi
-record "# Sprint 8 human-gate run — $RUN_ID"
+if ! (set -o noclobber; : > "$EVIDENCE_PATH") 2>/dev/null; then
+  warn "Evidence run already exists; start again to obtain a unique run ID: $EVIDENCE_PATH"
+  exit 1
+fi
+record "# Sprint 8 controlled-demo QA run — $RUN_ID"
 record ""
 record "This file records operator-entered results. A value is evidence only when the referenced"
 record "artifact, screenshot, Instruments trace, or command output is retained alongside the run."
@@ -313,108 +332,46 @@ record "## R8-04 — live soak/performance"
 record "- Result: $SOAK_RESULT"
 record "- Evidence: $SOAK_EVIDENCE"
 
-stage "Developer ID signing and notarization"
-say "Credentials stay in Keychain. Enter only the identity label and notary profile name."
-step 'Confirm security find-identity -v -p codesigning lists a Developer ID Application identity.'
-ask DEVELOPER_ID_APPLICATION "Developer ID Application identity label:"
-ask NOTARY_KEYCHAIN_PROFILE "Existing notarytool Keychain profile name:"
-ask SIGNED_RELEASE_VERSION "New immutable signed release version:"
-ask SIGNED_BUILD_NUMBER "Positive build number:"
-require_single_line "Developer ID identity" "$DEVELOPER_ID_APPLICATION"
-require_single_line "Notary Keychain profile" "$NOTARY_KEYCHAIN_PROFILE"
-require_single_line "Signed release version" "$SIGNED_RELEASE_VERSION"
-[[ "$SIGNED_BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || { warn "Build number must be positive."; exit 1; }
-if confirm "Build, Developer-ID sign, notarize, staple, and Gatekeeper-assess this candidate now?"; then
-  if [[ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]]; then
-    warn "The worktree is not clean. Commit the exact candidate before signing."
-    exit 1
-  fi
-  SPDX_PATH="$REPO_ROOT/docs/release/MyMacX-$SIGNED_RELEASE_VERSION.spdx.json"
-  [[ -f "$SPDX_PATH" ]] || { warn "Prepared SBOM is missing: $SPDX_PATH"; exit 1; }
-  jq -e --arg version "$SIGNED_RELEASE_VERSION" \
-    '.name == ("MyMacX-" + $version) and .packages[0].versionInfo == $version' \
-    "$SPDX_PATH" >/dev/null
-  rg -q --fixed-strings "$SIGNED_RELEASE_VERSION" \
-    "$REPO_ROOT/docs/release/release-notes-0.1.0-beta.md" || {
-      warn "Release notes do not name $SIGNED_RELEASE_VERSION."
-      exit 1
-    }
-  step "Run the full test suite and security audit against commit $(git -C "$REPO_ROOT" rev-parse HEAD)."
-  xcodebuild test -quiet -project "$REPO_ROOT/MyMacX.xcodeproj" -scheme MyMacX \
-    -destination 'platform=macOS' \
-    -derivedDataPath "$REPO_ROOT/build/verification/$SIGNED_RELEASE_VERSION"
-  "$SCRIPT_DIR/security-audit.sh"
-  RELEASE_VERSION="$SIGNED_RELEASE_VERSION" BUILD_NUMBER="$SIGNED_BUILD_NUMBER" \
-    SIGNING_MODE=developer-id DEVELOPER_ID_APPLICATION="$DEVELOPER_ID_APPLICATION" \
-    "$SCRIPT_DIR/build-app.sh"
-  RELEASE_VERSION="$SIGNED_RELEASE_VERSION" NOTARY_KEYCHAIN_PROFILE="$NOTARY_KEYCHAIN_PROFILE" \
-    "$SCRIPT_DIR/notarize-and-staple.sh"
-  RELEASE_VERSION="$SIGNED_RELEASE_VERSION" "$SCRIPT_DIR/package-artifacts.sh"
-  RELEASE_VERSION="$SIGNED_RELEASE_VERSION" "$SCRIPT_DIR/verify-artifacts.sh"
-  ask DOWNLOAD_LOCATION "Published download location (URL or controlled local path):"
-  require_single_line "Download location" "$DOWNLOAD_LOCATION"
-  RELEASE_METADATA_PATH="$REPO_ROOT/docs/release/MyMacX-$SIGNED_RELEASE_VERSION-release-metadata.md"
-  {
-    printf '# My Mac X %s release metadata\n\n' "$SIGNED_RELEASE_VERSION"
-    printf -- '- Source commit: %s\n' "$(git -C "$REPO_ROOT" rev-parse HEAD)"
-    printf -- '- Developer ID Application: %s\n' "$DEVELOPER_ID_APPLICATION"
-    printf -- '- Notarization/staple/Gatekeeper: PASS\n'
-    printf -- '- Download location: %s\n' "$DOWNLOAD_LOCATION"
-    printf -- '- Artifact checksums:\n\n```text\n'
-    sed 's/^/  /' "$REPO_ROOT/build/release/$SIGNED_RELEASE_VERSION/MyMacX-$SIGNED_RELEASE_VERSION.sha256"
-    printf '```\n'
-  } > "$RELEASE_METADATA_PATH"
-  SIGNING_RESULT=PASS
-else
-  SIGNING_RESULT=SKIPPED
-fi
-record ""
-record "## R8-06/R8-07/R8-08 — signed release"
-record "- Candidate: $SIGNED_RELEASE_VERSION (build $SIGNED_BUILD_NUMBER)"
-record "- Result: $SIGNING_RESULT"
-record "- Notary profile label: $NOTARY_KEYCHAIN_PROFILE"
-if [[ "$SIGNING_RESULT" == PASS ]]; then
-  record "- Release metadata: $RELEASE_METADATA_PATH"
-fi
-
-stage "Clean install, upgrade, and rollback"
-say "Move the signed DMG and checksum to a clean supported Mac; do not bypass Gatekeeper."
-step "Run R8-11 clean install and the complete R8-09 current → update → rollback protocol."
+stage "Controlled demo install and rollback"
+say "Move the demo DMG and checksum to the Mac that will be used for the presentation."
+step "Run the R8-09 current → update → rollback protocol with the ad-hoc demo candidate."
+step "This is a controlled demo check, not a Developer ID, notarization, or Gatekeeper release test."
 step "Verify settings, Accessibility trust, Hotkey, Super Mode, Notch Snap, relaunch, and login."
-pause "After retaining Gatekeeper, staple, TCC, config, and Window Action evidence, press Enter."
-ask_enum CLEAN_RESULT "Clean install/upgrade/rollback result (PASS or FAIL):" "PASS FAIL"
+pause "After retaining install, TCC, config, and Window Action evidence, press Enter."
+ask_enum CLEAN_RESULT "Demo install/upgrade/rollback result (PASS or FAIL):" "PASS FAIL"
 ask CLEAN_EVIDENCE "Evidence file or directory path:"
-require_evidence_path "Clean-install evidence" "$CLEAN_EVIDENCE"
+require_evidence_path "Demo-install evidence" "$CLEAN_EVIDENCE"
 record ""
-record "## R8-09/R8-11 — clean install and rollback"
+record "## R8-09 — controlled demo install and rollback"
 record "- Result: $CLEAN_RESULT"
 record "- Evidence: $CLEAN_EVIDENCE"
 
-stage "Project-owner Go/No-Go"
-say "A stable GO requires every prior stage to pass and no open P0/P1."
-say "Review the versioned release metadata: identity, notarization, checksums, and download location."
-ask OPEN_BLOCKERS "Open P0/P1 or human-gate blockers (write NONE only if truly empty):"
-ask_enum OWNER_DECISION "Project-owner decision (GO or NO-GO):" "GO NO-GO"
+stage "Project-owner demo Go/No-Go"
+say "This decision approves only a controlled demo; it cannot promote Gate G8 or external release."
+ask OPEN_BLOCKERS "Open P0/P1 or demo blockers (write NONE only if truly empty):"
+ask_enum OWNER_DECISION "Project-owner demo decision (GO or NO-GO):" "GO NO-GO"
 ask OWNER_NAME "Project-owner name or initials:"
 require_single_line "Open blockers" "$OPEN_BLOCKERS"
 require_single_line "Owner" "$OWNER_NAME"
 record ""
-record "## R8-12 — project-owner decision"
+record "## R8-12 — controlled-demo owner decision"
 record "- Open blockers: $OPEN_BLOCKERS"
 record "- Decision: $OWNER_DECISION"
 record "- Owner: $OWNER_NAME"
 record "- Recorded at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 if [[ "$TCC_RESULT" == PASS && "$MATRIX_RESULT" == PASS && "$SOAK_RESULT" == PASS && \
-      "$SIGNING_RESULT" == PASS && "$CLEAN_RESULT" == PASS && "$OPEN_BLOCKERS" == NONE && \
+      "$CLEAN_RESULT" == PASS && "$OPEN_BLOCKERS" == NONE && \
       "$OWNER_DECISION" == GO ]]; then
   record ""
-  record "Gate G8 review candidate: **OPERATOR-REPORTED COMPLETE — independent evidence review required**"
-  say "All captured gates report PASS. G8 remains open until an independent review updates the tracker."
+  record "Demo readiness: **OPERATOR-REPORTED GO — independent evidence review required**"
+  record "Gate G8: **NOT PASSED — Developer ID release workflow intentionally deferred**"
+  say "The controlled demo reports GO. Gate G8 remains open for the separate release workflow."
 else
   record ""
-  record "Gate G8 result: **NOT PASSED**"
-  warn "At least one gate is skipped, failed, blocked, or not owner-approved. Keep G8 open."
+  record "Demo readiness: **NO-GO**"
+  record "Gate G8: **NOT PASSED**"
+  warn "At least one demo gate failed, is blocked, or is not owner-approved."
 fi
 
 note "Human-run evidence: $EVIDENCE_PATH"

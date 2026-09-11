@@ -37,12 +37,27 @@ Run the reviewed interactive wizard from the repository root:
 scripts/release/complete-human-gates.sh
 ```
 
-It verifies the selected immutable artifact, walks the operator through all seven approved stages,
-runs the full test suite and security audit before signing, keeps signing credentials in Keychain,
-and writes a timestamped operator record under
+It verifies the selected immutable demo artifact, walks the operator through six QA/demo stages,
+does not request Developer ID credentials, and writes a timestamped operator record under
 `docs/sprint-8/evidence/human-runs/`. The canonical tracker must be updated only after reviewing
-the retained screenshots, Instruments traces, notary result, Gatekeeper output, and owner decision;
-operator-entered `PASS` text alone is not sufficient evidence, and the wizard never promotes G8.
-The signing stage also writes versioned release metadata containing the exact source commit,
-Developer ID identity, notarization status, artifact checksums, and operator-confirmed download
-location for the independent R8-10/G8 review.
+the retained screenshots, Instruments traces, install/rollback output, and owner decision.
+Operator-entered `PASS` text alone is not sufficient evidence. A demo GO never promotes G8.
+
+## Developer ID release workflow
+
+Signing and notarization are intentionally separate from demo QA. When an Apple Developer
+membership and Developer ID certificate are available, run the dedicated release entrypoint:
+
+```sh
+RELEASE_VERSION=0.1.0-beta.5 \
+BUILD_NUMBER=5 \
+DEVELOPER_ID_APPLICATION='Developer ID Application: Example (TEAMID)' \
+NOTARY_KEYCHAIN_PROFILE=mymacx-notary \
+DOWNLOAD_LOCATION='https://example.com/MyMacX-0.1.0-beta.5.dmg' \
+scripts/release/release-developer-id.sh
+```
+
+The release script requires a clean worktree and matching SBOM/release notes, then runs full tests,
+the security audit, Developer ID signing, notarization, stapling, packaging, artifact verification,
+and versioned release-metadata generation. Credentials remain in Keychain; only the profile name is
+passed to the script.

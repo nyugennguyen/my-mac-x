@@ -8,6 +8,11 @@ command-line value or written to repository output. A human first creates a
 the profile name through `NOTARY_KEYCHAIN_PROFILE`; the Developer ID identity is
 selected through `DEVELOPER_ID_APPLICATION` and remains in the user's keychain.
 
+When release credentials become available, the supported one-command orchestration entrypoint is
+`scripts/release/release-developer-id.sh`. It runs full tests and the security audit before the
+build/sign/notarize/package/verify sequence. The individual commands below remain useful for
+diagnosis.
+
 ```bash
 RELEASE_VERSION=0.1.0-beta.4 \
 APP_VERSION=0.1.0 \
