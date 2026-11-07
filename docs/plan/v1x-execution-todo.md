@@ -18,9 +18,10 @@ Legend: ⏳ pending · 🔨 in progress · ✅ done · ⛔ blocked (needs human)
 
 | ID | Task | Agent | Status |
 |---|---|---|---|
-| A-R1 | v1.x-1 rules sprint: TriggerGeometryKit zone geometry (fixed 8 zones first) + seam gating + velocity trail (S/Z cases); PointerDragKit drag-classification rule + `PointerPlatformSignal` timestamp payload (D cases). TDD, case-mapped tests from the A2 spec. Clean-room: implement ONLY from `docs/research/edge-snap-behavior-spec.md`; never open the vorssaint clone. | `dev-rules` | ⏳ |
-| B-P2 | Settings shell upgrade: sidebar search + section anchors; Super Mode keycap/recorder rows replace key-code pickers; hotkey child-window visual unification. Keep `NavigationSplitView` shell. Runs in a worktree to avoid pbxproj contention with A-R1. | `dev-p2` | ⏳ |
-| T1 | Tester pass: review wave 1 (docs + B-P1 diff) vs plan + AGENT.MD; run full test suite. | `dev-tester` | ✅ verdict: A1 PASS, A2 PASS-WITH-FIXES, A3 PASS, B-P1 PASS-WITH-FIXES, A4 PASS. Suite: 472 tests / 0 failures. No blockers; 1 major (ShortcutRecorderModel.cancelRecording clears conflict state) + 3 minor + 3 nits. Fix batch queued for `dev-p2`'s next turn (findings 1–3, 5–7); finding 4 (doc sync) fixed by orchestrator. |
+| A-R1 | v1.x-1 rules sprint: TriggerGeometryKit zone geometry (fixed 8 zones first) + seam gating + velocity trail (S/Z cases); PointerDragKit drag-classification rule + `PointerPlatformSignal` timestamp payload (D cases). TDD, case-mapped tests from the A2 spec. Clean-room: implement ONLY from `docs/research/edge-snap-behavior-spec.md`; never open the vorssaint clone. | `dev-rules` | ✅ d86c30b + fix round 4691c73 (2 majors + minor/nits from T1 turn 2); merged c702d0f |
+| B-P2 | Settings shell upgrade: sidebar search + section anchors; Super Mode keycap/recorder rows replace key-code pickers; hotkey child-window visual unification. Keep `NavigationSplitView` shell. | `dev-p2` | ✅ d9b1ed0 + P1 fix batch 4aedf32 (tester findings 1–3, 5–7, TDD red-first) |
+| T1 | Tester pass: review wave 1 (docs + B-P1 diff) vs plan + AGENT.MD; run full test suite. | `dev-tester` | ✅ turns 1–2 done (wave-1 verdict + rules-branch audit); turn 3 = integration review of merge c702d0f (incl. orchestrator's pbxproj conflict resolution) |
+| INT | Integration merge `mymacx-v1x-rules` → `mymacx-v1x` (pbxproj ID collision 82–89 renumbered to 90–97 by orchestrator); full suite on merged tree: **513 tests / 0 failures** | orchestrator | ✅ c702d0f |
 
 ## Decisions recorded (following plan recommendations; human may override)
 
