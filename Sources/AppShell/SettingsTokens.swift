@@ -91,12 +91,21 @@ public struct SettingsEnvironmentContext: Equatable, Sendable {
 // MARK: - Token Resolver
 
 public enum SettingsTokenResolver {
+    public static let standardCardFillOpacity: CGFloat = 0.35
+
+    public static func cardFillOpacity(context: SettingsEnvironmentContext) -> CGFloat {
+        if context.reduceTransparency {
+            return 1.0
+        }
+        return standardCardFillOpacity
+    }
+
     public static func cardBackgroundColor(context: SettingsEnvironmentContext) -> NSColor {
         if context.reduceTransparency {
             if context.colorScheme == .dark {
-                return NSColor(deviceWhite: 0.17, alpha: 1.0)
+                return NSColor(deviceWhite: 0.17, alpha: cardFillOpacity(context: context))
             } else {
-                return NSColor(deviceWhite: 1.0, alpha: 1.0)
+                return NSColor(deviceWhite: 1.0, alpha: cardFillOpacity(context: context))
             }
         }
 
@@ -128,11 +137,7 @@ public enum SettingsTokenResolver {
 
     public static func keycapBackgroundColor(context: SettingsEnvironmentContext) -> NSColor {
         if context.reduceTransparency {
-            if context.colorScheme == .dark {
-                return NSColor.controlBackgroundColor
-            } else {
-                return NSColor.controlBackgroundColor
-            }
+            return NSColor.controlBackgroundColor
         }
         if context.colorScheme == .dark {
             return NSColor(deviceWhite: 1.0, alpha: 0.09)

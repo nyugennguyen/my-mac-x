@@ -83,6 +83,31 @@ final class SettingsTokensTests: XCTestCase {
         XCTAssertEqual(darkFill.alphaComponent, 1.0, accuracy: 0.001, "Reduce transparency must produce an opaque card fill (alpha = 1.0)")
     }
 
+    func testCardFillOpacityResolvesThroughTokenLayer() {
+        let standardContext = SettingsEnvironmentContext(
+            colorScheme: .light,
+            reduceTransparency: false,
+            increaseContrast: false
+        )
+        XCTAssertEqual(
+            SettingsTokenResolver.cardFillOpacity(context: standardContext),
+            SettingsTokenResolver.standardCardFillOpacity,
+            "Standard card fill opacity must resolve to standard card fill opacity token (0.35)"
+        )
+        XCTAssertEqual(SettingsCardLayout.fillOpacity, 0.35, accuracy: 0.001)
+
+        let reducedContext = SettingsEnvironmentContext(
+            colorScheme: .light,
+            reduceTransparency: true,
+            increaseContrast: false
+        )
+        XCTAssertEqual(
+            SettingsTokenResolver.cardFillOpacity(context: reducedContext),
+            1.0,
+            "Reduce transparency must resolve to 1.0 (opaque)"
+        )
+    }
+
     func testStandardCardHasNoBorderWhileIncreaseContrastAddsContrastBorder() {
         let standard = SettingsEnvironmentContext(
             colorScheme: .light,

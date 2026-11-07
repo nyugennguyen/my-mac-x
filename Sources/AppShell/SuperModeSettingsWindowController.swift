@@ -522,7 +522,7 @@ private struct SuperModeSettingsView: View {
                 .foregroundStyle(.secondary)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: SettingsSpacing.cardStackGap) {
                     inputMonitoringCard
                     prefixCard
                     commandsCard
@@ -1038,7 +1038,7 @@ private struct GlobalHotkeySettingsView: View {
                 .foregroundStyle(.secondary)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: SettingsSpacing.cardStackGap) {
                     SettingsCard(label: "Shortcuts") {
                         if model.settings.bindings.isEmpty {
                             Text("No global hotkeys configured.")

@@ -21,7 +21,7 @@ public struct KeyChord: Equatable, Hashable, Sendable {
     public let key: String
 
     public init(modifiers: [KeyModifier] = [], key: String) {
-        self.modifiers = modifiers.sorted()
+        self.modifiers = Array(Set(modifiers)).sorted()
         self.key = key
     }
 
@@ -45,6 +45,7 @@ public enum ShortcutRecorderState: Equatable, Sendable {
 public struct ShortcutRecorderModel: Equatable, Sendable {
     public private(set) var state: ShortcutRecorderState
     private var lastRecordedChord: KeyChord?
+    private var previousState: ShortcutRecorderState?
     public let defaultChord: KeyChord?
     public var conflictValidator: (@Sendable (KeyChord) -> String?)?
 
@@ -61,10 +62,13 @@ public struct ShortcutRecorderModel: Equatable, Sendable {
         switch state {
         case let .idle(chord):
             self.lastRecordedChord = chord
+            self.previousState = state
         case let .conflict(chord, _):
             self.lastRecordedChord = chord
+            self.previousState = state
         case .listening:
             self.lastRecordedChord = nil
+            self.previousState = nil
         }
         self.defaultChord = defaultChord
         self.conflictValidator = conflictValidator
@@ -113,6 +117,8 @@ public struct ShortcutRecorderModel: Equatable, Sendable {
     }
 
     public mutating func startRecording() {
+        guard !isListening else { return }
+        previousState = state
         if let chord = currentChord {
             lastRecordedChord = chord
         }
@@ -120,7 +126,12 @@ public struct ShortcutRecorderModel: Equatable, Sendable {
     }
 
     public mutating func cancelRecording() {
-        state = .idle(chord: lastRecordedChord)
+        guard isListening else { return }
+        if let previousState {
+            state = previousState
+        } else {
+            state = .idle(chord: lastRecordedChord)
+        }
     }
 
     public mutating func record(chord: KeyChord) {
@@ -130,15 +141,18 @@ public struct ShortcutRecorderModel: Equatable, Sendable {
         } else {
             state = .idle(chord: chord)
         }
+        previousState = state
     }
 
     public mutating func clear() {
         lastRecordedChord = nil
+        previousState = nil
         state = .idle(chord: nil)
     }
 
     public mutating func reset() {
         lastRecordedChord = defaultChord
+        previousState = nil
         state = .idle(chord: defaultChord)
     }
 }
@@ -280,7 +294,9 @@ public enum SettingsCardLayout {
     public static let cornerRadius: CGFloat = 16.0
     public static let stackGap: CGFloat = 20.0
     public static let maxContentWidth: CGFloat = 760.0
-    public static let fillOpacity: CGFloat = 0.35
+    public static var fillOpacity: CGFloat {
+        SettingsTokenResolver.standardCardFillOpacity
+    }
 }
 
 public enum IconTileLayout {
@@ -296,6 +312,10 @@ public enum SettingsRowLayout {
     public static let titleFontSize: CGFloat = 13.0
     public static let captionFontSize: CGFloat = 11.0
     public static let captionsWrapNeverTruncate: Bool = true
+
+    public static func subcontentInset(hasIcon: Bool) -> CGFloat {
+        hasIcon ? subcontentInset : 0.0
+    }
 }
 
 // MARK: - SwiftUI Views
@@ -609,7 +629,7 @@ public struct SettingsRow<Trailing: View, Subcontent: View>: View {
 
             if !(Subcontent.self == EmptyView.self) {
                 subcontent()
-                    .padding(.leading, SettingsRowLayout.subcontentInset)
+                    .padding(.leading, SettingsRowLayout.subcontentInset(hasIcon: icon != nil))
             }
         }
         .padding(.vertical, 4)
@@ -637,7 +657,11 @@ public extension SettingsRow where Subcontent == EmptyView {
 }
 
 /// SettingsCard: 16 pt padding, 16 pt continuous radius, quaternary ~35% fill,
-/// no border/shadow, 20 pt card stack gap, max 760 pt content column.
+/// no border/shadow, max 760 pt content column.
+///
+/// Spacing convention: `SettingsCard` does not embed external bottom padding. Parent containers
+/// (such as `VStack(spacing: SettingsSpacing.cardStackGap)`) are responsible for inter-card spacing (20 pt)
+/// to avoid doubled gaps (e.g. 40 pt).
 public struct SettingsCard<Content: View>: View {
     public let label: String?
     public let maxWidth: CGFloat?
@@ -692,7 +716,6 @@ public struct SettingsCard<Content: View>: View {
             )
         }
         .frame(maxWidth: maxWidth ?? .infinity, alignment: .leading)
-        .padding(.bottom, SettingsCardLayout.stackGap)
     }
 }
 

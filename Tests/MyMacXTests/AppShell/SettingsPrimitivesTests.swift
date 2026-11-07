@@ -85,6 +85,42 @@ final class SettingsPrimitivesTests: XCTestCase {
         XCTAssertEqual(unsortedChord.displayString, "⌃⌥⇧⌘K")
     }
 
+    func testKeyChordDeduplicatesModifiers() {
+        let duplicateChord = KeyChord(modifiers: [.command, .control, .command, .shift, .control], key: "K")
+        XCTAssertEqual(duplicateChord.modifiers, [.control, .shift, .command])
+        XCTAssertEqual(duplicateChord.displayKeys, ["⌃", "⇧", "⌘", "K"])
+        XCTAssertEqual(duplicateChord.displayString, "⌃⇧⌘K")
+    }
+
+    func testCancelRecordingPreservesPriorConflictState() {
+        let chord = KeyChord(modifiers: [.control], key: "A")
+        var model = ShortcutRecorderModel(
+            currentChord: chord,
+            conflictValidator: { _ in "Duplicate binding with Mission Control" }
+        )
+        model.record(chord: chord)
+        XCTAssertTrue(model.hasConflict)
+        XCTAssertEqual(model.conflictMessage, "Duplicate binding with Mission Control")
+        XCTAssertEqual(model.state, .conflict(chord: chord, reason: "Duplicate binding with Mission Control"))
+
+        model.startRecording()
+        XCTAssertTrue(model.isListening)
+        XCTAssertEqual(model.state, .listening)
+        XCTAssertNil(model.conflictMessage)
+
+        model.cancelRecording()
+        XCTAssertFalse(model.isListening)
+        XCTAssertTrue(model.hasConflict, "Cancelling recording must restore/retain prior conflict state")
+        XCTAssertEqual(model.conflictMessage, "Duplicate binding with Mission Control")
+        XCTAssertEqual(model.state, .conflict(chord: chord, reason: "Duplicate binding with Mission Control"))
+        XCTAssertEqual(model.currentChord, chord)
+    }
+
+    func testSettingsRowSubcontentInsetModel() {
+        XCTAssertEqual(SettingsRowLayout.subcontentInset(hasIcon: true), 38.0, "Subcontent with icon indents 38 pt")
+        XCTAssertEqual(SettingsRowLayout.subcontentInset(hasIcon: false), 0.0, "Subcontent without icon has 0 pt indent to align with title")
+    }
+
     func testShortcutRecorderModelEdgeCases() {
         var model = ShortcutRecorderModel(
             currentChord: nil,
