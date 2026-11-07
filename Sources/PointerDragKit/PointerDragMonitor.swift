@@ -53,10 +53,44 @@ private final class TaskPointerDragScheduledTimeout:
 /// `CGEvent.unflippedLocation`. No raw event, button history, title, or Accessibility object
 /// crosses this seam.
 enum PointerPlatformSignal: Equatable, Sendable {
-    case leftButtonPressed(location: CGPoint)
-    case leftButtonDragged(location: CGPoint)
-    case leftButtonReleased(location: CGPoint)
+    case leftButtonPressed(location: CGPoint, timestamp: UInt64)
+    case leftButtonDragged(location: CGPoint, timestamp: UInt64)
+    case leftButtonReleased(location: CGPoint, timestamp: UInt64)
     case interrupted
+
+    static func leftButtonPressed(location: CGPoint) -> PointerPlatformSignal {
+        .leftButtonPressed(location: location, timestamp: 0)
+    }
+
+    static func leftButtonDragged(location: CGPoint) -> PointerPlatformSignal {
+        .leftButtonDragged(location: location, timestamp: 0)
+    }
+
+    static func leftButtonReleased(location: CGPoint) -> PointerPlatformSignal {
+        .leftButtonReleased(location: location, timestamp: 0)
+    }
+
+    var location: CGPoint? {
+        switch self {
+        case .leftButtonPressed(let loc, _),
+             .leftButtonDragged(let loc, _),
+             .leftButtonReleased(let loc, _):
+            return loc
+        case .interrupted:
+            return nil
+        }
+    }
+
+    var timestamp: UInt64 {
+        switch self {
+        case .leftButtonPressed(_, let ts),
+             .leftButtonDragged(_, let ts),
+             .leftButtonReleased(_, let ts):
+            return ts
+        case .interrupted:
+            return 0
+        }
+    }
 }
 
 enum PointerEventAdapterStart: Sendable {
@@ -290,7 +324,7 @@ actor PointerDragMonitor: PointerDragMonitoring {
         else { return }
 
         switch signal {
-        case .leftButtonPressed(let location):
+        case .leftButtonPressed(let location, _):
             await beginPress(at: location, generation: inputGeneration)
 
         case .leftButtonDragged, .leftButtonReleased:
@@ -471,7 +505,7 @@ actor PointerDragMonitor: PointerDragMonitoring {
         else { return }
 
         switch signal {
-        case .leftButtonDragged(let location):
+        case .leftButtonDragged(let location, _):
             session.sawPointerDrag = true
             pressSession = session
             let event = await tracker.consume(.leftButtonDragged(location: location))
@@ -489,7 +523,7 @@ actor PointerDragMonitor: PointerDragMonitoring {
             pressSession = currentSession
             publish(event)
 
-        case .leftButtonReleased(let location):
+        case .leftButtonReleased(let location, _):
             if session.phase == .dragging {
                 let event = await tracker.consume(.leftButtonReleased(location: location))
                 publish(event)
@@ -687,11 +721,11 @@ private final class PointerEventCallbackBox: @unchecked Sendable {
         switch type {
         case .leftMouseDown:
             print("[NotchSnap] pointer tap → left mouse down")
-            continuation.yield(.leftButtonPressed(location: event.unflippedLocation))
+            continuation.yield(.leftButtonPressed(location: event.unflippedLocation, timestamp: event.timestamp))
         case .leftMouseDragged:
-            continuation.yield(.leftButtonDragged(location: event.unflippedLocation))
+            continuation.yield(.leftButtonDragged(location: event.unflippedLocation, timestamp: event.timestamp))
         case .leftMouseUp:
-            continuation.yield(.leftButtonReleased(location: event.unflippedLocation))
+            continuation.yield(.leftButtonReleased(location: event.unflippedLocation, timestamp: event.timestamp))
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
             if let tap {
                 CGEvent.tapEnable(tap: tap, enable: true)
