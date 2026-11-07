@@ -24,6 +24,10 @@ _Avoid_: Desktop, monitor space
 A reconnect-stable identifier used to bind a Display Profile to the same physical Display across topology changes. It is distinct from the transient `DisplayID` used by one runtime topology snapshot.
 _Avoid_: DisplayID, screen index
 
+**Display Seam**:
+The shared boundary between two adjacent Displays where pointer movement crosses from one Display to another.
+_Avoid_: Display boundary, screen edge, monitor border
+
 **Space**:
 A macOS virtual workspace managed through Mission Control.
 _Avoid_: Display, screen, Desktop when referring to hardware
@@ -62,6 +66,10 @@ _Avoid_: Rotation, alternate sizes
 The remembered placement of one Captured Window before a committed Window Action.
 _Avoid_: Backup, saved frame
 
+**Settled Frame**:
+The verified, stable frame of a Captured Window read back through Accessibility after a Window Action is applied.
+_Avoid_: Final frame, target rect, actual geometry, resting frame
+
 **Undo**:
 Restoring the Window Snapshot created by the latest applicable committed action.
 _Avoid_: Reset
@@ -76,6 +84,14 @@ _Avoid_: Undo when referring to action history
 The top-edge activation region that opens the Layout Chooser; it falls back to top-center on a Display without a notch.
 _Avoid_: Drop zone, hotspot
 
+**Edge Snap Zone**:
+An activation region along a Display edge or corner that maps a dragged Captured Window to a candidate Layout Region.
+_Avoid_: Hotspot, drop zone, snap target, docking area
+
+**Seam Gating**:
+The conditional suppression of Edge Snap Zone activation along a Display Seam based on pointer velocity across the boundary.
+_Avoid_: Edge friction, barrier, crossing threshold, snap resistance
+
 **Layout Chooser**:
 The transient surface for selecting a Layout Region during a Snap interaction.
 _Avoid_: Popup grid, snap menu
@@ -83,6 +99,10 @@ _Avoid_: Popup grid, snap menu
 **Placement Preview**:
 A non-mutating representation of the frame a Window Action would produce.
 _Avoid_: Ghost window, fake window
+
+**Snap Run**:
+An uninterrupted pointer-drag interaction on a Captured Window from initial drag engagement through Snap commit or cancellation.
+_Avoid_: Drag session, snap gesture, drag operation
 
 ## Keyboard interaction
 
