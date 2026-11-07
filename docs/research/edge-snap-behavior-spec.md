@@ -1,4 +1,4 @@
-# Prior art analysis — vorssaint-utils, GPL-3.0-or-later. Behavior re-expressed; no code reused. Cited as prior art pending the license gate.
+# Prior art analysis — vorssaint-utils, GPL-3.0-or-later. Behavior re-expressed; no code reused. Cited as functional prior art; license gate resolved 2026-11-07 with clean-room reimplementation (see `docs/plan/v1x-license-gate-brief.md`).
 
 ## Overview & Methodology
 
@@ -589,8 +589,8 @@ Cases are uniquely identified (`Z-01` to `Z-09` for Zone Model, `S-01` to `S-10`
 
 ## Open Questions for the License Gate and Design
 
-1. **License Gate Posture (Phase A Gate Item A4)**
-   - *Option 1 (Clean-Room Reimplementation - Recommended)*:
+1. **License Gate Posture (Phase A Gate Item A4) — RESOLVED 2026-11-07: Option 1, clean-room reimplementation** (decision recorded in `docs/plan/v1x-license-gate-brief.md`).
+   - *Option 1 (Clean-Room Reimplementation) — SELECTED*:
      Implement the specifications captured above as original Swift code residing in `TriggerGeometryKit` (pure geometry and seam mathematics) and `PointerDragKit` (drag classification and event tap handling). The resulting code shares no copyrightable expression with upstream and cites `vorssaint-utils` purely as functional prior art. MyMacX remains under its existing licensing model.
    - *Option 2 (GPL-3.0-or-later Relicense)*:
      Directly import upstream source modules. This compels open-sourcing the entire MyMacX codebase under GPL-3.0-or-later and requires distinct branding/trademark separation under upstream `TRADEMARKS.md`.
