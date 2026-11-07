@@ -30,12 +30,18 @@ Legend: ⏳ pending · 🔨 in progress · ✅ done · ⛔ blocked (needs human)
 - Scratch-frame coercion (A-06): **held in reserve** — the forced robustness slice if clamped apps misbehave in v1.x-2.
 - `PointerPlatformSignal` gains `timestamp: UInt64` (A1 finding) — approved for v1.x-1.
 
+## Wave 3 — v1.x-2 runtime sprint + v1.x-P3 feature screens
+
+| ID | Task | Agent | Status |
+|---|---|---|---|
+| A-R2 | v1.x-2 runtime: event-tap wiring (enqueue-minimal), off-thread AX resolution (280 ms bounded + generational cancellation), Snap Run transaction → WindowActionPerforming, overlay preview, undo/history, lenient acceptance (A-01..A-05), tiling coexistence gate (fail visible, nil=enabled), AppRuleKit exclusions. WindowActionKit/AXWindowKit/HistoryKit unchanged; A-06/D-11/Z-06 deferred. | `dev-runtime` | ✅ 885d68c (suite 549/0; + `docs/plan/v1x-2-human-verification.md`, human gates explicitly unpassed) |
+| B-P3 | Feature screens: Layout Library (notch-glyph-family thumbnails, Split/Merge), Display Profiles (verbatim "Stable Display ID", gap steppers), App Rules (icon rows, bundle-ID entry, Included/Excluded), copy fixes. | `dev-p3` | ✅ 987a365 on `mymacx-v1x-p3` (suite 521/0 in worktree) |
+| INT3 | Merge `mymacx-v1x-p3` → `mymacx-v1x` (pbxproj collision 98/99 renumbered to A0/A1); merged suite **559 / 0 failures** | orchestrator | ✅ 0d3b1de |
+| T1.4 | Tester wave-3 gate: runtime invariant audit, spec scope check, merge audit, full suite, human-gate readiness | `dev-tester` | 🔨 |
+
 ## Later waves (per plan)
 
-- v1.x-1 Rules sprint: zone geometry, seam gating, velocity trail, drag classification (pure Swift) — **after license gate**.
-- v1.x-2 Runtime sprint: event-tap wiring, off-thread target resolution, preview→commit, undo, system-tiling coexistence gate.
-- v1.x-3 UX + hardening: zone-map picker (shared Track A/B component), per-zone disable, persistence migration, localization; human gates.
-- v1.x-P3 Feature screens: Layout Library, Display Profiles, App Rules, copy fixes ("Stable Display ID", "Layout Region", "Native Full Screen" verbatim; Maximize ≠ Full Screen).
+- v1.x-3 UX + hardening: zone-map picker (shared Track A/B component), per-zone disable UI, remappable 1–4-area edge map (Z-03/Z-04), persistence migration + import/export (Z-06), tiling stand-down banner copy; then human gates (real pointer-drag evaluation, physical multi-display verification, pixel review).
 
 ## Conventions for agents
 
@@ -48,3 +54,4 @@ Legend: ⏳ pending · 🔨 in progress · ✅ done · ⛔ blocked (needs human)
 - 2026-11-07: branch `mymacx-v1x` created from `dev`; plan committed as `docs/plan/mymacx-v1x-combined-plan.md`; OpenDesign prototype snapshotted to `docs/design/mymacx-settings-prototype.html` (visual source of truth for Track B). Wave 1 launched in Herdr workspace `mymacx-v1x`.
 - 2026-11-07: Claude quota exhausted mid-wave-1 (agy = Antigravity CLI, Google AI Pro); fleet switched to Gemini 3.8 Flash High (probe-verified separate quota). Parked Opus sessions reserved for post-reset integration review. Wave 1 deliverables A1/A2/A3/B-P1/A4 landed (see table).
 - 2026-11-07: license gate DECIDED (human): clean-room reimplementation. Wave 2 launched: `dev-rules` (v1.x-1, worktree `mymacx-v1x-rules`), `dev-p2` (B-P2, main tree), `dev-tester` (T1). T1 returned PASS-WITH-FIXES across the board; fix batch (tester findings 1–3, 5–7) queued to `dev-p2`; finding 4 fixed here.
+- 2026-11-07: wave 2 closed (v1.x-1 + B-P2 + both fix rounds merged at c702d0f; integration gate PASS; suite 513/0). Wave 3 launched: `dev-runtime` (v1.x-2, main tree) + `dev-p3` (v1.x-P3, worktree `mymacx-v1x-p3`). Both landed (885d68c, 987a365); merged at 0d3b1de (pbxproj 98/99 → A0/A1); merged suite **559/0**. Tester gate T1.4 running.
