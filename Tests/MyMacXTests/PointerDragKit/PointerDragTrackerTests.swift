@@ -296,6 +296,32 @@ final class PointerDragTrackerTests: XCTestCase {
         XCTAssertEqual(finalStopCount, 1)
         await monitor.stop()
     }
+
+    // MARK: - Hardware Timestamp Payload (A1 Feasibility Finding)
+
+    func testPointerPlatformSignalCarriesHardwareTimestamp() {
+        let press = PointerPlatformSignal.leftButtonPressed(
+            location: CGPoint(x: 100, y: 200),
+            timestamp: 123_456_789
+        )
+        let drag = PointerPlatformSignal.leftButtonDragged(
+            location: CGPoint(x: 105, y: 205),
+            timestamp: 123_476_789
+        )
+        let release = PointerPlatformSignal.leftButtonReleased(
+            location: CGPoint(x: 110, y: 210),
+            timestamp: 123_496_789
+        )
+        let legacyPress = PointerPlatformSignal.leftButtonPressed(
+            location: CGPoint(x: 100, y: 200)
+        )
+
+        XCTAssertEqual(press.timestamp, 123_456_789)
+        XCTAssertEqual(drag.timestamp, 123_476_789)
+        XCTAssertEqual(release.timestamp, 123_496_789)
+        XCTAssertEqual(legacyPress.timestamp, 0)
+        XCTAssertEqual(legacyPress.location, CGPoint(x: 100, y: 200))
+    }
 }
 
 // MARK: - Test Adapters

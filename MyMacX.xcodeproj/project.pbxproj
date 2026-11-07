@@ -133,6 +133,14 @@
 		100000000000000000000081 /* SettingsPrimitivesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000081 /* SettingsPrimitivesTests.swift */; };
 		100000000000000000000082 /* SettingsSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000082 /* SettingsSearch.swift */; };
 		100000000000000000000083 /* SettingsSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000083 /* SettingsSearchTests.swift */; };
+		100000000000000000000090 /* EdgeSnapZone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000090 /* EdgeSnapZone.swift */; };
+		100000000000000000000091 /* EdgeSnapGeometryResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000091 /* EdgeSnapGeometryResolver.swift */; };
+		100000000000000000000092 /* EdgeSnapGeometryResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000092 /* EdgeSnapGeometryResolverTests.swift */; };
+		100000000000000000000093 /* PointerTrail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000093 /* PointerTrail.swift */; };
+		100000000000000000000094 /* DisplaySeamGator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000094 /* DisplaySeamGator.swift */; };
+		100000000000000000000095 /* DisplaySeamGatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000095 /* DisplaySeamGatorTests.swift */; };
+		100000000000000000000096 /* WindowDragClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000096 /* WindowDragClassifier.swift */; };
+		100000000000000000000097 /* WindowDragClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000097 /* WindowDragClassifierTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -277,6 +285,14 @@
 		200000000000000000000081 /* SettingsPrimitivesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPrimitivesTests.swift; sourceTree = "<group>"; };
 		200000000000000000000082 /* SettingsSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSearch.swift; sourceTree = "<group>"; };
 		200000000000000000000083 /* SettingsSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSearchTests.swift; sourceTree = "<group>"; };
+		200000000000000000000090 /* EdgeSnapZone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSnapZone.swift; sourceTree = "<group>"; };
+		200000000000000000000091 /* EdgeSnapGeometryResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSnapGeometryResolver.swift; sourceTree = "<group>"; };
+		200000000000000000000092 /* EdgeSnapGeometryResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSnapGeometryResolverTests.swift; sourceTree = "<group>"; };
+		200000000000000000000093 /* PointerTrail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointerTrail.swift; sourceTree = "<group>"; };
+		200000000000000000000094 /* DisplaySeamGator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplaySeamGator.swift; sourceTree = "<group>"; };
+		200000000000000000000095 /* DisplaySeamGatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplaySeamGatorTests.swift; sourceTree = "<group>"; };
+		200000000000000000000096 /* WindowDragClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDragClassifier.swift; sourceTree = "<group>"; };
+		200000000000000000000097 /* WindowDragClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDragClassifierTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -733,6 +749,7 @@
 			children = (
 				20000000000000000000004C /* PointerDragTracker.swift */,
 				20000000000000000000004E /* PointerDragMonitor.swift */,
+				200000000000000000000096 /* WindowDragClassifier.swift */,
 			);
 			path = PointerDragKit;
 			sourceTree = "<group>";
@@ -741,6 +758,7 @@
 			isa = PBXGroup;
 			children = (
 				20000000000000000000004D /* PointerDragTrackerTests.swift */,
+				200000000000000000000097 /* WindowDragClassifierTests.swift */,
 			);
 			path = PointerDragKit;
 			sourceTree = "<group>";
@@ -749,6 +767,10 @@
 			isa = PBXGroup;
 			children = (
 				20000000000000000000004F /* NotchTriggerEngine.swift */,
+				200000000000000000000090 /* EdgeSnapZone.swift */,
+				200000000000000000000091 /* EdgeSnapGeometryResolver.swift */,
+				200000000000000000000093 /* PointerTrail.swift */,
+				200000000000000000000094 /* DisplaySeamGator.swift */,
 			);
 			path = TriggerGeometryKit;
 			sourceTree = "<group>";
@@ -757,6 +779,8 @@
 			isa = PBXGroup;
 			children = (
 				200000000000000000000050 /* NotchTriggerEngineTests.swift */,
+				200000000000000000000092 /* EdgeSnapGeometryResolverTests.swift */,
+				200000000000000000000095 /* DisplaySeamGatorTests.swift */,
 			);
 			path = TriggerGeometryKit;
 			sourceTree = "<group>";
@@ -970,7 +994,12 @@
 				10000000000000000000004A /* OverlayCoordinator.swift in Sources */,
 				10000000000000000000004C /* PointerDragTracker.swift in Sources */,
 				10000000000000000000004E /* PointerDragMonitor.swift in Sources */,
+				100000000000000000000096 /* WindowDragClassifier.swift in Sources */,
 				10000000000000000000004F /* NotchTriggerEngine.swift in Sources */,
+				100000000000000000000090 /* EdgeSnapZone.swift in Sources */,
+				100000000000000000000091 /* EdgeSnapGeometryResolver.swift in Sources */,
+				100000000000000000000093 /* PointerTrail.swift in Sources */,
+				100000000000000000000094 /* DisplaySeamGator.swift in Sources */,
 				100000000000000000000051 /* PlacementPreviewPlanner.swift in Sources */,
 				100000000000000000000053 /* TriggerDwellEngine.swift in Sources */,
 				100000000000000000000055 /* SnapInteractionStateMachine.swift in Sources */,
@@ -1036,7 +1065,10 @@
 				10000000000000000000004B /* OverlayCoordinatorTests.swift in Sources */,
 				10000000000000000000007C /* OverlaySnapshotTests.swift in Sources */,
 				10000000000000000000004D /* PointerDragTrackerTests.swift in Sources */,
+				100000000000000000000097 /* WindowDragClassifierTests.swift in Sources */,
 				100000000000000000000050 /* NotchTriggerEngineTests.swift in Sources */,
+				100000000000000000000092 /* EdgeSnapGeometryResolverTests.swift in Sources */,
+				100000000000000000000095 /* DisplaySeamGatorTests.swift in Sources */,
 				100000000000000000000052 /* PlacementPreviewPlannerTests.swift in Sources */,
 				100000000000000000000054 /* TriggerDwellEngineTests.swift in Sources */,
 				100000000000000000000056 /* SnapInteractionStateMachineTests.swift in Sources */,
