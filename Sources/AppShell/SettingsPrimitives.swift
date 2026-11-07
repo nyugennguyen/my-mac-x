@@ -53,14 +53,29 @@ public struct ShortcutRecorderModel: Equatable, Sendable {
     }
 
     public init(
+        state: ShortcutRecorderState,
+        defaultChord: KeyChord? = nil,
+        conflictValidator: (@Sendable (KeyChord) -> String?)? = nil
+    ) {
+        self.state = state
+        switch state {
+        case let .idle(chord):
+            self.lastRecordedChord = chord
+        case let .conflict(chord, _):
+            self.lastRecordedChord = chord
+        case .listening:
+            self.lastRecordedChord = nil
+        }
+        self.defaultChord = defaultChord
+        self.conflictValidator = conflictValidator
+    }
+
+    public init(
         currentChord: KeyChord? = nil,
         defaultChord: KeyChord? = nil,
         conflictValidator: (@Sendable (KeyChord) -> String?)? = nil
     ) {
-        self.state = .idle(chord: currentChord)
-        self.lastRecordedChord = currentChord
-        self.defaultChord = defaultChord
-        self.conflictValidator = conflictValidator
+        self.init(state: .idle(chord: currentChord), defaultChord: defaultChord, conflictValidator: conflictValidator)
     }
 
     public var currentChord: KeyChord? {
@@ -625,14 +640,20 @@ public extension SettingsRow where Subcontent == EmptyView {
 /// no border/shadow, 20 pt card stack gap, max 760 pt content column.
 public struct SettingsCard<Content: View>: View {
     public let label: String?
+    public let maxWidth: CGFloat?
     @ViewBuilder public let content: () -> Content
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
 
-    public init(label: String? = nil, @ViewBuilder content: @escaping () -> Content) {
+    public init(
+        label: String? = nil,
+        maxWidth: CGFloat? = nil,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
         self.label = label
+        self.maxWidth = maxWidth
         self.content = content
     }
 
@@ -670,7 +691,7 @@ public struct SettingsCard<Content: View>: View {
                     )
             )
         }
-        .frame(maxWidth: SettingsCardLayout.maxContentWidth)
+        .frame(maxWidth: maxWidth ?? .infinity, alignment: .leading)
         .padding(.bottom, SettingsCardLayout.stackGap)
     }
 }

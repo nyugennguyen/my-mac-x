@@ -131,6 +131,8 @@
 		10000000000000000000007F /* SettingsTokensTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000007F /* SettingsTokensTests.swift */; };
 		100000000000000000000080 /* SettingsPrimitives.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000080 /* SettingsPrimitives.swift */; };
 		100000000000000000000081 /* SettingsPrimitivesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000081 /* SettingsPrimitivesTests.swift */; };
+		100000000000000000000082 /* SettingsSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000082 /* SettingsSearch.swift */; };
+		100000000000000000000083 /* SettingsSearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000083 /* SettingsSearchTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -273,6 +275,8 @@
 		20000000000000000000007F /* SettingsTokensTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsTokensTests.swift; sourceTree = "<group>"; };
 		200000000000000000000080 /* SettingsPrimitives.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPrimitives.swift; sourceTree = "<group>"; };
 		200000000000000000000081 /* SettingsPrimitivesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPrimitivesTests.swift; sourceTree = "<group>"; };
+		200000000000000000000082 /* SettingsSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSearch.swift; sourceTree = "<group>"; };
+		200000000000000000000083 /* SettingsSearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSearchTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -343,6 +347,7 @@
 				20000000000000000000006E /* SettingsShell.swift */,
 				20000000000000000000007E /* SettingsTokens.swift */,
 				200000000000000000000080 /* SettingsPrimitives.swift */,
+				200000000000000000000082 /* SettingsSearch.swift */,
 				20000000000000000000003A /* HotkeyRuntimeCoordinator.swift */,
 				200000000000000000000048 /* HotkeyRuntimeBindingUpdater.swift */,
 				200000000000000000000059 /* CrossDisplayDragComposition.swift */,
@@ -443,6 +448,7 @@
 				20000000000000000000006F /* SettingsShellTests.swift */,
 				20000000000000000000007F /* SettingsTokensTests.swift */,
 				200000000000000000000081 /* SettingsPrimitivesTests.swift */,
+				200000000000000000000083 /* SettingsSearchTests.swift */,
 				200000000000000000000049 /* HotkeyRuntimeBindingUpdaterTests.swift */,
 			);
 			path = AppShell;
@@ -972,6 +978,7 @@
 				10000000000000000000006E /* SettingsShell.swift in Sources */,
 				10000000000000000000007E /* SettingsTokens.swift in Sources */,
 				100000000000000000000080 /* SettingsPrimitives.swift in Sources */,
+				100000000000000000000082 /* SettingsSearch.swift in Sources */,
 				100000000000000000000070 /* LayoutLibrary.swift in Sources */,
 				100000000000000000000072 /* DisplayProfileLibrary.swift in Sources */,
 				100000000000000000000074 /* ConfigurationArchive.swift in Sources */,
@@ -1038,6 +1045,7 @@
 				10000000000000000000006F /* SettingsShellTests.swift in Sources */,
 				10000000000000000000007F /* SettingsTokensTests.swift in Sources */,
 				100000000000000000000081 /* SettingsPrimitivesTests.swift in Sources */,
+				100000000000000000000083 /* SettingsSearchTests.swift in Sources */,
 				100000000000000000000071 /* LayoutLibraryTests.swift in Sources */,
 				100000000000000000000073 /* DisplayProfileLibraryTests.swift in Sources */,
 				100000000000000000000075 /* ConfigurationArchiveTests.swift in Sources */,

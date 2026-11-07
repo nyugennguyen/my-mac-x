@@ -398,6 +398,58 @@ final class SuperModeSettingsModel: ObservableObject {
         }
     }
 
+    struct RecordingKeyTarget: Equatable {
+        let bindingID: UUID
+        let level: Int
+    }
+    @Published private(set) var recordingKeyTarget: RecordingKeyTarget?
+
+    func recordKey(bindingID: UUID, level: Int) {
+        let target = RecordingKeyTarget(bindingID: bindingID, level: level)
+        if recordingKeyTarget == target {
+            cancelRecordingKey()
+            return
+        }
+        cancelRecordingKey()
+        cancelRecordingPrefix()
+        recordingKeyTarget = target
+        recorderUpdatesTask = Task { [weak self, recorder] in
+            await self?.suspendHotkeys?()
+            let updates = await recorder.updates
+            await recorder.begin()
+            for await update in updates {
+                guard let self else { return }
+                switch update {
+                case .recording:
+                    break
+                case let .captured(chord):
+                    setBindingKeyCode(id: bindingID, level: level, keyCode: chord.hardwareKeyCode)
+                    recordingKeyTarget = nil
+                    await self.resumeHotkeys?()
+                    return
+                case .cancelled, .cleared:
+                    recordingKeyTarget = nil
+                    await self.resumeHotkeys?()
+                    return
+                case .idle:
+                    continue
+                }
+            }
+            await self?.resumeHotkeys?()
+        }
+    }
+
+    func cancelRecordingKey() {
+        guard recordingKeyTarget != nil || recorderUpdatesTask != nil else { return }
+        recordingKeyTarget = nil
+        recorderUpdatesTask?.cancel()
+        recorderUpdatesTask = nil
+        Task { [weak self, recorder] in
+            await recorder.cancel()
+            await self?.resumeHotkeys?()
+        }
+    }
+
     var configuration: SuperModeConfiguration {
         SuperModeConfiguration(
             prefix: prefix,
@@ -460,6 +512,7 @@ final class SuperModeSettingsModel: ObservableObject {
 
 private struct SuperModeSettingsView: View {
     @ObservedObject var model: SuperModeSettingsModel
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -468,66 +521,14 @@ private struct SuperModeSettingsView: View {
             Text("Hold the prefix, then type a one- or two-key command sequence.")
                 .foregroundStyle(.secondary)
 
-            Form {
-                Section("Input Monitoring") {
-                    if model.inputMonitoringState == .granted {
-                        Label("Granted — Super Mode can receive the Prefix.", systemImage: "checkmark.circle")
-                    } else {
-                        Text("Super Mode needs Input Monitoring to receive and safely consume Prefix sequences while you use other apps.")
-                        Button("Enable Input Monitoring") {
-                            Task { await model.requestInputMonitoring() }
-                        }
-                        .accessibilityHint("Requests macOS Input Monitoring access, then retries Super Mode.")
-                    }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    inputMonitoringCard
+                    prefixCard
+                    commandsCard
                 }
-
-                Section("Prefix") {
-                    HStack {
-                        Text("Shortcut")
-                        Text(model.prefixPresentation.visibleLabel)
-                            .font(.body.monospaced())
-                            .accessibilityLabel(model.prefixPresentation.accessibilityLabel)
-                        Spacer()
-                        Button(model.isRecordingPrefix ? "Recording…" : "Record Prefix") {
-                            model.recordPrefix()
-                        }
-                        .disabled(model.isRecordingPrefix)
-                        .accessibilityHint("Press the complete prefix shortcut after recording starts.")
-                    }
-                    HStack {
-                        modifierToggle("Control", modifier: .control)
-                        modifierToggle("Option", modifier: .option)
-                        modifierToggle("Shift", modifier: .shift)
-                        modifierToggle("Command", modifier: .command)
-                    }
-                    .accessibilityElement(children: .contain)
-                    .accessibilityLabel("Prefix modifiers")
-
-                    Stepper(
-                        "Sequence timeout: \(model.timeoutMilliseconds) ms",
-                        value: $model.timeoutMilliseconds,
-                        in: SuperModeConfiguration.minimumTimeoutMilliseconds...SuperModeConfiguration.maximumTimeoutMilliseconds,
-                        step: 50
-                    )
-                    .accessibilityLabel("Sequence timeout in milliseconds")
-                }
-
-                Section("Commands") {
-                    if model.bindings.isEmpty {
-                        Text("No commands yet. Add a binding or load the test preset.")
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(model.bindings) { binding in
-                        BindingRow(model: model, binding: binding)
-                    }
-                    HStack {
-                        Button("Add Binding") { model.addBinding() }
-                        Button("Load Test Preset") { model.loadTestPreset() }
-                            .accessibilityHint("Replaces the unsaved draft with the Sprint 5 test bindings.")
-                    }
-                }
+                .padding(.vertical, 4)
             }
-            .formStyle(.grouped)
 
             statusView
 
@@ -547,6 +548,110 @@ private struct SuperModeSettingsView: View {
 
     private var isBusy: Bool {
         model.status == .loading || model.status == .saving
+    }
+
+    private var inputMonitoringCard: some View {
+        SettingsCard(label: "Input Monitoring") {
+            SettingsRow(
+                icon: IconTile(
+                    systemName: model.inputMonitoringState == .granted ? "checkmark.shield.fill" : "exclamationmark.shield.fill",
+                    tint: model.inputMonitoringState == .granted ? .green : .orange
+                ),
+                title: "Input Monitoring",
+                caption: model.inputMonitoringState == .granted
+                    ? "Granted — Super Mode can receive the Prefix."
+                    : "Super Mode needs Input Monitoring to receive and safely consume Prefix sequences while you use other apps."
+            ) {
+                if model.inputMonitoringState == .granted {
+                    StatusDot(state: .active)
+                } else {
+                    Button("Enable Input Monitoring") {
+                        Task { await model.requestInputMonitoring() }
+                    }
+                    .accessibilityHint("Requests macOS Input Monitoring access, then retries Super Mode.")
+                }
+            }
+        }
+    }
+
+    private var prefixCard: some View {
+        SettingsCard(label: "Prefix") {
+            SettingsRow(
+                icon: IconTile(systemName: "command", tint: Color.accentColor),
+                title: "Shortcut",
+                caption: "Press the complete prefix shortcut after recording starts."
+            ) {
+                HStack(spacing: 8) {
+                    KeycapChip(label: model.prefixPresentation.visibleLabel)
+                        .accessibilityLabel(model.prefixPresentation.accessibilityLabel)
+
+                    Button(model.isRecordingPrefix ? "Recording…" : "Record Prefix") {
+                        model.recordPrefix()
+                    }
+                    .disabled(model.isRecordingPrefix)
+                    .accessibilityHint("Press the complete prefix shortcut after recording starts.")
+                }
+            }
+
+            SettingsDivider()
+
+            SettingsRow(
+                title: "Modifiers",
+                caption: "Active modifier keys"
+            ) {
+                HStack(spacing: 8) {
+                    modifierToggle("Control", modifier: .control)
+                    modifierToggle("Option", modifier: .option)
+                    modifierToggle("Shift", modifier: .shift)
+                    modifierToggle("Command", modifier: .command)
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Prefix modifiers")
+            }
+
+            SettingsDivider()
+
+            SettingsRow(
+                title: "Sequence timeout",
+                caption: "\(model.timeoutMilliseconds) ms between keystrokes"
+            ) {
+                Stepper(
+                    "Sequence timeout: \(model.timeoutMilliseconds) ms",
+                    value: $model.timeoutMilliseconds,
+                    in: SuperModeConfiguration.minimumTimeoutMilliseconds...SuperModeConfiguration.maximumTimeoutMilliseconds,
+                    step: 50
+                )
+                .accessibilityLabel("Sequence timeout in milliseconds")
+            }
+        }
+    }
+
+    private var commandsCard: some View {
+        SettingsCard(label: "Commands") {
+            if model.bindings.isEmpty {
+                Text("No commands yet. Add a binding or load the test preset.")
+                    .font(SettingsTypography.body)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
+            } else {
+                ForEach(Array(model.bindings.enumerated()), id: \.element.id) { index, binding in
+                    if index > 0 {
+                        SettingsDivider()
+                    }
+                    BindingRow(model: model, binding: binding)
+                        .padding(.vertical, 4)
+                }
+            }
+
+            SettingsDivider()
+
+            HStack {
+                Button("Add Binding") { model.addBinding() }
+                Button("Load Test Preset") { model.loadTestPreset() }
+                    .accessibilityHint("Replaces the unsaved draft with the Sprint 5 test bindings.")
+            }
+            .padding(.top, 8)
+        }
     }
 
     @ViewBuilder
@@ -611,36 +716,57 @@ private struct BindingRow: View {
 
     @ViewBuilder
     private var sequenceControls: some View {
-            Picker("Keys", selection: levelCount) {
-                Text("1 key").tag(1)
-                Text("2 keys").tag(2)
-            }
-            .labelsHidden()
-            .frame(width: 80)
-            .accessibilityLabel("Sequence length")
+        Picker("Keys", selection: levelCount) {
+            Text("1 key").tag(1)
+            Text("2 keys").tag(2)
+        }
+        .labelsHidden()
+        .frame(width: 80)
+        .accessibilityLabel("Sequence length")
 
-            ForEach(binding.hardwareKeyCodes.indices, id: \.self) { level in
-                Picker("Key \(level + 1)", selection: keyCode(level)) {
-                    ForEach(UInt16(0)..<UInt16(127), id: \.self) { keyCode in
-                        Text(model.keyPresentation(for: keyCode).visibleLabel).tag(keyCode)
-                    }
+        ForEach(binding.hardwareKeyCodes.indices, id: \.self) { level in
+            commandKeyRecorder(level)
+        }
+    }
+
+    private func commandKeyRecorder(_ level: Int) -> some View {
+        let target = SuperModeSettingsModel.RecordingKeyTarget(bindingID: binding.id, level: level)
+        let isListening = model.recordingKeyTarget == target
+        let presentation = model.bindingKeyPresentation(for: binding, level: level)
+        let keyChord = KeyChord(modifiers: [], key: presentation.visibleLabel)
+
+        let recorderBinding = Binding<ShortcutRecorderModel>(
+            get: {
+                let currentListening = model.recordingKeyTarget == target
+                return ShortcutRecorderModel(
+                    state: currentListening ? .listening : .idle(chord: keyChord),
+                    defaultChord: nil
+                )
+            },
+            set: { updated in
+                if updated.isListening {
+                    model.recordKey(bindingID: binding.id, level: level)
+                } else if model.recordingKeyTarget == target {
+                    model.cancelRecordingKey()
                 }
-                .frame(width: 104)
-                .accessibilityLabel("Command key \(level + 1)")
-                .accessibilityValue(model.bindingKeyPresentation(for: binding, level: level).accessibilityLabel)
             }
+        )
+
+        return ShortcutRecorderButton(model: recorderBinding)
+            .accessibilityLabel("Command key \(level + 1)")
+            .accessibilityValue(presentation.accessibilityLabel)
     }
 
     private var actionPicker: some View {
         Picker("Action", selection: actionID) {
-                ForEach(model.actionOptions) { option in
-                    Text(option.isAvailable ? option.title : "\(option.title) — Unavailable")
-                        .tag(option.id)
-                        .disabled(!option.isAvailable)
-                }
+            ForEach(model.actionOptions) { option in
+                Text(option.isAvailable ? option.title : "\(option.title) — Unavailable")
+                    .tag(option.id)
+                    .disabled(!option.isAvailable)
             }
-            .labelsHidden()
-            .accessibilityLabel("Action")
+        }
+        .labelsHidden()
+        .accessibilityLabel("Action")
     }
 
     private var deleteButton: some View {
@@ -664,6 +790,7 @@ private struct BindingRow: View {
             set: { model.setBindingKeyCode(id: binding.id, level: level, keyCode: $0) }
         )
     }
+
     private var actionID: Binding<ActionID> {
         Binding(
             get: { binding.actionID },
@@ -857,6 +984,11 @@ final class GlobalHotkeySettingsModel: ObservableObject {
         presenter.present(chord).settingsPresentation
     }
 
+    func keyChord(for chord: HotkeyChord) -> KeyChord {
+        let pres = presenter.present(chord)
+        return KeyChord(presentation: pres)
+    }
+
     func save() async {
         cancelRecording()
         for binding in settings.bindings {
@@ -895,27 +1027,154 @@ final class GlobalHotkeySettingsModel: ObservableObject {
 
 private struct GlobalHotkeySettingsView: View {
     @ObservedObject var model: GlobalHotkeySettingsModel
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Global Hotkeys").font(.title2).bold()
-            Text("Record keyboard shortcuts for Window Actions.").foregroundStyle(.secondary)
-            List(model.settings.bindings) { binding in
-                HStack {
-                    Button(model.recordingBindingID == binding.id ? "Recording…" : "Record shortcut") { model.record(binding.id) }
-                        .accessibilityLabel(model.recordingBindingID == binding.id ? "Recording shortcut" : "Record shortcut")
-                    let presentation = model.presentation(for: binding.chord)
-                    Text(presentation.visibleLabel)
-                        .font(.body.monospaced())
-                        .accessibilityLabel(presentation.accessibilityLabel)
-                    Picker("Action", selection: Binding(get: { binding.actionID }, set: { model.setAction($0, for: binding.id) })) {
-                        ForEach(model.actions, id: \.id) { action in Text(action.title).tag(action.id).disabled(action.availability != .available) }
+            Text("Global Hotkeys")
+                .font(.title2.weight(.semibold))
+            Text("Record keyboard shortcuts for Window Actions.")
+                .font(SettingsTypography.body)
+                .foregroundStyle(.secondary)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    SettingsCard(label: "Shortcuts") {
+                        if model.settings.bindings.isEmpty {
+                            Text("No global hotkeys configured.")
+                                .font(SettingsTypography.body)
+                                .foregroundStyle(.secondary)
+                                .padding(.vertical, 8)
+                        } else {
+                            ForEach(Array(model.settings.bindings.enumerated()), id: \.element.id) { index, binding in
+                                if index > 0 {
+                                    SettingsDivider()
+                                }
+                                hotkeyRow(binding)
+                                    .padding(.vertical, 4)
+                            }
+                        }
+
+                        SettingsDivider()
+
+                        HStack {
+                            Button("Add Hotkey", systemImage: "plus") {
+                                model.addBinding()
+                            }
+                            .disabled(isBusy)
+                            Spacer()
+                        }
+                        .padding(.top, 8)
                     }
-                    Button("Delete", systemImage: "minus.circle", role: .destructive) { model.deleteBinding(binding.id) }.labelStyle(.iconOnly).accessibilityLabel("Delete binding")
                 }
+                .padding(.vertical, 4)
             }
-            if case let .error(message) = model.status { Text(message).foregroundStyle(.red).accessibilityLabel("Hotkey error: \(message)") }
-            HStack { Button("Add Hotkey", systemImage: "plus") { model.addBinding() }; Spacer(); Button("Save") { Task { await model.save() } }.keyboardShortcut(.defaultAction) }
-        }.padding(24).frame(minWidth: 640, minHeight: 440)
+
+            statusView
+
+            HStack {
+                Button("Reload") { Task { await model.reload() } }
+                    .disabled(isBusy)
+                    .accessibilityHint("Discards unsaved changes and reloads persisted settings.")
+                Spacer()
+                Button("Save") { Task { await model.save() } }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(isBusy)
+            }
+        }
+        .padding(20)
+        .frame(minWidth: 640, minHeight: 440)
     }
 
+    private var isBusy: Bool {
+        model.status == .loading || model.status == .saving
+    }
+
+    @ViewBuilder
+    private var statusView: some View {
+        switch model.status {
+        case .idle:
+            EmptyView()
+        case .loading:
+            ProgressView("Loading settings…")
+                .accessibilityLabel("Loading settings")
+        case .saving:
+            ProgressView("Saving settings…")
+                .accessibilityLabel("Saving settings")
+        case .saved:
+            Label("Settings saved.", systemImage: "checkmark.circle")
+                .foregroundStyle(.secondary)
+                .accessibilityLabel("Settings saved")
+        case let .error(message):
+            Label(message, systemImage: "exclamationmark.triangle")
+                .foregroundStyle(.red)
+                .accessibilityLabel("Settings error: \(message)")
+        }
+    }
+
+    private func hotkeyRow(_ binding: HotkeyBinding) -> some View {
+        let action = model.actions.first { $0.id == binding.actionID }
+        let iconName = action?.symbolName ?? "command"
+        let isListening = model.recordingBindingID == binding.id
+        let keyChord = model.keyChord(for: binding.chord)
+
+        let recorderBinding = Binding<ShortcutRecorderModel>(
+            get: {
+                let currentListening = model.recordingBindingID == binding.id
+                return ShortcutRecorderModel(
+                    state: currentListening ? .listening : .idle(chord: keyChord),
+                    defaultChord: nil
+                )
+            },
+            set: { updated in
+                if updated.isListening {
+                    model.record(binding.id)
+                } else if model.recordingBindingID == binding.id {
+                    model.cancelRecording()
+                }
+            }
+        )
+
+        return Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        IconTile(systemName: iconName, tint: Color.accentColor)
+                        ShortcutRecorderButton(model: recorderBinding)
+                            .accessibilityLabel(isListening ? "Recording shortcut" : "Record shortcut")
+                        Spacer()
+                        Button("Delete", systemImage: "minus.circle", role: .destructive) {
+                            model.deleteBinding(binding.id)
+                        }
+                        .labelStyle(.iconOnly)
+                        .accessibilityLabel("Delete binding")
+                    }
+                    Picker("Action", selection: Binding(get: { binding.actionID }, set: { model.setAction($0, for: binding.id) })) {
+                        ForEach(model.actions, id: \.id) { act in
+                            Text(act.title).tag(act.id).disabled(act.availability != .available)
+                        }
+                    }
+                    .accessibilityLabel("Action")
+                }
+            } else {
+                HStack(spacing: 12) {
+                    IconTile(systemName: iconName, tint: Color.accentColor)
+                    ShortcutRecorderButton(model: recorderBinding)
+                        .accessibilityLabel(isListening ? "Recording shortcut" : "Record shortcut")
+                    Picker("Action", selection: Binding(get: { binding.actionID }, set: { model.setAction($0, for: binding.id) })) {
+                        ForEach(model.actions, id: \.id) { act in
+                            Text(act.title).tag(act.id).disabled(act.availability != .available)
+                        }
+                    }
+                    .accessibilityLabel("Action")
+                    Spacer()
+                    Button("Delete", systemImage: "minus.circle", role: .destructive) {
+                        model.deleteBinding(binding.id)
+                    }
+                    .labelStyle(.iconOnly)
+                    .accessibilityLabel("Delete binding")
+                }
+            }
+        }
+    }
 }

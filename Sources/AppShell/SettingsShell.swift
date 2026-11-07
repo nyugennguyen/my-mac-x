@@ -750,9 +750,74 @@ public final class SettingsShellWindowController {
 
 private struct SettingsShellView: View {
     @ObservedObject var model: SettingsShellModel
+    @StateObject private var highlightCoordinator = SettingsHighlightCoordinator()
+    @State private var searchQuery: String = ""
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private let searchIndex = SettingsSearchIndex()
 
     var body: some View {
         NavigationSplitView {
+            VStack(spacing: 0) {
+                searchField
+                sidebarList
+            }
+            .navigationTitle(SettingsCopy.windowTitle)
+            .accessibilityLabel(SettingsCopy.settingsSections)
+        } detail: {
+            ScrollViewReader { proxy in
+                detailContent
+                    .environmentObject(highlightCoordinator)
+                    .onChange(of: highlightCoordinator.activeAnchor) { newAnchor in
+                        guard let newAnchor else { return }
+                        withAnimation(SettingsMotion.animation(reduceMotion: reduceMotion)) {
+                            proxy.scrollTo(newAnchor, anchor: .center)
+                        }
+                    }
+            }
+        }
+        .frame(minWidth: 760, minHeight: 520)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .font(.system(size: 11, weight: .medium))
+            TextField(SettingsCopy.searchPlaceholder, text: $searchQuery)
+                .textFieldStyle(.plain)
+                .font(SettingsTypography.supporting)
+                .accessibilityIdentifier("settings.sidebar.search")
+            if !searchQuery.isEmpty {
+                Button {
+                    searchQuery = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .font(.system(size: 11))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(SettingsCopy.clearSearch)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(
+            RoundedRectangle(cornerRadius: SettingsRadius.control, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: SettingsRadius.control, style: .continuous)
+                .strokeBorder(Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 0.5)
+        )
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+    }
+
+    @ViewBuilder
+    private var sidebarList: some View {
+        let trimmed = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
             List(selection: selectedSection) {
                 ForEach(SettingsSection.allCases) { section in
                     Label(section.title, systemImage: section.symbolName)
@@ -760,29 +825,66 @@ private struct SettingsShellView: View {
                         .accessibilityIdentifier(SettingsAccessibilityID.section(section))
                 }
             }
-            .navigationTitle(SettingsCopy.windowTitle)
-            .accessibilityLabel(SettingsCopy.settingsSections)
-        } detail: {
-            switch model.selectedSection {
-            case .general:
-                GeneralSettingsView(model: model)
-            case .snapping:
-                SnappingSettingsView(model: model)
-            case .hotkeys:
-                HotkeySettingsSummaryView(model: model)
-            case .layouts:
-                LayoutLibrarySettingsView(model: model)
-            case .displays:
-                DisplayProfilesSettingsView(model: model)
-            case .appRules:
-                AppRulesSettingsView(model: model)
-            case .transfer:
-                ConfigurationTransferSettingsView(model: model)
-            case .about:
-                AboutDiagnosticsSettingsView(model: model)
+        } else {
+            let groups = searchIndex.search(query: trimmed)
+            if groups.isEmpty {
+                VStack(spacing: 8) {
+                    Text(SettingsCopy.noSearchResults)
+                        .font(SettingsTypography.supporting)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
+            } else {
+                List {
+                    ForEach(groups) { group in
+                        Section(group.section.title) {
+                            ForEach(group.items) { item in
+                                Button {
+                                    model.select(item.section)
+                                    highlightCoordinator.land(on: item.anchor, reduceMotion: reduceMotion)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.title)
+                                            .font(SettingsTypography.rowTitle)
+                                            .foregroundStyle(.primary)
+                                        Text(item.caption)
+                                            .font(SettingsTypography.rowCaption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+                                    .padding(.vertical, 2)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
             }
         }
-        .frame(minWidth: 760, minHeight: 520)
+    }
+
+    @ViewBuilder
+    private var detailContent: some View {
+        switch model.selectedSection {
+        case .general:
+            GeneralSettingsView(model: model)
+        case .snapping:
+            SnappingSettingsView(model: model)
+        case .hotkeys:
+            HotkeySettingsSummaryView(model: model)
+        case .layouts:
+            LayoutLibrarySettingsView(model: model)
+        case .displays:
+            DisplayProfilesSettingsView(model: model)
+        case .appRules:
+            AppRulesSettingsView(model: model)
+        case .transfer:
+            ConfigurationTransferSettingsView(model: model)
+        case .about:
+            AboutDiagnosticsSettingsView(model: model)
+        }
     }
 
     private var selectedSection: Binding<SettingsSection?> {
@@ -835,6 +937,7 @@ private struct LayoutLibrarySettingsView: View {
                     }
                 }
             }
+            .settingsSectionAnchor(.layoutsLibrary)
         }
         .formStyle(.grouped)
         .navigationTitle(SettingsCopy.layoutsSectionTitle)
@@ -906,6 +1009,7 @@ private struct DisplayProfilesSettingsView: View {
                     }
                 }
             }
+            .settingsSectionAnchor(.displayProfiles)
         }
         .formStyle(.grouped)
         .navigationTitle(SettingsCopy.displaysSectionTitle)
@@ -975,6 +1079,7 @@ private struct AppRulesSettingsView: View {
                     Text(message).foregroundStyle(.red).accessibilityLabel(message)
                 }
             }
+            .settingsSectionAnchor(.appRules)
         }
         .formStyle(.grouped)
         .navigationTitle(SettingsCopy.appRulesSectionTitle)
@@ -1028,6 +1133,7 @@ private struct ConfigurationTransferSettingsView: View {
                         .accessibilityLabel(message)
                 }
             }
+            .settingsSectionAnchor(.transferBackup)
         }
         .formStyle(.grouped).navigationTitle(SettingsCopy.transferSectionTitle).padding()
     }
@@ -1053,6 +1159,7 @@ private struct AboutDiagnosticsSettingsView: View {
                 Button(SettingsCopy.copyDiagnostics) { model.copyDiagnosticsReport() }
                     .keyboardShortcut("c", modifiers: [.command, .shift])
             }
+            .settingsSectionAnchor(.aboutDiagnostics)
         }
         .formStyle(.grouped).navigationTitle(SettingsCopy.aboutSectionTitle).padding()
         .accessibilityIdentifier(SettingsAccessibilityID.diagnostics)
@@ -1081,6 +1188,7 @@ private struct GeneralSettingsView: View {
                 }
                 .accessibilityElement(children: .combine)
             }
+            .settingsSectionAnchor(.generalPermissions)
 
             Section(SettingsCopy.startupSectionTitle) {
                 Toggle(
@@ -1092,6 +1200,7 @@ private struct GeneralSettingsView: View {
                 )
                 .accessibilityIdentifier(SettingsAccessibilityID.launchAtLogin)
             }
+            .settingsSectionAnchor(.generalStartup)
         }
         .formStyle(.grouped)
         .navigationTitle(SettingsCopy.generalSectionTitle)
@@ -1115,6 +1224,7 @@ private struct SnappingSettingsView: View {
                     )
                 )
                 .accessibilityIdentifier(SettingsAccessibilityID.snappingEnabled)
+                .settingsSectionAnchor(.snappingMaster)
 
                 Picker(
                     SettingsCopy.trigger,
@@ -1129,6 +1239,7 @@ private struct SnappingSettingsView: View {
                 }
                 .disabled(!model.snapshot.snapping.isEnabled || triggerIsUnavailable)
                 .accessibilityIdentifier(SettingsAccessibilityID.snappingTrigger)
+                .settingsSectionAnchor(.snappingTrigger)
 
                 if case let .unavailable(message) = model.snapshot.snapping.triggerAvailability {
                     Text(message)
@@ -1147,6 +1258,7 @@ private struct SnappingSettingsView: View {
                 )
                 .disabled(!model.snapshot.snapping.isEnabled)
                 .accessibilityIdentifier(SettingsAccessibilityID.snappingDwell)
+                .settingsSectionAnchor(.snappingTrigger)
 
                 Toggle(
                     SettingsCopy.showPlacementPreview,
@@ -1156,6 +1268,7 @@ private struct SnappingSettingsView: View {
                     )
                 )
                 .disabled(!model.snapshot.snapping.isEnabled)
+                .settingsSectionAnchor(.snappingPreview)
 
                 Toggle(
                     SettingsCopy.reduceVisualEffects,
@@ -1165,6 +1278,7 @@ private struct SnappingSettingsView: View {
                     )
                 )
                 .accessibilityIdentifier(SettingsAccessibilityID.reducedEffects)
+                .settingsSectionAnchor(.snappingReducedEffects)
 
                 if reduceMotion || reduceTransparency {
                     Text(SettingsCopy.systemReducedEffectsNotice)
@@ -1193,21 +1307,7 @@ public struct KeycapBadgeView: View {
     }
 
     public var body: some View {
-        Text(label)
-            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-            .foregroundStyle(.primary)
-            .lineLimit(1)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(Color(nsColor: .controlBackgroundColor))
-                    .shadow(color: Color.black.opacity(0.12), radius: 0.5, x: 0, y: 1)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .strokeBorder(Color(nsColor: .separatorColor).opacity(0.8), lineWidth: 0.75)
-            )
+        KeycapChip(label: label)
     }
 }
 
@@ -1221,16 +1321,7 @@ public struct KeySequenceBadgeView: View {
 
     public var body: some View {
         let keyList = item.keys.isEmpty ? [item.keySequence] : item.keys
-        HStack(spacing: 4) {
-            ForEach(Array(keyList.enumerated()), id: \.offset) { index, key in
-                if index > 0 {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.secondary)
-                }
-                KeycapBadgeView(label: key)
-            }
-        }
+        KeycapSequenceView(keys: keyList)
     }
 }
 
@@ -1297,6 +1388,7 @@ private struct HotkeySettingsSummaryView: View {
             } header: {
                 Text(SettingsCopy.hotkeysSectionTitle)
             }
+            .settingsSectionAnchor(.hotkeysSuperMode)
 
             Section {
                 if presentation.commandTree.isEmpty {
@@ -1316,6 +1408,7 @@ private struct HotkeySettingsSummaryView: View {
             }
             .accessibilityIdentifier(SettingsAccessibilityID.hotkeyCommandTree)
             .accessibilityLabel(presentation.commandTreeAccessibilityLabel)
+            .settingsSectionAnchor(.hotkeysCommandTree)
 
             Section {
                 VStack(alignment: .leading, spacing: 10) {
@@ -1363,6 +1456,7 @@ private struct HotkeySettingsSummaryView: View {
             } header: {
                 Text("Global Hotkeys")
             }
+            .settingsSectionAnchor(.hotkeysGlobal)
 
             if presentation.recorder != .ready {
                 Section {
@@ -1430,6 +1524,9 @@ private struct HotkeySettingsSummaryView: View {
 public enum SettingsCopy {
     public static let windowTitle = localized("My Mac X Settings")
     public static let settingsSections = localized("Settings sections")
+    public static let searchPlaceholder = localized("Search Settings")
+    public static let clearSearch = localized("Clear search")
+    public static let noSearchResults = localized("No results found")
     public static let quickActionsMenuTitle = localized("Quick Actions")
     public static let noFocusedEligibleWindow = localized("No focused eligible window.")
     public static let unsupportedFocusedWindow = localized("The focused window does not support this action.")
