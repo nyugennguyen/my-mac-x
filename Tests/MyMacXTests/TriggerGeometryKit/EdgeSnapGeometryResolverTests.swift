@@ -239,6 +239,20 @@ final class EdgeSnapGeometryResolverTests: XCTestCase {
         XCTAssertEqual(target.zone, .left)
     }
 
+    // MARK: - Finding 4 Regression: Sub-192 pt Geometries Keep Corner Bands <= Half Dimension
+
+    func testFinding4_CornerBandsClampedToHalfDisplayDimension() {
+        // Tiny display frame: 100 x 80
+        // Width: 100 * 0.5 = 50 -> cornerWidth clamped to 50 (instead of 96)
+        // Height: 80 * 0.5 = 40 -> cornerHeight clamped to 40 (instead of 80)
+        XCTAssertEqual(EdgeSnapGeometryResolver.cornerWidth(for: 100), 50)
+        XCTAssertEqual(EdgeSnapGeometryResolver.cornerHeight(for: 80), 40)
+
+        // Standard display: 1512 x 982 -> 180 x 160
+        XCTAssertEqual(EdgeSnapGeometryResolver.cornerWidth(for: 1512), 180)
+        XCTAssertEqual(EdgeSnapGeometryResolver.cornerHeight(for: 982), 160)
+    }
+
     // MARK: - Helpers
 
     private func display(

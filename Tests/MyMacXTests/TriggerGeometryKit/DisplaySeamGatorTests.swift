@@ -113,7 +113,7 @@ final class DisplaySeamGatorTests: XCTestCase {
             trail: fastTrail,
             evaluationTime: 1.04
         )
-        XCTAssertEqual(fastResult.boundary, .sharedSeam(neighborDisplayID: rightDisplay.id))
+        XCTAssertEqual(fastResult.boundary, .sharedSeam(neighborDisplayID: rightDisplay.id, orientation: .vertical))
         XCTAssertFalse(fastResult.isAllowed) // Gated! Crossing too fast.
 
         // 2. Slow approach: moving right across seam at 250 pt/s (<= 400 pt/s)
@@ -128,7 +128,7 @@ final class DisplaySeamGatorTests: XCTestCase {
             trail: slowTrail,
             evaluationTime: 1.04
         )
-        XCTAssertEqual(slowResult.boundary, .sharedSeam(neighborDisplayID: rightDisplay.id))
+        XCTAssertEqual(slowResult.boundary, .sharedSeam(neighborDisplayID: rightDisplay.id, orientation: .vertical))
         XCTAssertTrue(slowResult.isAllowed) // Allowed! Under 400 pt/s.
     }
 
@@ -157,7 +157,7 @@ final class DisplaySeamGatorTests: XCTestCase {
             evaluationTime: 1.04
         )
 
-        XCTAssertEqual(result.boundary, .sharedSeam(neighborDisplayID: rightDisplay.id))
+        XCTAssertEqual(result.boundary, .sharedSeam(neighborDisplayID: rightDisplay.id, orientation: .vertical))
         XCTAssertEqual(result.normalVelocity, 100.0, accuracy: 0.1)
         XCTAssertEqual(result.tangentialVelocity, 1000.0, accuracy: 0.1)
         XCTAssertTrue(result.isAllowed) // Parallel velocity is ignored; normal velocity 100 <= 400 passes!
@@ -229,6 +229,154 @@ final class DisplaySeamGatorTests: XCTestCase {
         session.invalidate()
         XCTAssertFalse(session.isValid(generation: token))
         XCTAssertTrue(session.isValid(generation: session.generation))
+    }
+
+    // MARK: - Finding 2: Corner Normal Velocity Evaluated Against Seam Orientation
+
+    func testFinding2_VerticallyStackedDisplaysGateCornerOnVerticalVelocity() {
+        // Bottom display: [0, 0, 1920, 1080], Top display: [0, 1080, 1920, 1080]
+        let bottomDisplay = makeDisplay(id: 1, frame: CGRect(x: 0, y: 0, width: 1920, height: 1080))
+        let topDisplay = makeDisplay(id: 2, frame: CGRect(x: 0, y: 1080, width: 1920, height: 1080))
+        let topology = DisplayTopologySnapshot(
+            displays: [bottomDisplay, topDisplay],
+            primaryDisplayID: bottomDisplay.id
+        )
+        let gator = DisplaySeamGator()
+
+        // Fast upward flick across top-right corner into top display (vy = 1000 pt/s, vx = 0)
+        var fastTrail = PointerTrail()
+        fastTrail.append(point: CGPoint(x: 1900, y: 1040), timestamp: 1.00)
+        fastTrail.append(point: CGPoint(x: 1900, y: 1080), timestamp: 1.04)
+
+        let fastResult = gator.evaluate(
+            zone: .topRight,
+            on: bottomDisplay,
+            in: topology,
+            trail: fastTrail,
+            evaluationTime: 1.04
+        )
+
+        // Finding 2: must evaluate corner crossing velocity against horizontal seam (abs(dy) = 1000 pt/s)
+        XCTAssertEqual(fastResult.normalVelocity, 1000.0, accuracy: 0.1)
+        XCTAssertFalse(fastResult.isAllowed, "Fast upward flick across horizontal seam at corner must be gated")
+
+        // Slow upward flick across top-right corner (vy = 200 pt/s, vx = 0)
+        var slowTrail = PointerTrail()
+        slowTrail.append(point: CGPoint(x: 1900, y: 1072), timestamp: 1.00)
+        slowTrail.append(point: CGPoint(x: 1900, y: 1080), timestamp: 1.04)
+
+        let slowResult = gator.evaluate(
+            zone: .topRight,
+            on: bottomDisplay,
+            in: topology,
+            trail: slowTrail,
+            evaluationTime: 1.04
+        )
+
+        XCTAssertEqual(slowResult.normalVelocity, 200.0, accuracy: 0.1)
+        XCTAssertTrue(slowResult.isAllowed, "Slow upward flick across horizontal seam at corner must be allowed")
+    }
+
+    func testFinding2_SideBySideDisplaysGateCornerOnHorizontalVelocity() {
+        // Left display: [0, 0, 1920, 1080], Right display: [1920, 0, 1920, 1080]
+        let leftDisplay = makeDisplay(id: 1, frame: CGRect(x: 0, y: 0, width: 1920, height: 1080))
+        let rightDisplay = makeDisplay(id: 2, frame: CGRect(x: 1920, y: 0, width: 1920, height: 1080))
+        let topology = DisplayTopologySnapshot(
+            displays: [leftDisplay, rightDisplay],
+            primaryDisplayID: leftDisplay.id
+        )
+        let gator = DisplaySeamGator()
+
+        // Fast rightward flick across top-right corner into right display (vx = 1000 pt/s, vy = 0)
+        var fastTrail = PointerTrail()
+        fastTrail.append(point: CGPoint(x: 1880, y: 1070), timestamp: 1.00)
+        fastTrail.append(point: CGPoint(x: 1920, y: 1070), timestamp: 1.04)
+
+        let fastResult = gator.evaluate(
+            zone: .topRight,
+            on: leftDisplay,
+            in: topology,
+            trail: fastTrail,
+            evaluationTime: 1.04
+        )
+
+        // Finding 2: must evaluate corner crossing velocity against vertical seam (abs(dx) = 1000 pt/s)
+        XCTAssertEqual(fastResult.normalVelocity, 1000.0, accuracy: 0.1)
+        XCTAssertFalse(fastResult.isAllowed, "Fast rightward flick across vertical seam at corner must be gated")
+
+        // Slow rightward flick across top-right corner (vx = 200 pt/s, vy = 0)
+        var slowTrail = PointerTrail()
+        slowTrail.append(point: CGPoint(x: 1912, y: 1070), timestamp: 1.00)
+        slowTrail.append(point: CGPoint(x: 1920, y: 1070), timestamp: 1.04)
+
+        let slowResult = gator.evaluate(
+            zone: .topRight,
+            on: leftDisplay,
+            in: topology,
+            trail: slowTrail,
+            evaluationTime: 1.04
+        )
+
+        XCTAssertEqual(slowResult.normalVelocity, 200.0, accuracy: 0.1)
+        XCTAssertTrue(slowResult.isAllowed, "Slow rightward flick across vertical seam at corner must be allowed")
+    }
+
+    // MARK: - Finding 3: Offset-Aligned Displays Shared Seam Probing
+
+    func testFinding3_OffsetAlignedDisplaysClassifySharedSeamAtContactPoint() {
+        // Left display: [0, 0, 1000, 1000], Right display: [1000, 600, 1000, 1000]
+        // Overlap is y in [600, 1000]. Non-overlap is y in [0, 600).
+        let leftDisplay = makeDisplay(id: 1, frame: CGRect(x: 0, y: 0, width: 1000, height: 1000))
+        let rightDisplay = makeDisplay(id: 2, frame: CGRect(x: 1000, y: 600, width: 1000, height: 1000))
+        let topology = DisplayTopologySnapshot(
+            displays: [leftDisplay, rightDisplay],
+            primaryDisplayID: leftDisplay.id
+        )
+        let gator = DisplaySeamGator()
+
+        // Direct classifier check
+        let classifier = DisplaySeamClassifier()
+        let seamClass = classifier.classify(edge: .right, on: leftDisplay, in: topology, contactPoint: CGPoint(x: 1000, y: 800))
+        XCTAssertEqual(seamClass, .sharedSeam(neighborDisplayID: rightDisplay.id, orientation: .vertical))
+
+        let wallClass = classifier.classify(edge: .right, on: leftDisplay, in: topology, contactPoint: CGPoint(x: 1000, y: 300))
+        XCTAssertEqual(wallClass, .outerWall)
+
+        // 1. Crossing at y = 800 (within overlapping seam [600, 1000]):
+        // Fast rightward flick (vx = 1000 pt/s)
+        var overlappingTrail = PointerTrail()
+        overlappingTrail.append(point: CGPoint(x: 960, y: 800), timestamp: 1.00)
+        overlappingTrail.append(point: CGPoint(x: 1000, y: 800), timestamp: 1.04)
+
+        let overlappingResult = gator.evaluate(
+            zone: .right,
+            on: leftDisplay,
+            in: topology,
+            trail: overlappingTrail,
+            evaluationTime: 1.04
+        )
+
+        // Finding 3: y = 800 touches adjacent right display, so it must be classified as shared seam and gated
+        XCTAssertEqual(overlappingResult.boundary, .sharedSeam(neighborDisplayID: rightDisplay.id, orientation: .vertical))
+        XCTAssertFalse(overlappingResult.isAllowed, "Fast crossing at overlapping seam must be gated")
+
+        // 2. Crossing at y = 300 (outside overlapping seam [0, 600)):
+        // Fast rightward flick (vx = 1000 pt/s) against empty space outer wall
+        var nonOverlappingTrail = PointerTrail()
+        nonOverlappingTrail.append(point: CGPoint(x: 960, y: 300), timestamp: 1.00)
+        nonOverlappingTrail.append(point: CGPoint(x: 1000, y: 300), timestamp: 1.04)
+
+        let nonOverlappingResult = gator.evaluate(
+            zone: .right,
+            on: leftDisplay,
+            in: topology,
+            trail: nonOverlappingTrail,
+            evaluationTime: 1.04
+        )
+
+        // y = 300 is outer wall, so fast flick passes immediately
+        XCTAssertEqual(nonOverlappingResult.boundary, .outerWall)
+        XCTAssertTrue(nonOverlappingResult.isAllowed, "Fast flick against outer wall segment must pass")
     }
 
     // MARK: - Helper

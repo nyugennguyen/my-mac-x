@@ -231,4 +231,40 @@ final class WindowDragClassifierTests: XCTestCase {
         XCTAssertEqual(stateCancelled, .cancelled)
         XCTAssertTrue(filter.isCancelled)
     }
+
+    // MARK: - Finding 1 Regression: Orthogonal Bounding on Resize Handle Edge Checks
+
+    func testFinding1_OrthogonalBoundingOnResizeHandleEdgeChecks() {
+        // Standard window frame: (100, 100, 400, 300), so x in [100, 500], y in [100, 400]
+
+        // 1. Point at (102, 900): x is within 5 pt of frame.minX (100), but y is 500 pt outside the window!
+        let farYPoint = CGPoint(x: 102, y: 900)
+        XCTAssertFalse(
+            WindowDragClassifier.startsAtResizeHandle(farYPoint, in: standardFrame),
+            "Press far along Y outside the window frame must not classify as a resize handle"
+        )
+
+        // 2. Point at (900, 102): y is within 5 pt of frame.minY (100), but x is 400 pt outside the window!
+        let farXPoint = CGPoint(x: 900, y: 102)
+        XCTAssertFalse(
+            WindowDragClassifier.startsAtResizeHandle(farXPoint, in: standardFrame),
+            "Press far along X outside the window frame must not classify as a resize handle"
+        )
+
+        // 3. Point at (102, 250): x is within 5 pt of frame.minX (100), and y is within [100, 400]
+        let validLeftEdge = CGPoint(x: 102, y: 250)
+        XCTAssertTrue(
+            WindowDragClassifier.startsAtResizeHandle(validLeftEdge, in: standardFrame),
+            "Press along left edge within window bounds must classify as a resize handle"
+        )
+
+        // 4. Verify classify() does not report .resizing for farYPoint
+        let classification = classifier.classify(
+            pressPoint: farYPoint,
+            initialFrame: standardFrame,
+            currentFrame: standardFrame.offsetBy(dx: 10, dy: 10),
+            pointerDelta: CGVector(dx: 10, dy: 10)
+        )
+        XCTAssertNotEqual(classification, .resizing)
+    }
 }

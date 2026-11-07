@@ -30,11 +30,11 @@ public struct EdgeSnapGeometryResolver: Sendable {
     public static let activationDistance: CGFloat = 12
 
     public static func cornerWidth(for screenWidth: CGFloat) -> CGFloat {
-        min(max(screenWidth * 0.18, 96), 180)
+        min(min(max(screenWidth * 0.18, 96), 180), max(0, screenWidth * 0.5))
     }
 
     public static func cornerHeight(for screenHeight: CGFloat) -> CGFloat {
-        min(max(screenHeight * 0.18, 80), 160)
+        min(min(max(screenHeight * 0.18, 80), 160), max(0, screenHeight * 0.5))
     }
 
     public init() {}

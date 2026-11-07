@@ -1,12 +1,32 @@
 import CoreGraphics
 import Foundation
 
+/// Orientation of a shared display boundary.
+public enum SeamOrientation: String, Equatable, Sendable {
+    case vertical
+    case horizontal
+}
+
 /// Classification of a display border against neighboring screens in the topology.
 public enum EdgeBoundaryClassification: Equatable, Sendable {
     /// An outer physical display wall with empty space beyond it (S-01).
     case outerWall
     /// A shared display boundary with an adjacent display directly across it (S-02).
-    case sharedSeam(neighborDisplayID: DisplayID)
+    case sharedSeam(neighborDisplayID: DisplayID, orientation: SeamOrientation)
+
+    public var neighborDisplayID: DisplayID? {
+        switch self {
+        case .outerWall: return nil
+        case .sharedSeam(let id, _): return id
+        }
+    }
+
+    public var orientation: SeamOrientation? {
+        switch self {
+        case .outerWall: return nil
+        case .sharedSeam(_, let orientation): return orientation
+        }
+    }
 }
 
 /// Classifies display boundaries using geometric probe points 0.5 pt beyond the edge (S-01, S-02).
@@ -16,38 +36,73 @@ public struct DisplaySeamClassifier: Sendable {
     public init() {}
 
     /// Classifies an edge of a display against all other displays in the topology.
+    ///
+    /// - Parameters:
+    ///   - edge: The straight edge zone to classify.
+    ///   - display: The display whose edge is being evaluated.
+    ///   - topology: The multi-display topology snapshot.
+    ///   - contactPoint: Optional pointer coordinate along the edge. If provided, probes at that exact contact location (clamped to edge bounds). If nil, tests geometric intersection along the entire edge segment.
     public func classify(
         edge: EdgeSnapZone,
         on display: DisplaySnapshot,
-        in topology: DisplayTopologySnapshot
+        in topology: DisplayTopologySnapshot,
+        contactPoint: CGPoint? = nil
     ) -> EdgeBoundaryClassification {
         guard edge.isStraightEdge else {
             return .outerWall
         }
 
         let frame = display.frame
-        let probePoint: CGPoint
+        let orientation: SeamOrientation = edge.isVerticalEdge ? .vertical : .horizontal
 
-        switch edge {
-        case .left:
-            probePoint = CGPoint(x: frame.minX - Self.probeOffset, y: frame.midY)
-        case .right:
-            probePoint = CGPoint(x: frame.maxX + Self.probeOffset, y: frame.midY)
-        case .bottom:
-            probePoint = CGPoint(x: frame.midX, y: frame.minY - Self.probeOffset)
-        case .top:
-            probePoint = CGPoint(x: frame.midX, y: frame.maxY + Self.probeOffset)
-        case .topLeft, .topRight, .bottomLeft, .bottomRight:
+        if let contact = contactPoint {
+            let probePoint: CGPoint
+            switch edge {
+            case .left:
+                let y = min(max(contact.y, frame.minY), frame.maxY)
+                probePoint = CGPoint(x: frame.minX - Self.probeOffset, y: y)
+            case .right:
+                let y = min(max(contact.y, frame.minY), frame.maxY)
+                probePoint = CGPoint(x: frame.maxX + Self.probeOffset, y: y)
+            case .bottom:
+                let x = min(max(contact.x, frame.minX), frame.maxX)
+                probePoint = CGPoint(x: x, y: frame.minY - Self.probeOffset)
+            case .top:
+                let x = min(max(contact.x, frame.minX), frame.maxX)
+                probePoint = CGPoint(x: x, y: frame.maxY + Self.probeOffset)
+            case .topLeft, .topRight, .bottomLeft, .bottomRight:
+                return .outerWall
+            }
+
+            for other in topology.displays where other.id != display.id {
+                if other.frame.contains(probePoint) {
+                    return .sharedSeam(neighborDisplayID: other.id, orientation: orientation)
+                }
+            }
+            return .outerWall
+        } else {
+            // Rectangle edge intersection between display frames
+            let probeRect: CGRect
+            switch edge {
+            case .left:
+                probeRect = CGRect(x: frame.minX - Self.probeOffset, y: frame.minY, width: Self.probeOffset, height: frame.height)
+            case .right:
+                probeRect = CGRect(x: frame.maxX, y: frame.minY, width: Self.probeOffset, height: frame.height)
+            case .bottom:
+                probeRect = CGRect(x: frame.minX, y: frame.minY - Self.probeOffset, width: frame.width, height: Self.probeOffset)
+            case .top:
+                probeRect = CGRect(x: frame.minX, y: frame.maxY, width: frame.width, height: Self.probeOffset)
+            case .topLeft, .topRight, .bottomLeft, .bottomRight:
+                return .outerWall
+            }
+
+            for other in topology.displays where other.id != display.id {
+                if other.frame.intersects(probeRect) {
+                    return .sharedSeam(neighborDisplayID: other.id, orientation: orientation)
+                }
+            }
             return .outerWall
         }
-
-        for other in topology.displays where other.id != display.id {
-            if other.frame.contains(probePoint) {
-                return .sharedSeam(neighborDisplayID: other.id)
-            }
-        }
-
-        return .outerWall
     }
 }
 
@@ -93,10 +148,11 @@ public struct DisplaySeamGator: Sendable {
         trail: PointerTrail,
         evaluationTime: TimeInterval? = nil
     ) -> SeamGatingResult {
-        let boundary = classifyBoundary(for: zone, on: display, in: topology)
         let v = trail.velocity(at: evaluationTime)
-        let vn = normalVelocity(for: zone, velocity: v)
-        let vt = tangentialVelocity(for: zone, velocity: v)
+        let contactPoint = trail.samples.last?.point
+        let boundary = classifyBoundary(for: zone, on: display, in: topology, contactPoint: contactPoint, velocity: v)
+        let vn = normalVelocity(for: zone, boundary: boundary, velocity: v)
+        let vt = tangentialVelocity(for: zone, boundary: boundary, velocity: v)
 
         switch boundary {
         case .outerWall:
@@ -124,58 +180,109 @@ public struct DisplaySeamGator: Sendable {
     private func classifyBoundary(
         for zone: EdgeSnapZone,
         on display: DisplaySnapshot,
-        in topology: DisplayTopologySnapshot
+        in topology: DisplayTopologySnapshot,
+        contactPoint: CGPoint?,
+        velocity: CGVector
     ) -> EdgeBoundaryClassification {
         switch zone {
         case .left:
-            return classifier.classify(edge: .left, on: display, in: topology)
+            return classifier.classify(edge: .left, on: display, in: topology, contactPoint: contactPoint)
         case .right:
-            return classifier.classify(edge: .right, on: display, in: topology)
+            return classifier.classify(edge: .right, on: display, in: topology, contactPoint: contactPoint)
         case .top:
-            return classifier.classify(edge: .top, on: display, in: topology)
+            return classifier.classify(edge: .top, on: display, in: topology, contactPoint: contactPoint)
         case .bottom:
-            return classifier.classify(edge: .bottom, on: display, in: topology)
+            return classifier.classify(edge: .bottom, on: display, in: topology, contactPoint: contactPoint)
         case .topLeft:
-            let leftClass = classifier.classify(edge: .left, on: display, in: topology)
-            if case .sharedSeam = leftClass { return leftClass }
-            let topClass = classifier.classify(edge: .top, on: display, in: topology)
-            if case .sharedSeam = topClass { return topClass }
-            return .outerWall
+            let leftClass = classifier.classify(edge: .left, on: display, in: topology, contactPoint: contactPoint)
+            let topClass = classifier.classify(edge: .top, on: display, in: topology, contactPoint: contactPoint)
+            return resolveCornerBoundary(verticalEdge: leftClass, horizontalEdge: topClass, velocity: velocity)
         case .topRight:
-            let rightClass = classifier.classify(edge: .right, on: display, in: topology)
-            if case .sharedSeam = rightClass { return rightClass }
-            let topClass = classifier.classify(edge: .top, on: display, in: topology)
-            if case .sharedSeam = topClass { return topClass }
-            return .outerWall
+            let rightClass = classifier.classify(edge: .right, on: display, in: topology, contactPoint: contactPoint)
+            let topClass = classifier.classify(edge: .top, on: display, in: topology, contactPoint: contactPoint)
+            return resolveCornerBoundary(verticalEdge: rightClass, horizontalEdge: topClass, velocity: velocity)
         case .bottomLeft:
-            let leftClass = classifier.classify(edge: .left, on: display, in: topology)
-            if case .sharedSeam = leftClass { return leftClass }
-            let bottomClass = classifier.classify(edge: .bottom, on: display, in: topology)
-            if case .sharedSeam = bottomClass { return bottomClass }
-            return .outerWall
+            let leftClass = classifier.classify(edge: .left, on: display, in: topology, contactPoint: contactPoint)
+            let bottomClass = classifier.classify(edge: .bottom, on: display, in: topology, contactPoint: contactPoint)
+            return resolveCornerBoundary(verticalEdge: leftClass, horizontalEdge: bottomClass, velocity: velocity)
         case .bottomRight:
-            let rightClass = classifier.classify(edge: .right, on: display, in: topology)
-            if case .sharedSeam = rightClass { return rightClass }
-            let bottomClass = classifier.classify(edge: .bottom, on: display, in: topology)
-            if case .sharedSeam = bottomClass { return bottomClass }
+            let rightClass = classifier.classify(edge: .right, on: display, in: topology, contactPoint: contactPoint)
+            let bottomClass = classifier.classify(edge: .bottom, on: display, in: topology, contactPoint: contactPoint)
+            return resolveCornerBoundary(verticalEdge: rightClass, horizontalEdge: bottomClass, velocity: velocity)
+        }
+    }
+
+    private func resolveCornerBoundary(
+        verticalEdge: EdgeBoundaryClassification,
+        horizontalEdge: EdgeBoundaryClassification,
+        velocity: CGVector
+    ) -> EdgeBoundaryClassification {
+        switch (verticalEdge, horizontalEdge) {
+        case (.sharedSeam, .sharedSeam):
+            if abs(velocity.dy) > abs(velocity.dx) {
+                return horizontalEdge
+            } else {
+                return verticalEdge
+            }
+        case (.sharedSeam, _):
+            return verticalEdge
+        case (_, .sharedSeam):
+            return horizontalEdge
+        default:
             return .outerWall
+        }
+    }
+
+    public func normalVelocity(
+        for zone: EdgeSnapZone,
+        boundary: EdgeBoundaryClassification,
+        velocity: CGVector
+    ) -> CGFloat {
+        switch boundary {
+        case .sharedSeam(_, let orientation):
+            switch orientation {
+            case .horizontal:
+                return abs(velocity.dy)
+            case .vertical:
+                return abs(velocity.dx)
+            }
+        case .outerWall:
+            if zone.isVerticalEdge || zone.isCorner {
+                return abs(velocity.dx)
+            } else {
+                return abs(velocity.dy)
+            }
         }
     }
 
     public func normalVelocity(for zone: EdgeSnapZone, velocity: CGVector) -> CGFloat {
-        if zone.isVerticalEdge || zone == .topLeft || zone == .bottomLeft || zone == .topRight || zone == .bottomRight {
-            return abs(velocity.dx)
-        } else {
-            return abs(velocity.dy)
+        normalVelocity(for: zone, boundary: .outerWall, velocity: velocity)
+    }
+
+    public func tangentialVelocity(
+        for zone: EdgeSnapZone,
+        boundary: EdgeBoundaryClassification,
+        velocity: CGVector
+    ) -> CGFloat {
+        switch boundary {
+        case .sharedSeam(_, let orientation):
+            switch orientation {
+            case .horizontal:
+                return abs(velocity.dx)
+            case .vertical:
+                return abs(velocity.dy)
+            }
+        case .outerWall:
+            if zone.isVerticalEdge || zone.isCorner {
+                return abs(velocity.dy)
+            } else {
+                return abs(velocity.dx)
+            }
         }
     }
 
     public func tangentialVelocity(for zone: EdgeSnapZone, velocity: CGVector) -> CGFloat {
-        if zone.isVerticalEdge || zone == .topLeft || zone == .bottomLeft || zone == .topRight || zone == .bottomRight {
-            return abs(velocity.dy)
-        } else {
-            return abs(velocity.dx)
-        }
+        tangentialVelocity(for: zone, boundary: .outerWall, velocity: velocity)
     }
 }
 

@@ -99,11 +99,14 @@ public struct WindowDragClassifier: Sendable {
             return true
         }
 
-        // Edge check: within 5 pt of any window edge
-        let nearLeftEdge = abs(point.x - frame.minX) <= resizeEdgeDistance
-        let nearRightEdge = abs(point.x - frame.maxX) <= resizeEdgeDistance
-        let nearBottomEdge = abs(point.y - frame.minY) <= resizeEdgeDistance
-        let nearTopEdge = abs(point.y - frame.maxY) <= resizeEdgeDistance
+        // Edge check: within 5 pt of any window edge, constrained to the window span on the orthogonal axis
+        let withinY = point.y >= frame.minY && point.y <= frame.maxY
+        let withinX = point.x >= frame.minX && point.x <= frame.maxX
+
+        let nearLeftEdge = abs(point.x - frame.minX) <= resizeEdgeDistance && withinY
+        let nearRightEdge = abs(point.x - frame.maxX) <= resizeEdgeDistance && withinY
+        let nearBottomEdge = abs(point.y - frame.minY) <= resizeEdgeDistance && withinX
+        let nearTopEdge = abs(point.y - frame.maxY) <= resizeEdgeDistance && withinX
 
         if nearLeftEdge || nearRightEdge || nearBottomEdge || nearTopEdge {
             return true
