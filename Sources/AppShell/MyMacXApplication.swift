@@ -19,6 +19,8 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
     private let hotkeyRuntime: HotkeyRuntimeCoordinator
     private let lifecycleCoordinator: AppLifecycleCoordinator
     private let crossDisplayComposition: CrossDisplayDragComposition
+    private let systemTilingModel: SystemTilingCoexistenceModel
+    private let edgeSnapCoordinator: EdgeSnapCoordinator
     private let superModeComposition: SuperModeProductionComposition
     private let settingsWindowController: SettingsShellWindowController
     private let superModeSettingsWindowController: SuperModeSettingsWindowController
@@ -211,6 +213,25 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
             },
             performance: performance
         )
+        let systemTilingModel = SystemTilingCoexistenceModel()
+        self.systemTilingModel = systemTilingModel
+
+        let edgeSnapTargetResolver = EdgeSnapTargetResolver(
+            sampler: MacOSWindowServerSampler(),
+            accessibility: SystemWindowAdapter.shared,
+            appRules: appRuleRuntime
+        )
+        let edgeSnapStateMachine = SnapInteractionStateMachine(windowActions: windowActions)
+        self.edgeSnapCoordinator = EdgeSnapCoordinator(
+            overlayPresenter: overlay,
+            stateMachine: edgeSnapStateMachine,
+            windowSampler: MacOSWindowServerSampler(),
+            targetResolver: edgeSnapTargetResolver,
+            topologyObserving: topologyObserver,
+            systemTilingStateProvider: { [systemTilingModel] in
+                systemTilingModel.state
+            }
+        )
         lifecycleCoordinator = AppLifecycleCoordinator(
             system: AppKitAppShellSystem(
                 configuration: AppShellMenuConfiguration(
@@ -276,6 +297,10 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         lifecycleCoordinator.start()
+        let coordinator = edgeSnapCoordinator
+        Task {
+            await coordinator.start()
+        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -289,6 +314,10 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         lifecycleCoordinator.applicationWillTerminate()
+        let coordinator = edgeSnapCoordinator
+        Task {
+            await coordinator.stop()
+        }
     }
 }
 

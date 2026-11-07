@@ -39,6 +39,146 @@ final class SnapInteractionStateMachineTests: XCTestCase {
         )
     }
 
+    func testEdgeSnapZoneEnteredShowsPreviewAndMouseUpCommits() async {
+        let windowActions = RecordingSnapWindowActions()
+        let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
+        let interaction = interactionID("11111111-2222-3333-4444-555555555555")
+        let display = DisplayID(rawValue: 7)
+
+        _ = await stateMachine.consume(
+            .pointer(.began(dragContext(interaction, capturedWindow: capturedWindowIdentity)))
+        )
+        let previewResult = await stateMachine.consume(
+            .edge(.zoneEntered(action: .leftHalf, displayID: display))
+        )
+        let commitResult = await stateMachine.consume(
+            .pointer(.released(interaction: interaction))
+        )
+        let recorded = await windowActions.recordedIntents()
+
+        XCTAssertEqual(previewResult, .previewResult)
+        XCTAssertEqual(commitResult, .committedResult)
+        XCTAssertEqual(
+            recorded,
+            [
+                .preview(
+                    action: .leftHalf,
+                    interaction: interaction,
+                    capturedWindow: capturedWindowIdentity,
+                    targetDisplay: display
+                ),
+                .commitPreview(interaction: interaction),
+            ]
+        )
+    }
+
+    func testEdgeSnapZoneExitedCancelsPreviewAndReturnsToTracking() async {
+        let windowActions = RecordingSnapWindowActions()
+        let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
+        let interaction = interactionID("22222222-3333-4444-5555-666666666666")
+        let display = DisplayID(rawValue: 7)
+
+        _ = await stateMachine.consume(
+            .pointer(.began(dragContext(interaction, capturedWindow: capturedWindowIdentity)))
+        )
+        _ = await stateMachine.consume(
+            .edge(.zoneEntered(action: .leftHalf, displayID: display))
+        )
+        let exitResult = await stateMachine.consume(.edge(.zoneExited))
+        let releaseResult = await stateMachine.consume(
+            .pointer(.released(interaction: interaction))
+        )
+        let recorded = await windowActions.recordedIntents()
+
+        XCTAssertEqual(exitResult, .cancelledResult)
+        XCTAssertEqual(releaseResult, .cancelledResult)
+        XCTAssertEqual(
+            recorded,
+            [
+                .preview(
+                    action: .leftHalf,
+                    interaction: interaction,
+                    capturedWindow: capturedWindowIdentity,
+                    targetDisplay: display
+                ),
+                .cancelPreview(interaction: interaction),
+                .cancelPreview(interaction: interaction),
+            ]
+        )
+    }
+
+    func testEdgeSnapSlidingBetweenZonesUpdatesPreview() async {
+        let windowActions = RecordingSnapWindowActions()
+        let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
+        let interaction = interactionID("33333333-4444-5555-6666-777777777777")
+        let display = DisplayID(rawValue: 7)
+
+        _ = await stateMachine.consume(
+            .pointer(.began(dragContext(interaction, capturedWindow: capturedWindowIdentity)))
+        )
+        _ = await stateMachine.consume(
+            .edge(.zoneEntered(action: .leftHalf, displayID: display))
+        )
+        _ = await stateMachine.consume(
+            .edge(.zoneEntered(action: .topHalf, displayID: display))
+        )
+        _ = await stateMachine.consume(
+            .pointer(.released(interaction: interaction))
+        )
+        let recorded = await windowActions.recordedIntents()
+
+        XCTAssertEqual(
+            recorded,
+            [
+                .preview(
+                    action: .leftHalf,
+                    interaction: interaction,
+                    capturedWindow: capturedWindowIdentity,
+                    targetDisplay: display
+                ),
+                .preview(
+                    action: .topHalf,
+                    interaction: interaction,
+                    capturedWindow: capturedWindowIdentity,
+                    targetDisplay: display
+                ),
+                .commitPreview(interaction: interaction),
+            ]
+        )
+    }
+
+    func testEdgeSnapCancelledInterruptedCancelsPreview() async {
+        let windowActions = RecordingSnapWindowActions()
+        let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
+        let interaction = interactionID("44444444-5555-6666-7777-888888888888")
+        let display = DisplayID(rawValue: 7)
+
+        _ = await stateMachine.consume(
+            .pointer(.began(dragContext(interaction, capturedWindow: capturedWindowIdentity)))
+        )
+        _ = await stateMachine.consume(
+            .edge(.zoneEntered(action: .maximize, displayID: display))
+        )
+        let cancelResult = await stateMachine.consume(
+            .pointer(.cancelled(interaction: interaction))
+        )
+        let recorded = await windowActions.recordedIntents()
+
+        XCTAssertEqual(cancelResult, .cancelledResult)
+        XCTAssertEqual(
+            recorded,
+            [
+                .preview(
+                    action: .maximize,
+                    interaction: interaction,
+                    capturedWindow: capturedWindowIdentity,
+                    targetDisplay: display
+                ),
+                .cancelPreview(interaction: interaction),
+            ]
+        )
+    }
+
     func testEscapeCancelsThePreviewWithoutACommitOrFurtherMutation() async {
         let windowActions = RecordingSnapWindowActions()
         let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)

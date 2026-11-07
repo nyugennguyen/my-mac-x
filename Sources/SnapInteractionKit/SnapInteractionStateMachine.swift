@@ -3,10 +3,16 @@
 /// Composition preserves source ordering when forwarding Pointer Drag, Trigger Dwell, and
 /// Layout Chooser events. The Module serializes concurrent callers before reducing them, so an
 /// in-flight preview cannot be overtaken by mouse-up or cancellation.
+enum EdgeSnapInteractionEvent: Equatable, Sendable {
+    case zoneEntered(action: ActionID, displayID: DisplayID)
+    case zoneExited
+}
+
 enum SnapInteractionEvent: Equatable, Sendable {
     case pointer(PointerDragEvent)
     case trigger(TriggerDwellEvent)
     case chooser(OverlayChooserEvent)
+    case edge(EdgeSnapInteractionEvent)
 }
 
 /// Owns the lifetime of one Window Action preview transaction.
@@ -120,6 +126,16 @@ actor SnapInteractionStateMachine {
         case .chooser(.cancelled):
             guard let interaction = state.interaction else { return nil }
             return await cancel(interaction)
+
+        case .edge(.zoneEntered(let action, let displayID)):
+            return await previewEdge(action: action, displayID: displayID)
+
+        case .edge(.zoneExited):
+            guard let interaction = state.interaction else { return nil }
+            if case .previewed = state {
+                return await cancelPreview(interaction: interaction)
+            }
+            return nil
         }
     }
 
@@ -178,6 +194,52 @@ actor SnapInteractionStateMachine {
             action: action
         )
         return result
+    }
+
+    private func previewEdge(action: ActionID, displayID: DisplayID) async -> WindowActionResult? {
+        let binding: Binding
+        switch state {
+        case .tracking(let currentBinding):
+            binding = currentBinding
+        case let .previewed(currentBinding, currentDisplayID, currentAction):
+            if currentDisplayID == displayID && currentAction == action {
+                return nil
+            }
+            binding = currentBinding
+        case .idle, .choosing:
+            return nil
+        }
+
+        let result = await windowActions.perform(
+            .preview(
+                action: action,
+                interaction: binding.interaction,
+                capturedWindow: binding.capturedWindow,
+                targetDisplay: displayID
+            )
+        )
+        guard result.disposition == .succeeded,
+              case .preview = result.effect
+        else {
+            state = .tracking(binding)
+            _ = await windowActions.perform(
+                .cancelPreview(interaction: binding.interaction)
+            )
+            return result
+        }
+
+        state = .previewed(
+            binding,
+            displayID: displayID,
+            action: action
+        )
+        return result
+    }
+
+    private func cancelPreview(interaction: InteractionID) async -> WindowActionResult? {
+        guard let binding = state.binding, binding.interaction == interaction else { return nil }
+        state = .tracking(binding)
+        return await windowActions.perform(.cancelPreview(interaction: interaction))
     }
 
     private func release(_ interaction: InteractionID) async -> WindowActionResult? {

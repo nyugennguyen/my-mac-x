@@ -19,6 +19,12 @@ public enum AppDiagnosticsStatus: String, Codable, Equatable, Sendable {
     case limited
 }
 
+public enum EdgeSnapDiagnosticsStatus: String, Codable, Equatable, Sendable {
+    case active
+    case stoodDownSystemTiling = "stood-down-system-tiling"
+    case disabled
+}
+
 /// A content-free numeric version. Free-form platform or application strings are intentionally
 /// excluded from diagnostics input so they cannot smuggle user or machine data into a report.
 public struct DiagnosticsVersion: Codable, Equatable, Sendable {
@@ -45,6 +51,7 @@ public struct DiagnosticsStatusSnapshot: Codable, Equatable, Sendable {
     public let appVersion: DiagnosticsVersion
     public let appBuild: UInt
     public let app: AppDiagnosticsStatus
+    public let edgeSnap: EdgeSnapDiagnosticsStatus?
 
     public init(
         accessibility: PermissionDiagnosticsStatus,
@@ -53,7 +60,8 @@ public struct DiagnosticsStatusSnapshot: Codable, Equatable, Sendable {
         operatingSystem: DiagnosticsVersion,
         appVersion: DiagnosticsVersion,
         appBuild: UInt,
-        app: AppDiagnosticsStatus
+        app: AppDiagnosticsStatus,
+        edgeSnap: EdgeSnapDiagnosticsStatus? = nil
     ) {
         self.accessibility = accessibility
         self.inputMonitoring = inputMonitoring
@@ -62,6 +70,7 @@ public struct DiagnosticsStatusSnapshot: Codable, Equatable, Sendable {
         self.appVersion = appVersion
         self.appBuild = appBuild
         self.app = app
+        self.edgeSnap = edgeSnap
     }
 }
 
@@ -78,18 +87,21 @@ public struct DiagnosticsReportBuilder: Sendable {
     public init() {}
 
     public func makeReport(from snapshot: DiagnosticsStatusSnapshot) -> DiagnosticsReport {
-        DiagnosticsReport(
-            text: """
-            My Mac X Diagnostics
-            App version: \(snapshot.appVersion.reportValue) (\(snapshot.appBuild))
-            App status: \(snapshot.app.rawValue)
-            macOS: \(snapshot.operatingSystem.reportValue)
-            Accessibility: \(snapshot.accessibility.rawValue)
-            Input Monitoring: \(snapshot.inputMonitoring.rawValue)
-            Event Tap: \(snapshot.eventTap.rawValue)
-            Privacy: window titles, document text, key input, host identity, and bundle identifiers are not collected
-            """
-        )
+        var lines = [
+            "My Mac X Diagnostics",
+            "App version: \(snapshot.appVersion.reportValue) (\(snapshot.appBuild))",
+            "App status: \(snapshot.app.rawValue)",
+            "macOS: \(snapshot.operatingSystem.reportValue)",
+            "Accessibility: \(snapshot.accessibility.rawValue)",
+            "Input Monitoring: \(snapshot.inputMonitoring.rawValue)",
+            "Event Tap: \(snapshot.eventTap.rawValue)",
+        ]
+        if let edgeSnap = snapshot.edgeSnap {
+            lines.append("Edge Snap: \(edgeSnap.rawValue)")
+        }
+        lines.append("Privacy: window titles, document text, key input, host identity, and bundle identifiers are not collected")
+
+        return DiagnosticsReport(text: lines.joined(separator: "\n"))
     }
 }
 

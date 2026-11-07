@@ -65,6 +65,21 @@ final class DiagnosticsReportBuilderTests: XCTestCase {
         }
     }
 
+    func testReportIncludesEdgeSnapTilingWhenPresent() {
+        let snapshot = DiagnosticsStatusSnapshot(
+            accessibility: .granted,
+            inputMonitoring: .granted,
+            eventTap: .active,
+            operatingSystem: DiagnosticsVersion(major: 15, minor: 0, patch: 0),
+            appVersion: DiagnosticsVersion(major: 1, minor: 0, patch: 0),
+            appBuild: 1,
+            app: .ready,
+            edgeSnap: .stoodDownSystemTiling
+        )
+        let report = DiagnosticsReportBuilder().makeReport(from: snapshot)
+        XCTAssertTrue(report.text.contains("Edge Snap: stood-down-system-tiling"))
+    }
+
     private func snapshot(
         accessibility: PermissionDiagnosticsStatus = .granted,
         inputMonitoring: PermissionDiagnosticsStatus = .granted,
