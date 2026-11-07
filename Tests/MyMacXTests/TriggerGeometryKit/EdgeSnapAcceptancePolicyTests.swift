@@ -131,4 +131,37 @@ final class EdgeSnapAcceptancePolicyTests: XCTestCase {
         XCTAssertTrue(policy.accepts(actualRect: passing, targetRect: target, action: action))
         XCTAssertFalse(policy.accepts(actualRect: offCenter, targetRect: target, action: action))
     }
+
+    // MARK: - Disallowed Non-Geometric Actions (A-03)
+
+    func testDisallowedNonGeometricActionsAreAlwaysRejected() {
+        let target = CGRect(x: 0, y: 0, width: 1400, height: 900)
+        // A rect with high overlap and centered dimensions that would otherwise pass fallthrough
+        let rect = CGRect(x: 0, y: 0, width: 1400, height: 800)
+
+        XCTAssertFalse(policy.accepts(actualRect: rect, targetRect: target, action: .nativeFullScreen),
+                       "Native full screen must be rejected by geometric acceptance policy")
+        XCTAssertFalse(policy.accepts(actualRect: rect, targetRect: target, action: .restore),
+                       "Restore must be rejected by geometric acceptance policy")
+    }
+
+    // MARK: - Display Transfer Actions (A-03 / 72% Overlap Floor)
+
+    func testDisplayTransferActionsRequireSeventyTwoPercentOverlap() {
+        let target = CGRect(x: 100, y: 100, width: 1000, height: 800) // area 800,000
+        // 80% overlap (640,000 / 800,000), but off-center by 50 pt (> 36 pt anchor tolerance)
+        let passing = CGRect(x: 150, y: 100, width: 800, height: 800)
+        // 60% overlap (480,000 / 800,000 < 72% floor)
+        let failing = CGRect(x: 100, y: 100, width: 600, height: 800)
+
+        XCTAssertTrue(policy.accepts(actualRect: passing, targetRect: target, action: .moveDisplayPrevious),
+                      "Move display previous should accept when overlap >= 72%")
+        XCTAssertFalse(policy.accepts(actualRect: failing, targetRect: target, action: .moveDisplayPrevious),
+                       "Move display previous should reject when overlap < 72%")
+
+        XCTAssertTrue(policy.accepts(actualRect: passing, targetRect: target, action: .moveDisplayNext),
+                      "Move display next should accept when overlap >= 72%")
+        XCTAssertFalse(policy.accepts(actualRect: failing, targetRect: target, action: .moveDisplayNext),
+                       "Move display next should reject when overlap < 72%")
+    }
 }

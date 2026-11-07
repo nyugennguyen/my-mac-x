@@ -23,7 +23,7 @@ For each zone, click a standard resizable application window (e.g. Safari, TextE
 |---|---|---|---|
 | **PZ-01** | Drag to left border (center Y) | Left half rectangle preview overlay appears within 12 pt of perimeter. | Window snaps to left 50% display half. |
 | **PZ-02** | Drag to right border (center Y) | Right half rectangle preview overlay appears within 12 pt of perimeter. | Window snaps to right 50% display half. |
-| **PZ-03** | Drag to top border (center X) | Fullscreen / maximize rectangle preview overlay appears. | Window maximizes to visible screen area (excluding menu bar/dock). |
+| **PZ-03** | Drag to top border (center X) | Maximize rectangle preview overlay appears. | Window maximizes to visible screen area (excluding menu bar/dock). |
 | **PZ-04** | Drag to bottom border (center X) | Bottom half rectangle preview overlay appears. | Window snaps to bottom 50% display half. |
 | **PZ-05** | Drag to top-left corner | Top-left quarter rectangle preview overlay appears. | Window snaps to top-left quadrant (50% width, 50% height). |
 | **PZ-06** | Drag to top-right corner | Top-right quarter rectangle preview overlay appears. | Window snaps to top-right quadrant. |

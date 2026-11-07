@@ -38,7 +38,7 @@ public struct EdgeSnapAcceptancePolicy: Sendable {
         }
 
         // Disallowed / non-geometric actions (A-03)
-        if action.rawValue == "window.restore" || action.rawValue == "window.native-fullscreen" {
+        if action == .restore || action == .nativeFullScreen {
             return false
         }
 
@@ -64,7 +64,7 @@ public struct EdgeSnapAcceptancePolicy: Sendable {
             return midXClose && midYClose
         }
 
-        if action.rawValue == "window.previous-display" || action.rawValue == "window.next-display" {
+        if action == .moveDisplayPrevious || action == .moveDisplayNext {
             return overlap >= Self.displayTransferOverlapFloor
         }
 
