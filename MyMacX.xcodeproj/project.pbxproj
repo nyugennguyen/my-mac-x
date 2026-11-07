@@ -149,6 +149,8 @@
 		10000000000000000000009D /* EdgeSnapTargetResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000009D /* EdgeSnapTargetResolverTests.swift */; };
 		10000000000000000000009E /* EdgeSnapCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000009E /* EdgeSnapCoordinator.swift */; };
 		10000000000000000000009F /* EdgeSnapCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000009F /* EdgeSnapCoordinatorTests.swift */; };
+		1000000000000000000000A0 /* LayoutThumbnailGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A0 /* LayoutThumbnailGeometry.swift */; };
+		1000000000000000000000A1 /* LayoutThumbnailRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A1 /* LayoutThumbnailRenderer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -309,6 +311,8 @@
 		20000000000000000000009D /* EdgeSnapTargetResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSnapTargetResolverTests.swift; sourceTree = "<group>"; };
 		20000000000000000000009E /* EdgeSnapCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSnapCoordinator.swift; sourceTree = "<group>"; };
 		20000000000000000000009F /* EdgeSnapCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSnapCoordinatorTests.swift; sourceTree = "<group>"; };
+		2000000000000000000000A0 /* LayoutThumbnailGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutThumbnailGeometry.swift; sourceTree = "<group>"; };
+		2000000000000000000000A1 /* LayoutThumbnailRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutThumbnailRenderer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -384,6 +388,7 @@
 				200000000000000000000048 /* HotkeyRuntimeBindingUpdater.swift */,
 				200000000000000000000059 /* CrossDisplayDragComposition.swift */,
 				20000000000000000000009E /* EdgeSnapCoordinator.swift */,
+				2000000000000000000000A1 /* LayoutThumbnailRenderer.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -562,6 +567,7 @@
 				20000000000000000000001A /* Layout.swift */,
 				200000000000000000000070 /* LayoutLibrary.swift */,
 				20000000000000000000001B /* LayoutCalculator.swift */,
+				2000000000000000000000A0 /* LayoutThumbnailGeometry.swift */,
 			);
 			path = LayoutKit;
 			sourceTree = "<group>";
@@ -1042,6 +1048,8 @@
 				100000000000000000000076 /* AppRulePolicy.swift in Sources */,
 				100000000000000000000078 /* DiagnosticsReportBuilder.swift in Sources */,
 				10000000000000000000007A /* PerformanceBudgetPolicy.swift in Sources */,
+				1000000000000000000000A0 /* LayoutThumbnailGeometry.swift in Sources */,
+				1000000000000000000000A1 /* LayoutThumbnailRenderer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

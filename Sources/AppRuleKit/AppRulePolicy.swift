@@ -29,7 +29,7 @@ public struct ApplicationBundleIdentifier: Hashable, Codable, Sendable {
         try container.encode(value)
     }
 
-    private static func isValid(_ value: String) -> Bool {
+    public static func isValid(_ value: String) -> Bool {
         guard value.utf8.count <= 255 else { return false }
         let segments = value.split(separator: ".", omittingEmptySubsequences: false)
         guard segments.count >= 2 else { return false }
@@ -44,6 +44,16 @@ public struct ApplicationBundleIdentifier: Hashable, Codable, Sendable {
                 }
             }
         }
+    }
+
+    public static func validationError(for value: String) -> String? {
+        if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Bundle identifier cannot be empty."
+        }
+        guard isValid(value) else {
+            return "Invalid bundle identifier. Missing or malformed identities fail closed and are excluded."
+        }
+        return nil
     }
 }
 

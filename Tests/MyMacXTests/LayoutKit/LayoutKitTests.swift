@@ -229,6 +229,79 @@ final class LayoutKitTests: XCTestCase {
             && frame.maxY <= visibleFrame.maxY + 1
     }
 
+    func testLayoutRegionThumbnailGeometryCalculatesPixelRectsWithInteriorGaps() {
+        let canvas = CGRect(x: 10, y: 20, width: 80, height: 50)
+        let gap: CGFloat = 2.0
+
+        // 1. Maximize fills the canvas without gap
+        let maxRect = LayoutRegionThumbnailGeometry.pixelRect(
+            for: CGRect(x: 0, y: 0, width: 1, height: 1),
+            in: canvas,
+            gap: gap
+        )
+        XCTAssertEqual(maxRect, canvas)
+
+        // 2. Halves (columns)
+        let leftHalf = LayoutRegionThumbnailGeometry.pixelRect(
+            for: CGRect(x: 0, y: 0, width: 0.5, height: 1),
+            in: canvas,
+            gap: gap
+        )
+        let rightHalf = LayoutRegionThumbnailGeometry.pixelRect(
+            for: CGRect(x: 0.5, y: 0, width: 0.5, height: 1),
+            in: canvas,
+            gap: gap
+        )
+
+        XCTAssertEqual(leftHalf.minX, canvas.minX)
+        XCTAssertEqual(leftHalf.width, (canvas.width - gap) / 2.0)
+        XCTAssertEqual(rightHalf.maxX, canvas.maxX)
+        XCTAssertEqual(rightHalf.width, (canvas.width - gap) / 2.0)
+        XCTAssertEqual(rightHalf.minX - leftHalf.maxX, gap)
+
+        // 3. Quarters (2x2 grid)
+        let bottomLeft = LayoutRegionThumbnailGeometry.pixelRect(
+            for: CGRect(x: 0, y: 0, width: 0.5, height: 0.5),
+            in: canvas,
+            gap: gap
+        )
+        let topLeft = LayoutRegionThumbnailGeometry.pixelRect(
+            for: CGRect(x: 0, y: 0.5, width: 0.5, height: 0.5),
+            in: canvas,
+            gap: gap
+        )
+        let bottomRight = LayoutRegionThumbnailGeometry.pixelRect(
+            for: CGRect(x: 0.5, y: 0, width: 0.5, height: 0.5),
+            in: canvas,
+            gap: gap
+        )
+        let topRight = LayoutRegionThumbnailGeometry.pixelRect(
+            for: CGRect(x: 0.5, y: 0.5, width: 0.5, height: 0.5),
+            in: canvas,
+            gap: gap
+        )
+
+        XCTAssertEqual(bottomRight.minX - bottomLeft.maxX, gap)
+        XCTAssertEqual(topRight.minX - topLeft.maxX, gap)
+        XCTAssertEqual(topLeft.minY - bottomLeft.maxY, gap)
+        XCTAssertEqual(topRight.minY - bottomRight.maxY, gap)
+
+        // 4. Custom Coding layout (left 60%, right top/bottom)
+        let codingRegions = [
+            CGRect(x: 0, y: 0, width: 0.6, height: 1),
+            CGRect(x: 0.6, y: 0, width: 0.4, height: 0.5),
+            CGRect(x: 0.6, y: 0.5, width: 0.4, height: 0.5)
+        ]
+        let codingPixelRects = LayoutRegionThumbnailGeometry.pixelRects(
+            for: codingRegions,
+            in: canvas,
+            gap: gap
+        )
+        XCTAssertEqual(codingPixelRects.count, 3)
+        XCTAssertEqual(codingPixelRects[1].minX - codingPixelRects[0].maxX, gap)
+        XCTAssertEqual(codingPixelRects[2].minY - codingPixelRects[1].maxY, gap)
+    }
+
     private func assertFrame(
         _ actual: CGRect,
         equals expected: CGRect,

@@ -266,6 +266,83 @@ final class SettingsShellTests: XCTestCase {
         XCTAssertEqual(runtime.openedEditors, [.hotkeys, .superMode])
     }
 
+    func testFeatureScreensRenderAtSupportedWindowSizes() {
+        let coding = LayoutDraft.coding
+        let customLayout = SettingsLayoutPresentation(
+            draft: SettingsLayoutDraft(
+                id: coding.id,
+                name: coding.name,
+                regions: coding.regions.map {
+                    .init(id: $0.id.rawValue, normalizedFrame: $0.normalizedFrame)
+                }
+            )
+        )
+        let displayProfiles: [SettingsDisplayProfilePresentation] = [
+            .init(
+                draft: .init(stableDisplayID: "4280A3F1", gap: 8, layoutIDs: ["built-in", "preset-halves"]),
+                isConnected: true
+            ),
+            .init(
+                draft: .init(stableDisplayID: "7B12E4D0", gap: 12, layoutIDs: ["preset-quarters"]),
+                isConnected: false
+            )
+        ]
+        let appRules: SettingsAppRulesPresentation = .init(
+            defaultDecision: .included,
+            rules: [
+                .init(bundleIdentifier: ApplicationBundleIdentifier("com.apple.Terminal")!, decision: .included),
+                .init(bundleIdentifier: ApplicationBundleIdentifier("com.valvesoftware.steam")!, decision: .excluded)
+            ]
+        )
+
+        let snapshot = SettingsRuntimeSnapshot(
+            general: .init(accessibility: .granted, inputMonitoringGranted: true, launchesAtLogin: false),
+            snapping: .default,
+            hotkeys: .empty,
+            layouts: [customLayout],
+            displayProfiles: displayProfiles,
+            appRules: appRules
+        )
+
+        let runtime = RuntimeHarness(snapshot: snapshot)
+        let controller = SettingsShellWindowController(runtime: runtime)
+
+        let sectionsToTest: [SettingsSection] = [.layouts, .displays, .appRules]
+        for section in sectionsToTest {
+            controller.select(section)
+            for size in [NSSize(width: 880, height: 620), NSSize(width: 760, height: 520)] {
+                assertProductionSettingsWindowRenders(
+                    controller.windowForTesting(contentSize: size),
+                    contentSize: size
+                )
+            }
+        }
+    }
+
+    func testCopyFixesVerbatimPresenceInSettings() {
+        // 1. Verbatim domain labels
+        XCTAssertEqual(SettingsCopy.stableDisplayID, "Stable Display ID")
+        XCTAssertEqual(SettingsCopy.displayIdentifier, "Stable Display ID")
+        XCTAssertEqual(SettingsCopy.layoutRegion, "Layout Region")
+        XCTAssertEqual(SettingsCopy.layoutRegions, "Layout Regions")
+        XCTAssertEqual(SettingsCopy.nativeFullScreen, "Native Full Screen")
+
+        // 2. Region count formatting
+        XCTAssertEqual(SettingsCopy.regionCount(1), "1 Layout Region")
+        XCTAssertEqual(SettingsCopy.regionCount(3), "3 Layout Regions")
+
+        // 3. Maximize is NEVER called Full Screen (domain invariant)
+        let builtInActions = ActionRegistry.builtIn.actions
+        let maximizeAction = builtInActions.first { $0.id == .maximize }
+        XCTAssertNotNil(maximizeAction)
+        XCTAssertEqual(maximizeAction?.title, "Maximize")
+        XCTAssertFalse(maximizeAction?.title.localizedCaseInsensitiveContains("Full Screen") ?? true)
+
+        let nativeFullScreenAction = builtInActions.first { $0.id == .nativeFullScreen }
+        XCTAssertNotNil(nativeFullScreenAction)
+        XCTAssertEqual(nativeFullScreenAction?.title, "Native Full Screen")
+    }
+
     func testLayoutProfileAndAppRuleEditsApplyImmediatelyThroughRuntime() {
         let runtime = RuntimeHarness(snapshot: baselineSnapshot())
         let model = SettingsShellModel(runtime: runtime)
