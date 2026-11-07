@@ -65,4 +65,48 @@ final class AppRulePolicyTests: XCTestCase {
             )
         )
     }
+
+    func testAppRuleMatchingAndFailClosedDefaultSemantics() throws {
+        let terminalID = try XCTUnwrap(ApplicationBundleIdentifier("com.apple.Terminal"))
+        let steamID = try XCTUnwrap(ApplicationBundleIdentifier("com.valvesoftware.steam"))
+
+        let policy = AppRulePolicy(
+            unmatched: .included,
+            rules: [
+                AppRule(bundleIdentifier: terminalID, decision: .included),
+                AppRule(bundleIdentifier: steamID, decision: .excluded)
+            ]
+        )
+
+        // Matching
+        XCTAssertEqual(policy.decision(for: "com.apple.Terminal"), .included)
+        XCTAssertEqual(policy.decision(for: "com.valvesoftware.steam"), .excluded)
+        XCTAssertEqual(policy.decision(for: "COM.VALVESOFTWARE.STEAM"), .excluded)
+        XCTAssertEqual(policy.decision(for: "com.apple.Safari"), .included) // unmatched default
+
+        // Fail-closed semantics: malformed or nil ALWAYS fails closed (excluded)
+        XCTAssertEqual(policy.decision(for: nil), .excluded)
+        XCTAssertEqual(policy.decision(for: ""), .excluded)
+        XCTAssertEqual(policy.decision(for: "invalid bundle"), .excluded)
+        XCTAssertEqual(policy.decision(for: "missing-dot"), .excluded)
+    }
+
+    func testBundleIdentifierValidationSurfacesFailClosedHonesty() {
+        XCTAssertTrue(ApplicationBundleIdentifier.isValid("com.apple.Terminal"))
+        XCTAssertTrue(ApplicationBundleIdentifier.isValid("com.valvesoftware.steam"))
+        XCTAssertFalse(ApplicationBundleIdentifier.isValid(""))
+        XCTAssertFalse(ApplicationBundleIdentifier.isValid("invalid"))
+        XCTAssertFalse(ApplicationBundleIdentifier.isValid("com. apple.invalid"))
+
+        // Explanatory fail-closed feedback for UI
+        XCTAssertEqual(
+            ApplicationBundleIdentifier.validationError(for: ""),
+            "Bundle identifier cannot be empty."
+        )
+        XCTAssertEqual(
+            ApplicationBundleIdentifier.validationError(for: "Terminal"),
+            "Invalid bundle identifier. Missing or malformed identities fail closed and are excluded."
+        )
+        XCTAssertNil(ApplicationBundleIdentifier.validationError(for: "com.apple.Terminal"))
+    }
 }

@@ -156,6 +156,70 @@ final class LayoutLibraryTests: XCTestCase {
         )
     }
 
+    func testStandardPresetsAndCodingCustomLayoutAreStructurallyValid() throws {
+        var library = LayoutLibrary()
+
+        for preset in LayoutDraft.standardPresets {
+            let result = library.save(preset)
+            guard case .success = result else {
+                return XCTFail("Preset \(preset.name) failed to save: \(result)")
+            }
+            XCTAssertEqual(library.draft(withID: preset.id), preset)
+        }
+
+        // Custom "Coding" layout from prototype
+        let coding = LayoutDraft.coding
+        let codingResult = library.save(coding)
+        guard case .success = codingResult else {
+            return XCTFail("Custom Coding layout failed to save: \(codingResult)")
+        }
+        XCTAssertEqual(library.draft(withID: coding.id), coding)
+        XCTAssertEqual(coding.regions.count, 3)
+    }
+
+    func testSplitAndMergeTransformsOnCustomCodingLayout() {
+        let coding = LayoutDraft.coding
+        let editor = LayoutEditor()
+
+        // Splitting the main editor region vertically into two sub-rows
+        let splitResult = editor.apply(
+            .split(
+                regionID: LayoutRegionID(rawValue: "editor"),
+                direction: .rows,
+                firstFraction: 0.5,
+                firstRegionID: LayoutRegionID(rawValue: "editor-top"),
+                secondRegionID: LayoutRegionID(rawValue: "editor-bottom")
+            ),
+            to: coding
+        )
+
+        guard case let .success(splitDraft) = splitResult else {
+            return XCTFail("Expected successful split on custom layout: \(splitResult)")
+        }
+        XCTAssertEqual(splitDraft.regions.count, 4)
+
+        // Merging the two right regions (terminal + preview) back into a full right half
+        let mergeResult = editor.apply(
+            .merge(
+                regionIDs: [
+                    LayoutRegionID(rawValue: "terminal"),
+                    LayoutRegionID(rawValue: "preview")
+                ],
+                mergedRegionID: LayoutRegionID(rawValue: "right-stack")
+            ),
+            to: coding
+        )
+
+        guard case let .success(mergedDraft) = mergeResult else {
+            return XCTFail("Expected successful merge on custom layout: \(mergeResult)")
+        }
+        XCTAssertEqual(mergedDraft.regions.count, 2)
+        let rightStack = mergedDraft.regions.first { $0.id == LayoutRegionID(rawValue: "right-stack") }
+        XCTAssertNotNil(rightStack)
+        XCTAssertEqual(rightStack?.normalizedFrame.width, 0.375)
+        XCTAssertEqual(rightStack?.normalizedFrame.height, 1.0)
+    }
+
     private func region(
         _ id: String,
         x: CGFloat,

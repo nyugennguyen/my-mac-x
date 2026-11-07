@@ -897,132 +897,417 @@ private struct SettingsShellView: View {
     }
 }
 
-private struct LayoutLibrarySettingsView: View {
+struct LayoutLibrarySettingsView: View {
     @ObservedObject var model: SettingsShellModel
+    @State private var selectedLayoutID: String = "preset-halves"
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var presets: [LayoutDraft] {
+        LayoutDraft.standardPresets
+    }
+
+    private var customLayouts: [SettingsLayoutPresentation] {
+        model.snapshot.layouts
+    }
+
+    private var allLayoutItems: [(id: String, name: String, regions: [CGRect], isCustom: Bool, presentation: SettingsLayoutPresentation?)] {
+        var items: [(id: String, name: String, regions: [CGRect], isCustom: Bool, presentation: SettingsLayoutPresentation?)] = []
+        for preset in presets {
+            items.append((
+                id: preset.id,
+                name: preset.name,
+                regions: preset.regions.map(\.normalizedFrame),
+                isCustom: false,
+                presentation: nil
+            ))
+        }
+        for custom in customLayouts {
+            items.append((
+                id: custom.id,
+                name: custom.draft.name,
+                regions: custom.draft.regions.map(\.normalizedFrame),
+                isCustom: true,
+                presentation: custom
+            ))
+        }
+        return items
+    }
+
+    private var activeSelectedItem: (id: String, name: String, regions: [CGRect], isCustom: Bool, presentation: SettingsLayoutPresentation?)? {
+        if let match = allLayoutItems.first(where: { $0.id == selectedLayoutID }) {
+            return match
+        }
+        return customLayouts.first.map {
+            (id: $0.id, name: $0.draft.name, regions: $0.draft.regions.map(\.normalizedFrame), isCustom: true, presentation: $0)
+        } ?? allLayoutItems.first
+    }
 
     var body: some View {
-        Form {
-            Section(SettingsCopy.layoutLibraryTitle) {
-                Button(SettingsCopy.addLayout) {
-                    let suffix = UUID().uuidString.prefix(8)
-                    model.saveLayout(.init(
-                        id: "layout-\(suffix)",
-                        name: SettingsCopy.newLayoutName,
-                        regions: [.init(id: "main", normalizedFrame: CGRect(x: 0, y: 0, width: 1, height: 1))]
-                    ))
-                }
-                if model.snapshot.layouts.isEmpty {
-                    Text(SettingsCopy.layoutsEmptyState).foregroundStyle(.secondary)
-                } else {
-                    ForEach(model.snapshot.layouts) { layout in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(layout.draft.name).font(.headline)
-                            Text(SettingsCopy.regionCount(layout.draft.regions.count)).foregroundStyle(.secondary)
-                            HStack {
-                                Button(SettingsCopy.splitColumns) { split(layout, direction: .columns) }
-                                Button(SettingsCopy.splitRows) { split(layout, direction: .rows) }
-                                Button(SettingsCopy.mergeRegions) { merge(layout) }
-                                    .disabled(layout.draft.regions.count < 2)
-                                Spacer()
-                                Button(SettingsCopy.delete) { model.deleteLayout(id: layout.id) }
+        ScrollView {
+            VStack(alignment: .leading, spacing: SettingsSpacing.cardStackGap) {
+                // Section 1: Presets & Custom Layouts Grid
+                VStack(alignment: .leading, spacing: SettingsSpacing.small) {
+                    Text(SettingsCopy.layoutLibraryTitle)
+                        .font(SettingsTypography.sectionTitle)
+                        .foregroundStyle(.primary)
+
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 120, maximum: 140), spacing: 12)],
+                        spacing: 12
+                    ) {
+                        ForEach(allLayoutItems, id: \.id) { item in
+                            let isSelected = (item.id == (activeSelectedItem?.id ?? selectedLayoutID))
+                            Button {
+                                withAnimation(SettingsMotion.animation(reduceMotion: reduceMotion)) {
+                                    selectedLayoutID = item.id
+                                }
+                            } label: {
+                                VStack(spacing: 8) {
+                                    LayoutThumbnailView(
+                                        regions: item.regions,
+                                        isSelected: isSelected,
+                                        size: CGSize(width: 80, height: 52)
+                                    )
+
+                                    Text(item.name)
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundStyle(.primary)
+
+                                    CapsuleBadge(
+                                        item.isCustom ? "Custom" : "Preset",
+                                        tint: item.isCustom ? .systemIndigo : .secondaryLabelColor
+                                    )
+                                }
+                                .padding(10)
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(isSelected ? Color.accentColor.opacity(0.12) : Color(nsColor: .controlBackgroundColor).opacity(0.4))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .strokeBorder(isSelected ? Color.accentColor : Color.clear, lineWidth: 1.5)
+                                )
                             }
-                            if let message = layout.validationMessage {
-                                Label(message, systemImage: "exclamationmark.triangle")
-                                    .foregroundStyle(.red)
-                                    .accessibilityLabel("\(SettingsCopy.layoutValidationError): \(message)")
+                            .buttonStyle(.plain)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel("\(item.name), \(item.isCustom ? "Custom" : "Preset")")
+                            .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+                        }
+                    }
+                }
+                .settingsSectionAnchor(.layoutsLibrary)
+
+                // Section 2: Edit Layout Card
+                if let active = activeSelectedItem {
+                    SettingsCard(label: "Edit Layout") {
+                        SettingsRow(
+                            icon: IconTile(systemName: "rectangle.split.3x1", tint: .green),
+                            title: active.name,
+                            caption: "Select a layout above, then use the actions below to modify its regions."
+                        ) {
+                            Text(SettingsCopy.regionCount(active.regions.count))
+                                .font(SettingsTypography.code)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        SettingsDivider()
+
+                        SettingsRow(
+                            title: "Modify Regions",
+                            caption: "Divide or join Layout Regions within this layout"
+                        ) {
+                            HStack(spacing: 8) {
+                                Button(SettingsCopy.splitColumns) {
+                                    splitActive(active, direction: .columns)
+                                }
+                                Button(SettingsCopy.splitRows) {
+                                    splitActive(active, direction: .rows)
+                                }
+                                Button(SettingsCopy.mergeRegions) {
+                                    mergeActive(active)
+                                }
+                                .disabled(active.regions.count < 2)
                             }
                         }
-                        .accessibilityElement(children: .contain)
-                        .accessibilityLabel("\(layout.draft.name), \(SettingsCopy.regionCount(layout.draft.regions.count))")
+
+                        if let validation = active.presentation?.validationMessage {
+                            SettingsDivider()
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                                Text(validation)
+                                    .font(SettingsTypography.rowCaption)
+                                    .foregroundStyle(.orange)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(.vertical, 4)
+                        }
+
+                        if active.isCustom, let presentation = active.presentation {
+                            SettingsDivider()
+                            HStack {
+                                Spacer()
+                                Button(SettingsCopy.delete) {
+                                    model.deleteLayout(id: presentation.id)
+                                    selectedLayoutID = presets.first?.id ?? "preset-halves"
+                                }
+                                .buttonStyle(.borderless)
+                                .foregroundStyle(.red)
+                            }
+                            .padding(.top, 4)
+                        }
+                    }
+                }
+
+                // Section 3: Add Custom Layout
+                SettingsCard(label: "Add Layout") {
+                    HStack(spacing: 8) {
+                        Button("Add Coding Layout") {
+                            let coding = LayoutDraft.coding
+                            model.saveLayout(.init(
+                                id: coding.id,
+                                name: coding.name,
+                                regions: coding.regions.map {
+                                    .init(id: $0.id.rawValue, normalizedFrame: $0.normalizedFrame)
+                                }
+                            ))
+                            selectedLayoutID = coding.id
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button(SettingsCopy.addLayout) {
+                            let suffix = UUID().uuidString.prefix(8)
+                            let newID = "layout-\(suffix)"
+                            model.saveLayout(.init(
+                                id: newID,
+                                name: SettingsCopy.newLayoutName,
+                                regions: [.init(id: "main", normalizedFrame: CGRect(x: 0, y: 0, width: 1, height: 1))]
+                            ))
+                            selectedLayoutID = newID
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
                 }
             }
-            .settingsSectionAnchor(.layoutsLibrary)
+            .padding(SettingsSpacing.large)
+            .frame(maxWidth: SettingsSpacing.maxContentWidth, alignment: .leading)
         }
-        .formStyle(.grouped)
         .navigationTitle(SettingsCopy.layoutsSectionTitle)
-        .padding()
         .accessibilityIdentifier(SettingsAccessibilityID.layoutLibrary)
     }
 
-    private func split(_ layout: SettingsLayoutPresentation, direction: SettingsLayoutSplitDirection) {
-        guard let region = layout.draft.regions.first else { return }
-        let suffix = UUID().uuidString.prefix(8)
-        model.editLayout(id: layout.id, edit: .split(
-            regionID: region.id,
-            direction: direction,
-            firstFraction: 0.5,
-            firstRegionID: "\(region.id)-a-\(suffix)",
-            secondRegionID: "\(region.id)-b-\(suffix)"
-        ))
+    private func splitActive(
+        _ item: (id: String, name: String, regions: [CGRect], isCustom: Bool, presentation: SettingsLayoutPresentation?),
+        direction: SettingsLayoutSplitDirection
+    ) {
+        if let presentation = item.presentation {
+            guard let region = presentation.draft.regions.first else { return }
+            let suffix = UUID().uuidString.prefix(8)
+            model.editLayout(id: presentation.id, edit: .split(
+                regionID: region.id,
+                direction: direction,
+                firstFraction: 0.5,
+                firstRegionID: "\(region.id)-a-\(suffix)",
+                secondRegionID: "\(region.id)-b-\(suffix)"
+            ))
+        } else {
+            let suffix = UUID().uuidString.prefix(8)
+            let newID = "custom-\(item.name.lowercased())-\(suffix)"
+            var draftRegions = item.regions.enumerated().map { (index, frame) in
+                SettingsLayoutRegionDraft(id: "region-\(index)", normalizedFrame: frame)
+            }
+            guard !draftRegions.isEmpty else { return }
+            let target = draftRegions.removeFirst()
+            let firstFrame: CGRect
+            let secondFrame: CGRect
+            if direction == .columns {
+                let halfW = target.normalizedFrame.width * 0.5
+                firstFrame = CGRect(x: target.normalizedFrame.minX, y: target.normalizedFrame.minY, width: halfW, height: target.normalizedFrame.height)
+                secondFrame = CGRect(x: target.normalizedFrame.minX + halfW, y: target.normalizedFrame.minY, width: target.normalizedFrame.width - halfW, height: target.normalizedFrame.height)
+            } else {
+                let halfH = target.normalizedFrame.height * 0.5
+                firstFrame = CGRect(x: target.normalizedFrame.minX, y: target.normalizedFrame.minY, width: target.normalizedFrame.width, height: halfH)
+                secondFrame = CGRect(x: target.normalizedFrame.minX, y: target.normalizedFrame.minY + halfH, width: target.normalizedFrame.width, height: target.normalizedFrame.height - halfH)
+            }
+            draftRegions.insert(SettingsLayoutRegionDraft(id: "\(target.id)-a", normalizedFrame: firstFrame), at: 0)
+            draftRegions.insert(SettingsLayoutRegionDraft(id: "\(target.id)-b", normalizedFrame: secondFrame), at: 1)
+
+            model.saveLayout(.init(
+                id: newID,
+                name: "\(item.name) Custom",
+                regions: draftRegions
+            ))
+            selectedLayoutID = newID
+        }
     }
 
-    private func merge(_ layout: SettingsLayoutPresentation) {
-        model.editLayout(
-            id: layout.id,
-            edit: .merge(regionIDs: layout.draft.regions.map(\.id), mergedRegionID: "merged")
-        )
+    private func mergeActive(
+        _ item: (id: String, name: String, regions: [CGRect], isCustom: Bool, presentation: SettingsLayoutPresentation?)
+    ) {
+        if let presentation = item.presentation {
+            model.editLayout(
+                id: presentation.id,
+                edit: .merge(regionIDs: presentation.draft.regions.map(\.id), mergedRegionID: "merged")
+            )
+        }
     }
 }
 
-private struct DisplayProfilesSettingsView: View {
+struct DisplayProfilesSettingsView: View {
     @ObservedObject var model: SettingsShellModel
 
     var body: some View {
-        Form {
-            Section(SettingsCopy.displayProfilesTitle) {
-                Button(SettingsCopy.addConnectedDisplays) {
-                    model.createDisplayProfilesForConnectedDisplays()
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: SettingsSpacing.cardStackGap) {
                 if model.snapshot.displayProfiles.isEmpty {
-                    Text(SettingsCopy.displayProfilesEmptyState).foregroundStyle(.secondary)
+                    SettingsCard {
+                        SettingsRow(
+                            icon: IconTile(systemName: "display.trianglebadge.exclamationmark", tint: .orange),
+                            title: SettingsCopy.displayProfilesTitle,
+                            caption: SettingsCopy.displayProfilesEmptyState
+                        ) {
+                            Button(SettingsCopy.addConnectedDisplays) {
+                                model.createDisplayProfilesForConnectedDisplays()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
                 } else {
                     ForEach(model.snapshot.displayProfiles) { profile in
-                        VStack(alignment: .leading, spacing: 8) {
-                            LabeledContent(SettingsCopy.displayIdentifier, value: profile.draft.stableDisplayID)
-                            Stepper(
-                                "\(SettingsCopy.gap): \(Int(profile.draft.gap)) pt",
-                                value: gapBinding(profile), in: 0 ... 200, step: 1
-                            )
-                            Text(profile.draft.layoutIDs.joined(separator: ", "))
-                                .foregroundStyle(.secondary)
-                                .accessibilityLabel("\(SettingsCopy.assignedLayouts): \(profile.draft.layoutIDs.joined(separator: ", "))")
-                            ForEach(model.snapshot.layouts) { layout in
-                                Toggle(
-                                    layout.draft.name,
-                                    isOn: layoutAssignmentBinding(layoutID: layout.id, profile: profile)
+                        SettingsCard {
+                            // Header
+                            HStack(spacing: SettingsSpacing.rowGap) {
+                                IconTile(
+                                    systemName: "display",
+                                    tint: profile.isConnected ? Color(nsColor: .controlAccentColor) : .secondary
                                 )
-                                .accessibilityLabel("\(layout.draft.name), \(SettingsCopy.assignedLayouts)")
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(displayName(for: profile))
+                                        .font(SettingsTypography.rowTitle)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.primary)
+
+                                    Text("Stable Display ID: \(profile.draft.stableDisplayID)")
+                                        .font(SettingsTypography.code)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                Spacer()
+                                HStack(spacing: 6) {
+                                    StatusDot(state: profile.isConnected ? .active : .inactive)
+                                    Text(profile.isConnected ? SettingsCopy.displayConnected : "Disconnected")
+                                        .font(SettingsTypography.supporting)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
-                            Label(
-                                profile.isConnected ? SettingsCopy.displayConnected : SettingsCopy.displayDisconnected,
-                                systemImage: profile.isConnected ? "checkmark.circle" : "display.trianglebadge.exclamationmark"
-                            )
-                            Button(SettingsCopy.delete) {
-                                model.deleteDisplayProfile(stableDisplayID: profile.draft.stableDisplayID)
+                            .padding(.vertical, 4)
+
+                            if !profile.isConnected {
+                                SettingsDivider()
+                                HStack(spacing: 8) {
+                                    Image(systemName: "info.circle")
+                                        .foregroundStyle(.secondary)
+                                        .font(.system(size: 11))
+                                    Text("This display is currently disconnected. Settings will apply when reconnected.")
+                                        .font(SettingsTypography.rowCaption)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding(.vertical, 4)
                             }
+
+                            SettingsDivider()
+
+                            // Gap Stepper
+                            SettingsRow(
+                                title: SettingsCopy.gap,
+                                caption: "Spacing between tiled windows in points"
+                            ) {
+                                HStack(spacing: 8) {
+                                    Button("−") {
+                                        let newGap = DisplayProfile.clampedGap(profile.draft.gap - 1)
+                                        updateGap(newGap, for: profile)
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(profile.draft.gap <= 0)
+
+                                    Text("\(Int(profile.draft.gap)) pt")
+                                        .font(SettingsTypography.stepper)
+                                        .frame(minWidth: 44, alignment: .center)
+
+                                    Button("+") {
+                                        let newGap = DisplayProfile.clampedGap(profile.draft.gap + 1)
+                                        updateGap(newGap, for: profile)
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(profile.draft.gap >= 200)
+                                }
+                            }
+
+                            SettingsDivider()
+
+                            // Layout Assignments
+                            SettingsRow(
+                                title: SettingsCopy.assignedLayouts,
+                                caption: "Layouts enabled for window placement on this display"
+                            ) {
+                                EmptyView()
+                            } subcontent: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    ForEach(model.snapshot.layouts) { layout in
+                                        Toggle(
+                                            layout.draft.name,
+                                            isOn: layoutAssignmentBinding(layoutID: layout.id, profile: profile)
+                                        )
+                                        .accessibilityLabel("\(layout.draft.name), \(SettingsCopy.assignedLayouts)")
+                                    }
+                                }
+                                .padding(.top, 4)
+                            }
+
                             if let message = profile.validationMessage {
-                                Text(message).foregroundStyle(.red).accessibilityLabel(message)
+                                SettingsDivider()
+                                Label(message, systemImage: "exclamationmark.triangle")
+                                    .font(SettingsTypography.rowCaption)
+                                    .foregroundStyle(.red)
+                                    .padding(.vertical, 4)
                             }
+
+                            SettingsDivider()
+
+                            HStack {
+                                Spacer()
+                                Button(SettingsCopy.delete) {
+                                    model.deleteDisplayProfile(stableDisplayID: profile.draft.stableDisplayID)
+                                }
+                                .buttonStyle(.borderless)
+                                .foregroundStyle(.red)
+                            }
+                            .padding(.top, 4)
                         }
-                        .accessibilityElement(children: .contain)
                     }
                 }
             }
+            .padding(SettingsSpacing.large)
+            .frame(maxWidth: SettingsSpacing.maxContentWidth, alignment: .leading)
             .settingsSectionAnchor(.displayProfiles)
         }
-        .formStyle(.grouped)
         .navigationTitle(SettingsCopy.displaysSectionTitle)
-        .padding()
         .accessibilityIdentifier(SettingsAccessibilityID.displayProfiles)
     }
 
-    private func gapBinding(_ profile: SettingsDisplayProfilePresentation) -> Binding<Double> {
-        Binding(get: { profile.draft.gap }, set: { gap in
-            var draft = profile.draft
-            draft.gap = gap
-            model.saveDisplayProfile(draft)
-        })
+    private func displayName(for profile: SettingsDisplayProfilePresentation) -> String {
+        if profile.draft.stableDisplayID.lowercased().contains("builtin") || profile.draft.stableDisplayID.contains("4280A3F1") {
+            return "Built-in Retina Display"
+        }
+        return "Display (\(profile.draft.stableDisplayID.prefix(8)))"
+    }
+
+    private func updateGap(_ gap: Double, for profile: SettingsDisplayProfilePresentation) {
+        var draft = profile.draft
+        draft.gap = gap
+        model.saveDisplayProfile(draft)
     }
 
     private func layoutAssignmentBinding(
@@ -1041,49 +1326,149 @@ private struct DisplayProfilesSettingsView: View {
     }
 }
 
-private struct AppRulesSettingsView: View {
+struct AppRulesSettingsView: View {
     @ObservedObject var model: SettingsShellModel
-    @State private var bundleIdentifier = ""
+    @State private var bundleIdentifier: String = ""
+    @State private var newRuleDecision: AppRuleDecision = .included
+    @State private var errorMessage: String? = nil
 
     var body: some View {
-        Form {
-            Section(SettingsCopy.defaultAppBehavior) {
-                Picker(SettingsCopy.unmatchedApplications, selection: defaultDecision) {
-                    Text(SettingsCopy.included).tag(AppRuleDecision.included)
-                    Text(SettingsCopy.excluded).tag(AppRuleDecision.excluded)
-                }
-                .pickerStyle(.segmented)
-            }
-            Section(SettingsCopy.appRulesSectionTitle) {
-                ForEach(model.snapshot.appRules.rules, id: \.bundleIdentifier) { rule in
-                    HStack {
-                        Text(rule.bundleIdentifier.value)
-                        Spacer()
-                        Picker("", selection: decisionBinding(for: rule)) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: SettingsSpacing.cardStackGap) {
+                // Section 1: Default Behavior Card
+                SettingsCard(label: SettingsCopy.defaultAppBehavior) {
+                    SettingsRow(
+                        icon: IconTile(systemName: "app.badge.checkmark", tint: .blue),
+                        title: "Default Management",
+                        caption: model.snapshot.appRules.defaultDecision == .included
+                            ? "New applications are managed by MyMacX unless explicitly excluded."
+                            : "New applications are excluded from window management unless explicitly included."
+                    ) {
+                        Picker("", selection: defaultDecision) {
                             Text(SettingsCopy.included).tag(AppRuleDecision.included)
                             Text(SettingsCopy.excluded).tag(AppRuleDecision.excluded)
                         }
-                        .labelsHidden()
-                        Button(SettingsCopy.delete) { remove(rule) }
+                        .pickerStyle(.segmented)
+                        .frame(width: 170)
                     }
-                    .accessibilityElement(children: .contain)
+
+                    SettingsDivider()
+
+                    HStack(spacing: 8) {
+                        Image(systemName: "shield.checkered")
+                            .foregroundStyle(.secondary)
+                            .font(.system(size: 11))
+                        Text("Applications with missing or invalid bundle identities fail closed and are always excluded from window placement.")
+                            .font(SettingsTypography.rowCaption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.vertical, 4)
                 }
-                HStack {
-                    TextField(SettingsCopy.bundleIdentifier, text: $bundleIdentifier)
-                        .textFieldStyle(.roundedBorder)
-                        .accessibilityIdentifier(SettingsAccessibilityID.appRuleBundleIdentifier)
-                    Button(SettingsCopy.addIncludedRule) { addRule(.included) }
-                    Button(SettingsCopy.addExcludedRule) { addRule(.excluded) }
+
+                // Section 2: Rules List Card
+                SettingsCard(label: "Rules") {
+                    if model.snapshot.appRules.rules.isEmpty {
+                        Text("No application rules configured. Default management behavior applies to all applications.")
+                            .font(SettingsTypography.rowCaption)
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 8)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        ForEach(Array(model.snapshot.appRules.rules.enumerated()), id: \.element.bundleIdentifier) { index, rule in
+                            if index > 0 {
+                                SettingsDivider()
+                            }
+                            HStack(spacing: SettingsSpacing.rowGap) {
+                                AppRuleIconView(
+                                    bundleIdentifier: rule.bundleIdentifier.value,
+                                    decision: rule.decision
+                                )
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(appDisplayName(for: rule.bundleIdentifier.value))
+                                        .font(SettingsTypography.rowTitle)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.primary)
+
+                                    Text(rule.bundleIdentifier.value)
+                                        .font(SettingsTypography.code)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+
+                                Spacer()
+
+                                CapsuleBadge(
+                                    rule.decision == .included ? "Included" : "Excluded",
+                                    tint: rule.decision == .included ? .systemGreen : .systemOrange
+                                )
+
+                                Picker("", selection: decisionBinding(for: rule)) {
+                                    Text(SettingsCopy.included).tag(AppRuleDecision.included)
+                                    Text(SettingsCopy.excluded).tag(AppRuleDecision.excluded)
+                                }
+                                .labelsHidden()
+                                .frame(width: 110)
+
+                                Button {
+                                    remove(rule)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("\(SettingsCopy.delete) \(rule.bundleIdentifier.value)")
+                            }
+                            .padding(.vertical, 4)
+                            .accessibilityElement(children: .contain)
+                        }
+                    }
                 }
-                if let message = model.snapshot.appRules.validationMessage {
-                    Text(message).foregroundStyle(.red).accessibilityLabel(message)
+
+                // Section 3: Add Rule Card
+                SettingsCard(label: "Add Rule") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            TextField(SettingsCopy.bundleIdentifier, text: $bundleIdentifier)
+                                .textFieldStyle(.roundedBorder)
+                                .font(SettingsTypography.code)
+                                .accessibilityIdentifier(SettingsAccessibilityID.appRuleBundleIdentifier)
+
+                            Picker("", selection: $newRuleDecision) {
+                                Text(SettingsCopy.included).tag(AppRuleDecision.included)
+                                Text(SettingsCopy.excluded).tag(AppRuleDecision.excluded)
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(width: 150)
+
+                            Button("Add") {
+                                addRule(newRuleDecision)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(bundleIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+
+                        if let errorMessage {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                                Text(errorMessage)
+                                    .font(SettingsTypography.rowCaption)
+                                    .foregroundStyle(.orange)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(.top, 2)
+                        }
+                    }
                 }
             }
+            .padding(SettingsSpacing.large)
+            .frame(maxWidth: SettingsSpacing.maxContentWidth, alignment: .leading)
             .settingsSectionAnchor(.appRules)
         }
-        .formStyle(.grouped)
         .navigationTitle(SettingsCopy.appRulesSectionTitle)
-        .padding()
+        .padding(0)
     }
 
     private var defaultDecision: Binding<AppRuleDecision> {
@@ -1091,6 +1476,7 @@ private struct AppRulesSettingsView: View {
             model.replaceAppRules(defaultDecision: $0, rules: model.snapshot.appRules.rules)
         })
     }
+
     private func decisionBinding(for rule: AppRule) -> Binding<AppRuleDecision> {
         Binding(get: { rule.decision }, set: { decision in
             let rules = model.snapshot.appRules.rules.map {
@@ -1100,18 +1486,67 @@ private struct AppRulesSettingsView: View {
             model.replaceAppRules(defaultDecision: model.snapshot.appRules.defaultDecision, rules: rules)
         })
     }
+
     private func addRule(_ decision: AppRuleDecision) {
-        guard let id = ApplicationBundleIdentifier(bundleIdentifier) else { return }
+        let trimmed = bundleIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let error = ApplicationBundleIdentifier.validationError(for: trimmed) {
+            errorMessage = error
+            return
+        }
+        guard let id = ApplicationBundleIdentifier(trimmed) else {
+            errorMessage = "Invalid bundle identifier. Missing or malformed identities fail closed and are excluded."
+            return
+        }
+        errorMessage = nil
         let rule = AppRule(bundleIdentifier: id, decision: decision)
         let rules = model.snapshot.appRules.rules.filter { $0.bundleIdentifier != id } + [rule]
         model.replaceAppRules(defaultDecision: model.snapshot.appRules.defaultDecision, rules: rules)
         bundleIdentifier = ""
     }
+
     private func remove(_ rule: AppRule) {
         model.replaceAppRules(
             defaultDecision: model.snapshot.appRules.defaultDecision,
             rules: model.snapshot.appRules.rules.filter { $0.bundleIdentifier != rule.bundleIdentifier }
         )
+    }
+
+    private func appDisplayName(for bundleIdentifier: String) -> String {
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) {
+            let name = url.deletingPathExtension().lastPathComponent
+            if !name.isEmpty { return name }
+        }
+        let components = bundleIdentifier.split(separator: ".")
+        if let last = components.last, !last.isEmpty {
+            return last.prefix(1).uppercased() + last.dropFirst()
+        }
+        return bundleIdentifier
+    }
+}
+
+struct AppRuleIconView: View {
+    let bundleIdentifier: String
+    let decision: AppRuleDecision
+
+    var body: some View {
+        if let icon = iconImage() {
+            Image(nsImage: icon)
+                .resizable()
+                .frame(width: 26, height: 26)
+                .cornerRadius(SettingsRadius.iconTile)
+        } else {
+            IconTile(
+                systemName: "app.fill",
+                tint: decision == .included ? Color(nsColor: .systemGreen) : Color(nsColor: .systemOrange)
+            )
+        }
+    }
+
+    private func iconImage() -> NSImage? {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) else {
+            return nil
+        }
+        return NSWorkspace.shared.icon(forFile: url.path)
     }
 }
 
@@ -1587,7 +2022,11 @@ public enum SettingsCopy {
     public static let displayProfilesTitle = localized("Per-display Layouts")
     public static let addConnectedDisplays = localized("Add Connected Displays")
     public static let displayProfilesEmptyState = localized("No display profiles. Default layouts and gaps apply.")
-    public static let displayIdentifier = localized("Stable display identifier")
+    public static let displayIdentifier = localized("Stable Display ID")
+    public static let stableDisplayID = localized("Stable Display ID")
+    public static let layoutRegion = localized("Layout Region")
+    public static let layoutRegions = localized("Layout Regions")
+    public static let nativeFullScreen = localized("Native Full Screen")
     public static let gap = localized("Gap")
     public static let assignedLayouts = localized("Assigned layouts")
     public static let displayConnected = localized("Connected")
@@ -1611,7 +2050,10 @@ public enum SettingsCopy {
     public static let copyDiagnostics = localized("Copy Diagnostics Report")
 
     public static func regionCount(_ count: Int) -> String {
-        String(localized: "\(count) regions", comment: "Number of regions in a custom layout")
+        if count == 1 {
+            return String(localized: "1 Layout Region", comment: "Single Layout Region in custom layout")
+        }
+        return String(localized: "\(count) Layout Regions", comment: "Number of Layout Regions in custom layout")
     }
 
     public static func unavailableAction(_ reason: ActionUnavailability) -> String {

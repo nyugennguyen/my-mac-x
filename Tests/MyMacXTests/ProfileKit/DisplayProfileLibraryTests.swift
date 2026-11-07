@@ -100,6 +100,49 @@ final class DisplayProfileLibraryTests: XCTestCase {
         XCTAssertEqual(library.profile(for: rightID)?.gap, 6)
         XCTAssertEqual(library.profiles.map(\.stableDisplayID), [leftID, rightID])
     }
+
+    func testProfileGapValidationAndClamping() throws {
+        XCTAssertEqual(DisplayProfile.clampedGap(8), 8)
+        XCTAssertEqual(DisplayProfile.clampedGap(12), 12)
+        XCTAssertEqual(DisplayProfile.clampedGap(-5), 0)
+        XCTAssertEqual(DisplayProfile.clampedGap(250), 200)
+        XCTAssertEqual(DisplayProfile.clampedGap(Double.nan), 0)
+        XCTAssertEqual(DisplayProfile.clampedGap(Double.infinity), 200)
+
+        XCTAssertTrue(DisplayProfile.isValidGap(0))
+        XCTAssertTrue(DisplayProfile.isValidGap(8))
+        XCTAssertTrue(DisplayProfile.isValidGap(200))
+        XCTAssertFalse(DisplayProfile.isValidGap(-1))
+        XCTAssertFalse(DisplayProfile.isValidGap(201))
+        XCTAssertFalse(DisplayProfile.isValidGap(Double.nan))
+    }
+
+    func testLayoutAssignmentToggleMaintainsAtLeastOneLayout() throws {
+        var layoutIDs = ["halves", "quarters"]
+
+        // Toggling an unassigned layout adds it
+        layoutIDs = DisplayProfile.toggleLayoutAssignment("thirds", in: layoutIDs)
+        XCTAssertEqual(layoutIDs, ["halves", "quarters", "thirds"])
+
+        // Toggling an assigned layout removes it if more than 1 remains
+        layoutIDs = DisplayProfile.toggleLayoutAssignment("halves", in: layoutIDs)
+        XCTAssertEqual(layoutIDs, ["quarters", "thirds"])
+
+        // Removing down to 1
+        layoutIDs = DisplayProfile.toggleLayoutAssignment("quarters", in: layoutIDs)
+        XCTAssertEqual(layoutIDs, ["thirds"])
+
+        // Attempting to remove the last layout preserves it (cannot be empty)
+        layoutIDs = DisplayProfile.toggleLayoutAssignment("thirds", in: layoutIDs)
+        XCTAssertEqual(layoutIDs, ["thirds"])
+    }
+
+    func testDisplayProfileCaptionsUseVerbatimStableDisplayID() throws {
+        let stableID = try StableDisplayID(rawValue: "4280A3F1")
+        let caption = DisplayProfile.caption(for: stableID)
+        XCTAssertTrue(caption.contains("Stable Display ID"))
+        XCTAssertEqual(caption, "Stable Display ID: 4280A3F1")
+    }
 }
 
 private struct ProfileFixedStableDisplays: StableDisplayIdentifying {

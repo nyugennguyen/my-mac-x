@@ -60,6 +60,34 @@ struct DisplayProfile: Equatable, Sendable {
     }
 }
 
+extension DisplayProfile {
+    static func isValidGap(_ gap: Double) -> Bool {
+        gap.isFinite && gap >= 0 && gap <= maximumGap
+    }
+
+    static func clampedGap(_ gap: Double) -> Double {
+        guard gap.isFinite else {
+            return gap.isInfinite && gap > 0 ? maximumGap : 0
+        }
+        return min(max(gap, 0), maximumGap)
+    }
+
+    static func toggleLayoutAssignment(_ layoutID: String, in currentIDs: [String]) -> [String] {
+        if currentIDs.contains(layoutID) {
+            if currentIDs.count > 1 {
+                return currentIDs.filter { $0 != layoutID }
+            }
+            return currentIDs
+        } else {
+            return currentIDs + [layoutID]
+        }
+    }
+
+    static func caption(for stableDisplayID: StableDisplayID) -> String {
+        "Stable Display ID: \(stableDisplayID.rawValue)"
+    }
+}
+
 enum DisplayProfileFailure: Error, Equatable, Sendable {
     case invalidStableDisplayID
     case invalidGap

@@ -141,6 +141,8 @@
 		100000000000000000000095 /* DisplaySeamGatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000095 /* DisplaySeamGatorTests.swift */; };
 		100000000000000000000096 /* WindowDragClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000096 /* WindowDragClassifier.swift */; };
 		100000000000000000000097 /* WindowDragClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000097 /* WindowDragClassifierTests.swift */; };
+		100000000000000000000098 /* LayoutThumbnailGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000098 /* LayoutThumbnailGeometry.swift */; };
+		100000000000000000000099 /* LayoutThumbnailRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000099 /* LayoutThumbnailRenderer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -293,6 +295,8 @@
 		200000000000000000000095 /* DisplaySeamGatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplaySeamGatorTests.swift; sourceTree = "<group>"; };
 		200000000000000000000096 /* WindowDragClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDragClassifier.swift; sourceTree = "<group>"; };
 		200000000000000000000097 /* WindowDragClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowDragClassifierTests.swift; sourceTree = "<group>"; };
+		200000000000000000000098 /* LayoutThumbnailGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutThumbnailGeometry.swift; sourceTree = "<group>"; };
+		200000000000000000000099 /* LayoutThumbnailRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutThumbnailRenderer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -367,6 +371,7 @@
 				20000000000000000000003A /* HotkeyRuntimeCoordinator.swift */,
 				200000000000000000000048 /* HotkeyRuntimeBindingUpdater.swift */,
 				200000000000000000000059 /* CrossDisplayDragComposition.swift */,
+				200000000000000000000099 /* LayoutThumbnailRenderer.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -544,6 +549,7 @@
 				20000000000000000000001A /* Layout.swift */,
 				200000000000000000000070 /* LayoutLibrary.swift */,
 				20000000000000000000001B /* LayoutCalculator.swift */,
+				200000000000000000000098 /* LayoutThumbnailGeometry.swift */,
 			);
 			path = LayoutKit;
 			sourceTree = "<group>";
@@ -1014,6 +1020,8 @@
 				100000000000000000000076 /* AppRulePolicy.swift in Sources */,
 				100000000000000000000078 /* DiagnosticsReportBuilder.swift in Sources */,
 				10000000000000000000007A /* PerformanceBudgetPolicy.swift in Sources */,
+				100000000000000000000098 /* LayoutThumbnailGeometry.swift in Sources */,
+				100000000000000000000099 /* LayoutThumbnailRenderer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

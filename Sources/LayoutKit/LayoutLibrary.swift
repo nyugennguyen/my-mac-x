@@ -28,6 +28,58 @@ struct LayoutDraft: Equatable, Sendable {
     }
 }
 
+extension LayoutDraft {
+    static let halves = LayoutDraft(
+        id: "preset-halves",
+        name: "Halves",
+        regions: [
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "left"), normalizedFrame: CGRect(x: 0, y: 0, width: 0.5, height: 1)),
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "right"), normalizedFrame: CGRect(x: 0.5, y: 0, width: 0.5, height: 1)),
+        ]
+    )
+
+    static let quarters = LayoutDraft(
+        id: "preset-quarters",
+        name: "Quarters",
+        regions: [
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "bottom-left"), normalizedFrame: CGRect(x: 0, y: 0, width: 0.5, height: 0.5)),
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "bottom-right"), normalizedFrame: CGRect(x: 0.5, y: 0, width: 0.5, height: 0.5)),
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "top-left"), normalizedFrame: CGRect(x: 0, y: 0.5, width: 0.5, height: 0.5)),
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "top-right"), normalizedFrame: CGRect(x: 0.5, y: 0.5, width: 0.5, height: 0.5)),
+        ]
+    )
+
+    static let thirds = LayoutDraft(
+        id: "preset-thirds",
+        name: "Thirds",
+        regions: [
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "left"), normalizedFrame: CGRect(x: 0, y: 0, width: 1.0 / 3.0, height: 1)),
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "center"), normalizedFrame: CGRect(x: 1.0 / 3.0, y: 0, width: 1.0 / 3.0, height: 1)),
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "right"), normalizedFrame: CGRect(x: 2.0 / 3.0, y: 0, width: 1.0 / 3.0, height: 1)),
+        ]
+    )
+
+    static let center = LayoutDraft(
+        id: "preset-center",
+        name: "Center",
+        regions: [
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "center"), normalizedFrame: CGRect(x: 0.15, y: 0.125, width: 0.7, height: 0.75)),
+        ]
+    )
+
+    static let coding = LayoutDraft(
+        id: "custom-coding",
+        name: "Coding",
+        regions: [
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "editor"), normalizedFrame: CGRect(x: 0, y: 0, width: 0.625, height: 1)),
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "terminal"), normalizedFrame: CGRect(x: 0.625, y: 0, width: 0.375, height: 0.5)),
+            LayoutRegionDraft(id: LayoutRegionID(rawValue: "preview"), normalizedFrame: CGRect(x: 0.625, y: 0.5, width: 0.375, height: 0.5)),
+        ]
+    )
+
+    static let standardPresets: [LayoutDraft] = [.halves, .quarters, .thirds, .center]
+}
+
 enum LayoutLibraryFailure: Error, Equatable, Sendable {
     case emptyLayoutID
     case emptyLayoutName
