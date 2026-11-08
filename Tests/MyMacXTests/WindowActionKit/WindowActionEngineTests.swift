@@ -743,7 +743,8 @@ private actor RecordingWindowMutation: WindowMutationPerforming, CapturedWindowF
     func mutate(
         window: WindowIdentity,
         to targetFrame: AXGlobalTopLeftFrame,
-        within allowedFrame: AXGlobalTopLeftFrame
+        within allowedFrame: AXGlobalTopLeftFrame,
+        acceptance: (@Sendable (_ actual: AXGlobalTopLeftFrame, _ target: AXGlobalTopLeftFrame) -> Bool)?
     ) -> WindowMutationResult {
         mutationCalls.append(Call(window: window, target: targetFrame, allowed: allowedFrame))
         guard !outcomes.isEmpty else {

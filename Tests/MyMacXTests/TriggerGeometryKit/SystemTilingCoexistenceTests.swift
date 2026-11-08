@@ -199,17 +199,14 @@ final class SystemTilingCoexistenceTests: XCTestCase {
         XCTAssertEqual(model.status, .active)
     }
 
+    @MainActor
     func testAppDidBecomeActiveNotificationTriggersPreferenceRefresh() {
-        let mock = MockSystemTilingPreferencesAdapter()
+        let mock = MockSystemTilingPreferencesReader()
         mock.preferences = [
             SystemTilingPreferenceReader.edgeTilingKey: true,
             SystemTilingPreferenceReader.topTilingKey: true
         ]
-        let reader = SystemTilingPreferenceReader(
-            adapter: mock,
-            spacesAdapter: MockSeparateSpacesAdapter(screensHaveSeparateSpaces: true),
-            osVersionProvider: { 15 }
-        )
+        let reader = SystemTilingPreferenceReader(reader: mock)
         let model = SystemTilingCoexistenceModel(reader: reader)
         XCTAssertEqual(
             model.status,
@@ -229,6 +226,11 @@ final class SystemTilingCoexistenceTests: XCTestCase {
 
         // App becomes active
         NotificationCenter.default.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+
+        // The model observes on the main queue; drain it before asserting.
+        let drained = expectation(description: "main queue drained")
+        DispatchQueue.main.async { drained.fulfill() }
+        wait(for: [drained], timeout: 1.0)
 
         XCTAssertEqual(model.status, .active, "App activation must refresh system tiling preferences")
     }

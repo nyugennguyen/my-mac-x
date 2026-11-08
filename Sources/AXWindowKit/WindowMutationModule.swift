@@ -26,19 +26,6 @@ extension WindowMutationPerforming {
             acceptance: nil
         )
     }
-
-    func mutate(
-        window: WindowIdentity,
-        to targetFrame: AXGlobalTopLeftFrame,
-        within allowedFrame: AXGlobalTopLeftFrame,
-        acceptance: (@Sendable (_ actual: AXGlobalTopLeftFrame, _ target: AXGlobalTopLeftFrame) -> Bool)?
-    ) async -> WindowMutationResult {
-        await mutate(
-            window: window,
-            to: targetFrame,
-            within: allowedFrame
-        )
-    }
 }
 
 enum WindowMutationFailure: Error, Equatable, Sendable {

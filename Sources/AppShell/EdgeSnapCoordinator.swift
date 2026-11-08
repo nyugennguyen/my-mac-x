@@ -196,17 +196,28 @@ final class EdgeSnapCoordinator: Sendable {
 
         switch signal {
         case .leftButtonPressed(let location, let timestamp):
-            await handleButtonPressed(at: location, timestamp: timestamp)
+            await handleButtonPressed(at: location, timestamp: Self.normalizedTimestamp(timestamp))
 
         case .leftButtonDragged(let location, let timestamp):
-            await handleButtonDragged(at: location, timestamp: timestamp)
+            await handleButtonDragged(at: location, timestamp: Self.normalizedTimestamp(timestamp))
 
         case .leftButtonReleased(let location, let timestamp):
-            await handleButtonReleased(at: location, timestamp: timestamp)
+            await handleButtonReleased(at: location, timestamp: Self.normalizedTimestamp(timestamp))
 
         case .interrupted:
             await handleInterrupted()
         }
+    }
+
+    /// Zero-timestamp signals (legacy PointerPlatformSignal factories) fall back to
+    /// hardware uptime so sampling throttling and velocity math stay consistent (S-05).
+    private nonisolated static func normalizedTimestamp(_ timestamp: UInt64) -> UInt64 {
+        guard timestamp > 0 else {
+            var ts = timespec()
+            clock_gettime(CLOCK_UPTIME_RAW, &ts)
+            return UInt64(ts.tv_sec) * 1_000_000_000 &+ UInt64(ts.tv_nsec)
+        }
+        return timestamp
     }
 
     // MARK: - Private Signal Handlers
@@ -263,7 +274,9 @@ final class EdgeSnapCoordinator: Sendable {
                 run.target = target
                 run.windowID = target.windowID
                 run.initialWindowBounds = target.initialFrame
-                run.lastSampledWindowBounds = target.initialFrame
+                // Do not seed lastSampledWindowBounds with the press-time frame: leave
+                // it nil so the sampling throttle takes an immediate window-server
+                // sample for first classification (a sample must come from the sampler).
             case .failure:
                 run.isCancelled = true
                 activeRun = run
