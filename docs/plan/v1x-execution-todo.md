@@ -51,6 +51,17 @@ Legend: ⏳ pending · 🔨 in progress · ✅ done · ⛔ blocked (needs human)
 
 All Track A and Track B plan items are delivered and tester-gated (6 gates, all findings fixed with red-first regressions). Deferred-by-decision items: D-11 top-edge rewrite, Stage Manager strip reservation, A-06 scratch-frame coercion (reserve). Remaining: human gates only (see below) + optional Opus integration review (in flight).
 
+## Wave 5 — Independent integration audits + fix round
+
+| ID | Task | Agent | Status |
+|---|---|---|---|
+| AUD-A | Adversarial correctness & concurrency audit (races, backpressure, invariants, edge-case math) | `audit-a` (Gemini; Opus blocked by weekly quota ~5d) | ✅ SHIP-WITH-FIXES — 1 blocker (cross-app retargeting), 3 majors, 3 minors, 2 nits |
+| AUD-B | Persistence/hostile-input, architecture, cross-agent seams, test quality | `audit-b` | ✅ SHIP-WITH-FIXES — 3 majors (master toggle ignored, acceptance policy dead code, migration false quarantine), 2 minors, 4 nits |
+| FIX | Consolidated fix round (15 findings) | `dev-fixes` | ✅ 346fc3d (13 fixed incl. additive acceptance seam in `WindowMutationModule` — orchestrator-approved, default-strict; 2 deferred: keycap wrappers still have callers, adapter extraction) |
+| INTFIX | Orchestrator integration repairs after ground-truth verification | orchestrator | ✅ 1556f77 — de-recursed `WindowMutationPerforming` defaults (hang), mock witness, zero-timestamp normalization + first-sample seeding (real residual bug in finding #7's fix), test API repair. **Suite: 612 tests / 0 failures** |
+
+Lesson recorded: the audits found real bugs only at seams BETWEEN agents' work (each sprint tested green in isolation); the fix round itself needed ground-truth verification (claimed green while the test target did not compile and one suite hung). Full-suite foreground verification is now the close gate for every round.
+
 Human gates (never self-certified): `docs/plan/v1x-2-human-verification.md` (PZ/SG/Z-09/CA sections), pixel/focus review x7-09/x7-10 vs `docs/design/mymacx-settings-prototype.html`, and `scripts/release/complete-human-gates.sh` for release QA.
 
 Maintenance backlog: extract `MacOSSystemTilingPreferencesAdapter` from `TriggerGeometryKit` to `AppShell` (NIT, keeps the kit 100% pure).
