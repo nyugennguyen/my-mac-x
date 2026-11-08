@@ -45,11 +45,19 @@ Legend: ⏳ pending · 🔨 in progress · ✅ done · ⛔ blocked (needs human)
 |---|---|---|---|
 | A/B-P4a | Z-06 persistence: `EdgeSnapZoneConfigurationStore` (compact delta schema, back-compat migration, import/export, DiagnosticsKit anomalies) + picker integration contract | `dev-persist` | ✅ e417498 (suite 584/0; needed 3 continuation nudges — agent kept ending turns mid-background-build) |
 | A/B-P4b | Zone-map picker (3×3 miniature, partition editor 1–4 areas/edge, per-zone off, resets, debounced saves) + Z-03/Z-04 partition geometry + tiling stand-down banner | `dev-zone` | ✅ 4e4695b (suite 601/0, single clean turn) |
-| T1.5 | Final acceptance gate + whole-program plan checklist | `dev-tester` | 🔨 |
+| T1.5 | Final acceptance gate + whole-program plan checklist | `dev-tester` | ✅ **PASS / PASS** — zero blocker/major/minor; 1 NIT (maintenance: `MacOSSystemTilingPreferencesAdapter` sits in `TriggerGeometryKit` with `import AppKit`; core geometry pure — extract to AppShell in a future pass). Clean-room sweep: zero foreign code. Checklist: every plan item DONE or DEFERRED-WITH-DECISION, **zero MISSING**. Suite 601/0. |
+
+## PROGRAM STATUS: implementation complete (2026-11-08)
+
+All Track A and Track B plan items are delivered and tester-gated (6 gates, all findings fixed with red-first regressions). Deferred-by-decision items: D-11 top-edge rewrite, Stage Manager strip reservation, A-06 scratch-frame coercion (reserve). Remaining: human gates only (see below) + optional Opus integration review (in flight).
+
+Human gates (never self-certified): `docs/plan/v1x-2-human-verification.md` (PZ/SG/Z-09/CA sections), pixel/focus review x7-09/x7-10 vs `docs/design/mymacx-settings-prototype.html`, and `scripts/release/complete-human-gates.sh` for release QA.
+
+Maintenance backlog: extract `MacOSSystemTilingPreferencesAdapter` from `TriggerGeometryKit` to `AppShell` (NIT, keeps the kit 100% pure).
 
 ## Later waves (per plan)
 
-- v1.x-3 UX + hardening: zone-map picker (shared Track A/B component), per-zone disable UI, remappable 1–4-area edge map (Z-03/Z-04), persistence migration + import/export (Z-06), tiling stand-down banner copy; then human gates (real pointer-drag evaluation, physical multi-display verification, pixel review).
+- None — all code sprints are complete. Remaining work is human gates (above), the optional Opus integration review, and the maintenance backlog.
 
 ## Conventions for agents
 
@@ -64,3 +72,4 @@ Legend: ⏳ pending · 🔨 in progress · ✅ done · ⛔ blocked (needs human)
 - 2026-11-07: license gate DECIDED (human): clean-room reimplementation. Wave 2 launched: `dev-rules` (v1.x-1, worktree `mymacx-v1x-rules`), `dev-p2` (B-P2, main tree), `dev-tester` (T1). T1 returned PASS-WITH-FIXES across the board; fix batch (tester findings 1–3, 5–7) queued to `dev-p2`; finding 4 fixed here.
 - 2026-11-07: wave 2 closed (v1.x-1 + B-P2 + both fix rounds merged at c702d0f; integration gate PASS; suite 513/0). Wave 3 launched: `dev-runtime` (v1.x-2, main tree) + `dev-p3` (v1.x-P3, worktree `mymacx-v1x-p3`). Both landed (885d68c, 987a365); merged at 0d3b1de (pbxproj 98/99 → A0/A1); merged suite **559/0**. Tester gate T1.4 running.
 - 2026-11-08: wave-3 gate PASS-WITH-FIXES (2 dead acceptance paths in EdgeSnapAcceptancePolicy — raw strings vs canonical ActionID) → hotfix 9925790 (561/0). Wave 4 landed: `dev-persist` e417498 (store + migration; 584/0) and `dev-zone` 4e4695b (zone-map picker + partition map + tiling banner; 601/0). ALL PLAN IMPLEMENTATION IS NOW DELIVERED. Final acceptance gate T1.5 running; Opus integration review armed for quota reset.
+- 2026-11-08: T1.5 final gate PASS/PASS — whole-program checklist clean (zero MISSING), clean-room sweep clean, suite 601/0. PROGRAM COMPLETE pending human gates. Fleet parked; Opus integration review remains queued for quota reset.
