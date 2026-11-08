@@ -467,6 +467,19 @@ final class EdgeSnapGeometryResolverTests: XCTestCase {
 
     // MARK: - Helpers
 
+    func testDegenerateZeroDisplayFrameRejectsResolution() {
+        let resolver = EdgeSnapGeometryResolver()
+        let screen = display(
+            id: 1,
+            frame: CGRect(x: 0, y: 0, width: 0, height: 0)
+        )
+        let topology = DisplayTopologySnapshot(displays: [screen], primaryDisplayID: screen.id)
+
+        let target = resolver.resolve(pointerLocation: CGPoint(x: 0, y: 0), topology: topology)
+        XCTAssertNil(target, "Degenerate zero-size display frame must return nil")
+        XCTAssertNil(resolver.resolveZone(at: CGPoint(x: 0, y: 0), in: CGRect.zero))
+    }
+
     private func display(
         id: UInt32,
         frame: CGRect

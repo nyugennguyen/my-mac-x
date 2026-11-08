@@ -119,6 +119,8 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
             }
         )
         let globalHotkeySettingsRelay = GlobalHotkeySettingsRelay()
+        let systemTilingModel = SystemTilingCoexistenceModel()
+        self.systemTilingModel = systemTilingModel
         let settingsRuntime = ProductionSettingsRuntime(
             store: settingsStore,
             appRules: appRuleRuntime,
@@ -152,6 +154,9 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
             },
             setLaunchAtLogin: { enabled in
                 ProductionSettingsRuntime.setLaunchAtLogin(enabled)
+            },
+            systemTilingStatus: { [systemTilingModel] in
+                systemTilingModel.status
             }
         )
         settingsRuntimeRef = settingsRuntime
@@ -213,8 +218,6 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
             },
             performance: performance
         )
-        let systemTilingModel = SystemTilingCoexistenceModel()
-        self.systemTilingModel = systemTilingModel
 
         let edgeSnapTargetResolver = EdgeSnapTargetResolver(
             sampler: MacOSWindowServerSampler(),
@@ -233,6 +236,9 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
             },
             zoneConfigurationProvider: { [settingsRuntime] in
                 settingsRuntime.currentEdgeSnapConfiguration()
+            },
+            isEnabledProvider: { [settingsRuntime] in
+                settingsRuntime.currentSettings().snapping.isEnabled
             }
         )
         lifecycleCoordinator = AppLifecycleCoordinator(
@@ -763,6 +769,7 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
     private let openSuperModeSettings: () -> Void
     private let applyImportedHotkeys: @Sendable (HotkeySettings) async -> Bool
     private let setLaunchAtLoginAction: @MainActor (Bool) -> Bool
+    private let systemTilingStatus: (@MainActor @Sendable () -> SystemTilingCoexistenceStatus)?
     private var configuration = ConfigurationSnapshot(
         hotkeySettings: HotkeySettings(bindings: []),
         layouts: [],
@@ -786,7 +793,8 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
         openGlobalHotkeySettings: @escaping () -> Void,
         openSuperModeSettings: @escaping () -> Void,
         applyImportedHotkeys: @escaping @Sendable (HotkeySettings) async -> Bool = { _ in true },
-        setLaunchAtLogin: @escaping @MainActor (Bool) -> Bool = { _ in true }
+        setLaunchAtLogin: @escaping @MainActor (Bool) -> Bool = { _ in true },
+        systemTilingStatus: (@MainActor @Sendable () -> SystemTilingCoexistenceStatus)? = nil
     ) {
         self.store = store
         self.appRules = appRules
@@ -804,6 +812,7 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
         self.openSuperModeSettings = openSuperModeSettings
         self.applyImportedHotkeys = applyImportedHotkeys
         setLaunchAtLoginAction = setLaunchAtLogin
+        self.systemTilingStatus = systemTilingStatus
     }
 
     deinit {
@@ -828,7 +837,16 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
     }
 
     func currentSettings() -> SettingsRuntimeSnapshot {
-        SettingsRuntimeSnapshot(
+        let edgeSnapDiagnostics: EdgeSnapDiagnosticsStatus
+        if !configuration.snapping.isEnabled {
+            edgeSnapDiagnostics = .disabled
+        } else if let status = systemTilingStatus?(), case .stoodDown = status {
+            edgeSnapDiagnostics = .stoodDownSystemTiling
+        } else {
+            edgeSnapDiagnostics = .active
+        }
+
+        return SettingsRuntimeSnapshot(
             general: SettingsGeneralSnapshot(
                 accessibility: accessibilityPermissionStatus(),
                 inputMonitoringGranted: inputMonitoringAccess(),
@@ -910,7 +928,8 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
                 accessibility: accessibilityPermissionStatus(),
                 inputMonitoring: inputMonitoringAccess(),
                 eventTap: eventTapStatus(),
-                app: appStatus()
+                app: appStatus(),
+                edgeSnap: edgeSnapDiagnostics
             ),
             edgeSnap: configuration.edgeSnap
         )
@@ -1317,7 +1336,8 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
         accessibility: AccessibilityPermissionState,
         inputMonitoring: Bool,
         eventTap: EventTapDiagnosticsStatus,
-        app: AppDiagnosticsStatus
+        app: AppDiagnosticsStatus,
+        edgeSnap: EdgeSnapDiagnosticsStatus? = nil
     ) -> SettingsDiagnosticsPresentation {
         let os = ProcessInfo.processInfo.operatingSystemVersion
         let info = Bundle.main.infoDictionary ?? [:]
@@ -1330,7 +1350,8 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
             operatingSystem: DiagnosticsVersion(major: UInt(os.majorVersion), minor: UInt(os.minorVersion), patch: UInt(os.patchVersion)),
             appVersion: DiagnosticsVersion(major: versionParts.first ?? 0, minor: versionParts.dropFirst().first ?? 0, patch: versionParts.dropFirst(2).first ?? 0),
             appBuild: UInt(info["CFBundleVersion"] as? String ?? "0") ?? 0,
-            app: app
+            app: app,
+            edgeSnap: edgeSnap
         )
         return SettingsDiagnosticsPresentation(status: status, report: DiagnosticsReportBuilder().makeReport(from: status).text)
     }

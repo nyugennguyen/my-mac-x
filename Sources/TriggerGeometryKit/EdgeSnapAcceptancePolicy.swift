@@ -7,7 +7,7 @@ import Foundation
 /// or grid-stepped dimensions. Demanding exact frame equality causes clamped-but-placed windows to be
 /// erroneously rolled back. This policy confirms placement intent based on edge anchoring, span ratios,
 /// and minimum overlap floors.
-public struct EdgeSnapAcceptancePolicy: Sendable {
+public struct EdgeSnapAcceptancePolicy: Equatable, Sendable {
     public static let minimumWindowSize: CGFloat = 80.0
     public static let anchorTolerance: CGFloat = 36.0
     public static let precisionTolerance: CGFloat = 8.0
@@ -160,8 +160,10 @@ public struct EdgeSnapAcceptancePolicy: Sendable {
 
             if action == .topHalf || action.rawValue.contains("top") {
                 return abs(actual.maxY - target.maxY) <= tolerance
-            } else {
+            } else if action == .bottomHalf || action.rawValue.contains("bottom") {
                 return abs(actual.minY - target.minY) <= tolerance
+            } else {
+                return abs(actual.midY - target.midY) <= tolerance
             }
         } else {
             // Vertical split (spans full height or both top/bottom align, outer horizontal edge anchored)

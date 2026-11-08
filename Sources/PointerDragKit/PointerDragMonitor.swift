@@ -720,7 +720,6 @@ private final class PointerEventCallbackBox: @unchecked Sendable {
     func receive(type: CGEventType, event: CGEvent) {
         switch type {
         case .leftMouseDown:
-            print("[NotchSnap] pointer tap → left mouse down")
             continuation.yield(.leftButtonPressed(location: event.unflippedLocation, timestamp: event.timestamp))
         case .leftMouseDragged:
             continuation.yield(.leftButtonDragged(location: event.unflippedLocation, timestamp: event.timestamp))

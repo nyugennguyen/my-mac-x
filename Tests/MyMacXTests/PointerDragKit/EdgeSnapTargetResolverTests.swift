@@ -130,6 +130,36 @@ final class EdgeSnapTargetResolverTests: XCTestCase {
         XCTAssertEqual(outcome, .failure(.applicationExcluded))
     }
 
+    // MARK: - Process ID Equality Guard (Blocker 1)
+
+    func testMismatchedProcessIDBetweenWindowServerAndAccessibilityRejectsTarget() async {
+        let sampler = MockWindowServerSampler()
+        sampler.candidate = (windowID: 42, bounds: CGRect(x: 100, y: 100, width: 600, height: 400), processID: 100)
+
+        let ax = MockAccessibilityWindowAdapter()
+        // Window server candidate is PID 100, but AX focused window is PID 200 (e.g. frontmost app while dragging inactive window)
+        let mismatchedIdentity = WindowIdentity(processID: 200)
+        ax.candidate = AccessibilityWindowCandidate(identity: mismatchedIdentity, capabilities: .mockWindowMoveCapabilities)
+
+        let rules = MockAppRuleDecider()
+        rules.decisionResult = .included
+
+        let resolver = EdgeSnapTargetResolver(
+            sampler: sampler,
+            accessibility: ax,
+            appRules: rules,
+            bundleIDResolver: { _ in "com.example.editor" }
+        )
+
+        let outcome = await resolver.resolveTarget(
+            at: CGPoint(x: 200, y: 200),
+            generation: 1,
+            activeGeneration: { 1 }
+        )
+
+        XCTAssertEqual(outcome, .failure(.noEligibleWindow))
+    }
+
     // MARK: - Successful Resolution
 
     func testSuccessfulResolutionCapturesEligibleWindow() async {
@@ -137,7 +167,7 @@ final class EdgeSnapTargetResolverTests: XCTestCase {
         sampler.candidate = (windowID: 42, bounds: CGRect(x: 100, y: 100, width: 600, height: 400), processID: 100)
 
         let ax = MockAccessibilityWindowAdapter()
-        let identity = WindowIdentity()
+        let identity = WindowIdentity(processID: 100)
         ax.candidate = AccessibilityWindowCandidate(identity: identity, capabilities: .mockWindowMoveCapabilities)
 
         let rules = MockAppRuleDecider()

@@ -8,8 +8,37 @@ protocol WindowMutationPerforming: Sendable {
     func mutate(
         window: WindowIdentity,
         to targetFrame: AXGlobalTopLeftFrame,
-        within allowedFrame: AXGlobalTopLeftFrame
+        within allowedFrame: AXGlobalTopLeftFrame,
+        acceptance: (@Sendable (_ actual: AXGlobalTopLeftFrame, _ target: AXGlobalTopLeftFrame) -> Bool)?
     ) async -> WindowMutationResult
+}
+
+extension WindowMutationPerforming {
+    func mutate(
+        window: WindowIdentity,
+        to targetFrame: AXGlobalTopLeftFrame,
+        within allowedFrame: AXGlobalTopLeftFrame
+    ) async -> WindowMutationResult {
+        await mutate(
+            window: window,
+            to: targetFrame,
+            within: allowedFrame,
+            acceptance: nil
+        )
+    }
+
+    func mutate(
+        window: WindowIdentity,
+        to targetFrame: AXGlobalTopLeftFrame,
+        within allowedFrame: AXGlobalTopLeftFrame,
+        acceptance: (@Sendable (_ actual: AXGlobalTopLeftFrame, _ target: AXGlobalTopLeftFrame) -> Bool)?
+    ) async -> WindowMutationResult {
+        await mutate(
+            window: window,
+            to: targetFrame,
+            within: allowedFrame
+        )
+    }
 }
 
 enum WindowMutationFailure: Error, Equatable, Sendable {
@@ -146,7 +175,8 @@ actor WindowMutationModule: WindowMutationPerforming {
     func mutate(
         window identity: WindowIdentity,
         to targetFrame: AXGlobalTopLeftFrame,
-        within allowedFrame: AXGlobalTopLeftFrame
+        within allowedFrame: AXGlobalTopLeftFrame,
+        acceptance: (@Sendable (_ actual: AXGlobalTopLeftFrame, _ target: AXGlobalTopLeftFrame) -> Bool)? = nil
     ) async -> WindowMutationResult {
         let target = targetFrame.cgRect
         let allowed = allowedFrame.cgRect
@@ -296,6 +326,12 @@ actor WindowMutationModule: WindowMutationPerforming {
                     return .applied(
                         actualFrame: readBack.frame,
                         constrained: usedCapabilityFallback
+                    )
+                }
+                if let acceptance, acceptance(readBack.frame, plan.targetFrame) {
+                    return .applied(
+                        actualFrame: readBack.frame,
+                        constrained: true
                     )
                 }
                 if let stableMismatch = previousMismatch,

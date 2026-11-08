@@ -56,7 +56,7 @@ public struct MacOSWindowServerSampler: WindowServerWindowSampling {
 }
 
 /// Information captured for one authentic window move during an Edge Snap Run (D-10).
-public struct ResolvedSnapTarget: Equatable, Sendable {
+public struct ResolvedEdgeSnapCandidate: Equatable, Sendable {
     public let generation: UInt64
     public let windowID: CGWindowID
     public let initialFrame: CGRect
@@ -77,6 +77,8 @@ public struct ResolvedSnapTarget: Equatable, Sendable {
         self.bundleIdentifier = bundleIdentifier
     }
 }
+
+public typealias ResolvedSnapTarget = ResolvedEdgeSnapCandidate
 
 /// Failure outcomes during off-thread target resolution.
 public enum TargetResolutionFailure: Error, Equatable, Sendable {
@@ -121,7 +123,7 @@ public struct EdgeSnapTargetResolver: Sendable {
         at location: CGPoint,
         generation: UInt64,
         activeGeneration: @escaping @Sendable () -> UInt64
-    ) async -> Result<ResolvedSnapTarget, TargetResolutionFailure> {
+    ) async -> Result<ResolvedEdgeSnapCandidate, TargetResolutionFailure> {
         // Generational check before starting
         guard activeGeneration() == generation else {
             return .failure(.staleGeneration)
@@ -176,7 +178,11 @@ public struct EdgeSnapTargetResolver: Sendable {
             return .failure(.noEligibleWindow)
         }
 
-        let target = ResolvedSnapTarget(
+        guard windowCandidate.identity.processID == candidate.processID else {
+            return .failure(.noEligibleWindow)
+        }
+
+        let target = ResolvedEdgeSnapCandidate(
             generation: generation,
             windowID: candidate.windowID,
             initialFrame: candidate.bounds,

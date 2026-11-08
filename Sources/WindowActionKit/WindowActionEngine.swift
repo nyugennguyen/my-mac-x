@@ -23,6 +23,7 @@ public actor WindowActionEngine: WindowActionPerforming {
         let constrained: Bool
         let historyPlacement: WindowHistoryPlacement
         let warnings: [WindowActionResult.Warning]
+        let action: ActionID?
 
         func replacingBefore(_ frame: AppKitGlobalLogicalFrame) -> Self {
             Self(
@@ -34,7 +35,8 @@ public actor WindowActionEngine: WindowActionPerforming {
                 displayID: displayID,
                 constrained: constrained,
                 historyPlacement: historyPlacement,
-                warnings: warnings
+                warnings: warnings,
+                action: action
             )
         }
     }
@@ -135,8 +137,8 @@ public actor WindowActionEngine: WindowActionPerforming {
             )
         case let .commit(action, _):
             return await directCommit(action: action)
-        case .commitPreview(let interaction):
-            return await commitPreview(interaction: interaction)
+        case let .commitPreview(interaction, acceptancePolicy):
+            return await commitPreview(interaction: interaction, acceptancePolicy: acceptancePolicy)
         case .cancelPreview(let interaction):
             return cancelPreview(interaction: interaction)
         case let .undo(token, _):
@@ -334,7 +336,10 @@ public actor WindowActionEngine: WindowActionPerforming {
         }
     }
 
-    private func commitPreview(interaction: InteractionID) async -> WindowActionResult {
+    private func commitPreview(
+        interaction: InteractionID,
+        acceptancePolicy: EdgeSnapAcceptancePolicy? = nil
+    ) async -> WindowActionResult {
         guard let entry = previews.removeValue(forKey: interaction),
               let originalPlan = entry.plan else {
             return .rejected(.previewMissingOrExpired)
@@ -365,7 +370,11 @@ public actor WindowActionEngine: WindowActionPerforming {
             return .rejected(.displayUnavailable)
         }
 
-        return await execute(plan: originalPlan.replacingBefore(current), cycle: nil)
+        return await execute(
+            plan: originalPlan.replacingBefore(current),
+            cycle: nil,
+            acceptancePolicy: acceptancePolicy
+        )
     }
 
     private func cancelPreview(interaction: InteractionID) -> WindowActionResult {
@@ -446,7 +455,8 @@ public actor WindowActionEngine: WindowActionPerforming {
 
     private func execute(
         plan: PlacementPlan,
-        cycle: CycleGroupStaging?
+        cycle: CycleGroupStaging?,
+        acceptancePolicy: EdgeSnapAcceptancePolicy? = nil
     ) async -> WindowActionResult {
         let historyStage = await history.stage(
             window: plan.window,
@@ -460,10 +470,31 @@ public actor WindowActionEngine: WindowActionPerforming {
             return .rejected(.displayUnavailable)
         }
 
+        let acceptance: (@Sendable (AXGlobalTopLeftFrame, AXGlobalTopLeftFrame) -> Bool)?
+        if let policy = acceptancePolicy, let action = plan.action {
+            let topology = plan.topology.topology
+            acceptance = { actualAX, targetAX in
+                guard let converter = try? CoordinateConverter(topology: CoordinateSpaceTopology(topology)),
+                      let actualAppKit = try? converter.convert(actualAX),
+                      let targetAppKit = try? converter.convert(targetAX)
+                else {
+                    return false
+                }
+                return policy.accepts(
+                    actualRect: actualAppKit.cgRect,
+                    targetRect: targetAppKit.cgRect,
+                    action: action
+                )
+            }
+        } else {
+            acceptance = nil
+        }
+
         let outcome = await mutation.mutate(
             window: plan.window,
             to: converted.target,
-            within: converted.allowed
+            within: converted.allowed,
+            acceptance: acceptance
         )
         switch outcome {
         case .applied(let actualAX, let applicationConstrained):
@@ -544,7 +575,8 @@ public actor WindowActionEngine: WindowActionPerforming {
                         displayID: display.id,
                         constrained: layoutPlan.isConstrained,
                         historyPlacement: .layout,
-                        warnings: []
+                        warnings: [],
+                        action: definition.id
                     )
                 )
             } catch {
@@ -575,7 +607,8 @@ public actor WindowActionEngine: WindowActionPerforming {
                         displayID: destination.id,
                         constrained: movePlan.isConstrained,
                         historyPlacement: .nonLayout,
-                        warnings: []
+                        warnings: [],
+                        action: definition.id
                     )
                 )
             }
@@ -615,7 +648,8 @@ public actor WindowActionEngine: WindowActionPerforming {
                 displayID: display.id,
                 constrained: reconciliation.wasAdjusted,
                 historyPlacement: placement,
-                warnings: reconciliation.wasAdjusted ? [.targetDisplayChanged] : []
+                warnings: reconciliation.wasAdjusted ? [.targetDisplayChanged] : [],
+                action: nil
             )
         )
     }

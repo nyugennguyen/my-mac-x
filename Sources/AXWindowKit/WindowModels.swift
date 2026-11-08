@@ -5,13 +5,21 @@ import Foundation
 /// The value deliberately carries no title or document metadata. The system Adapter
 /// owns the association between this token and the underlying Accessibility element.
 public struct WindowIdentity: Hashable, Sendable {
+    public let processID: pid_t
     private let rawValue: UUID
 
-    init() {
+    public init(processID: pid_t = 0) {
+        self.processID = processID
         rawValue = UUID()
     }
 
-    init(rawValue: UUID) {
+    public init(rawValue: UUID) {
+        self.processID = 0
+        self.rawValue = rawValue
+    }
+
+    public init(processID: pid_t, rawValue: UUID) {
+        self.processID = processID
         self.rawValue = rawValue
     }
 }

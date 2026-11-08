@@ -67,7 +67,10 @@ final class SnapInteractionStateMachineTests: XCTestCase {
                     capturedWindow: capturedWindowIdentity,
                     targetDisplay: display
                 ),
-                .commitPreview(interaction: interaction),
+                .commitPreview(
+                    interaction: interaction,
+                    acceptancePolicy: EdgeSnapAcceptancePolicy()
+                ),
             ]
         )
     }
@@ -142,7 +145,10 @@ final class SnapInteractionStateMachineTests: XCTestCase {
                     capturedWindow: capturedWindowIdentity,
                     targetDisplay: display
                 ),
-                .commitPreview(interaction: interaction),
+                .commitPreview(
+                    interaction: interaction,
+                    acceptancePolicy: EdgeSnapAcceptancePolicy()
+                ),
             ]
         )
     }
@@ -488,8 +494,8 @@ private actor RecordingSnapWindowActions: WindowActionPerforming {
                 )
             )
             defaultResult = .previewResult
-        case .commitPreview(let interaction):
-            intents.append(.commitPreview(interaction: interaction))
+        case let .commitPreview(interaction, acceptancePolicy):
+            intents.append(.commitPreview(interaction: interaction, acceptancePolicy: acceptancePolicy))
             defaultResult = .committedResult
         case .cancelPreview(let interaction):
             intents.append(.cancelPreview(interaction: interaction))
@@ -513,7 +519,7 @@ private enum RecordedSnapWindowIntent: Equatable {
         capturedWindow: WindowIdentity?,
         targetDisplay: DisplayID? = nil
     )
-    case commitPreview(interaction: InteractionID)
+    case commitPreview(interaction: InteractionID, acceptancePolicy: EdgeSnapAcceptancePolicy? = nil)
     case cancelPreview(interaction: InteractionID)
 }
 

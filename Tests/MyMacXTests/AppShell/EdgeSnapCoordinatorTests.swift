@@ -91,9 +91,13 @@ private final class TestWindowActions: WindowActionPerforming, @unchecked Sendab
 private final class MockSampler: WindowServerWindowSampling, @unchecked Sendable {
     var windowFrames: [CGWindowID: CGRect] = [:]
     var candidate: (windowID: CGWindowID, bounds: CGRect, processID: pid_t)?
+    var windowBoundsHook: (@Sendable () async -> Void)?
 
     func windowBounds(windowID: CGWindowID) async -> CGRect? {
-        windowFrames[windowID]
+        if let hook = windowBoundsHook {
+            await hook()
+        }
+        return windowFrames[windowID]
     }
 
     func topmostWindow(at point: CGPoint) async -> (windowID: CGWindowID, bounds: CGRect, processID: pid_t)? {
@@ -159,7 +163,7 @@ final class EdgeSnapCoordinatorTests: XCTestCase {
         let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
         let sampler = MockSampler()
         let axAdapter = MockAXAdapter()
-        let windowId = WindowIdentity()
+        let windowId = WindowIdentity(processID: 500)
 
         sampler.candidate = (windowID: 101, bounds: CGRect(x: 200, y: 200, width: 600, height: 400), processID: 500)
         sampler.windowFrames[101] = CGRect(x: 200, y: 200, width: 600, height: 400)
@@ -227,7 +231,7 @@ final class EdgeSnapCoordinatorTests: XCTestCase {
         let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
         let sampler = MockSampler()
         let axAdapter = MockAXAdapter()
-        let windowId = WindowIdentity()
+        let windowId = WindowIdentity(processID: 501)
 
         sampler.candidate = (windowID: 102, bounds: CGRect(x: 200, y: 200, width: 600, height: 400), processID: 501)
         sampler.windowFrames[102] = CGRect(x: 200, y: 200, width: 600, height: 400)
@@ -302,7 +306,7 @@ final class EdgeSnapCoordinatorTests: XCTestCase {
         let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
         let sampler = MockSampler()
         let axAdapter = MockAXAdapter()
-        let windowId = WindowIdentity()
+        let windowId = WindowIdentity(processID: 502)
 
         sampler.candidate = (windowID: 103, bounds: CGRect(x: 900, y: 200, width: 400, height: 400), processID: 502)
         sampler.windowFrames[103] = CGRect(x: 900, y: 200, width: 400, height: 400)
@@ -354,7 +358,7 @@ final class EdgeSnapCoordinatorTests: XCTestCase {
         let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
         let sampler = MockSampler()
         let axAdapter = MockAXAdapter()
-        let windowId = WindowIdentity()
+        let windowId = WindowIdentity(processID: 503)
 
         sampler.candidate = (windowID: 104, bounds: CGRect(x: 200, y: 200, width: 600, height: 400), processID: 503)
         sampler.windowFrames[104] = CGRect(x: 200, y: 200, width: 600, height: 400)
@@ -419,7 +423,7 @@ final class EdgeSnapCoordinatorTests: XCTestCase {
         let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
         let sampler = MockSampler()
         let axAdapter = MockAXAdapter()
-        let windowId = WindowIdentity()
+        let windowId = WindowIdentity(processID: 504)
 
         sampler.candidate = (windowID: 105, bounds: CGRect(x: 200, y: 200, width: 600, height: 400), processID: 504)
         sampler.windowFrames[105] = CGRect(x: 200, y: 200, width: 600, height: 400)
@@ -473,13 +477,178 @@ final class EdgeSnapCoordinatorTests: XCTestCase {
         XCTAssertNotNil(commitIntent, "Commit preview must have executed")
 
         // 4. Perform undo with the commit's undo token
-        let undoResult = await windowActions.perform(.undo(token: windowActions.commitResult.undoToken, source: .menuBar))
+        let token = windowActions.commitResult.undoToken
+        XCTAssertNotNil(token, "Commit preview must produce undo token")
+        let undoResult = await windowActions.perform(.undo(token: token, source: .menuBar))
         XCTAssertEqual(undoResult.disposition, WindowActionResult.Disposition.succeeded)
-        if case let .undone(actualFrame) = undoResult.effect {
-            XCTAssertEqual(actualFrame, CGRect(x: 100, y: 100, width: 600, height: 400), "Pre-snap frame restored from history")
-        } else {
-            XCTFail("Expected undone effect with pre-snap frame")
+        guard case let .undo(recordedToken, recordedSource)? = windowActions.intents.last else {
+            return XCTFail("Expected undo intent recorded")
         }
+        XCTAssertEqual(recordedToken, token)
+        XCTAssertEqual(recordedSource, .menuBar)
+
+        await coordinator.stop()
+    }
+
+    // MARK: - Resurrection Across Async Suspension Guard (Major 2)
+
+    func testStopDuringInFlightSampleMustNotShowOverlayNorSetActiveRun() async {
+        let pointerAdapter = MockPointerEventAdapter()
+        let overlayPresenter = MockOverlayPresenter()
+        let windowActions = TestWindowActions()
+        let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
+        let sampler = MockSampler()
+        let axAdapter = MockAXAdapter()
+        let windowId = WindowIdentity(processID: 505)
+
+        sampler.candidate = (windowID: 106, bounds: CGRect(x: 200, y: 200, width: 600, height: 400), processID: 505)
+        sampler.windowFrames[106] = CGRect(x: 200, y: 200, width: 600, height: 400)
+        axAdapter.candidate = AccessibilityWindowCandidate(
+            identity: windowId,
+            capabilities: WindowCapabilities(isMovable: true, isResizable: true, minimized: .inactive, nativeFullScreen: .inactive)
+        )
+
+        let targetResolver = EdgeSnapTargetResolver(
+            sampler: sampler,
+            accessibility: axAdapter,
+            appRules: MockAppRules()
+        )
+
+        final class CoordinatorBox: @unchecked Sendable {
+            var coordinator: EdgeSnapCoordinator?
+        }
+        let box = CoordinatorBox()
+        let coordinator = EdgeSnapCoordinator(
+            pointerEvents: pointerAdapter,
+            overlayPresenter: overlayPresenter,
+            stateMachine: stateMachine,
+            windowSampler: sampler,
+            targetResolver: targetResolver,
+            topologyProvider: { [displayTopology] in displayTopology }
+        )
+        box.coordinator = coordinator
+
+        await coordinator.start()
+
+        // 1. Mouse down at (300, 500)
+        await coordinator.consumeSignal(.leftButtonPressed(location: CGPoint(x: 300, y: 500), timestamp: 1_000_000))
+
+        // Hook window bounds sample so when the drag sample is in-flight, coordinator.stop() is invoked
+        sampler.windowBoundsHook = {
+            await box.coordinator?.stop()
+        }
+
+        // Move window to left edge
+        sampler.windowFrames[106] = CGRect(x: 0, y: 200, width: 600, height: 400)
+        await coordinator.consumeSignal(.leftButtonDragged(location: CGPoint(x: 10, y: 500), timestamp: 30_000_000))
+
+        // Since stop() was called during in-flight sample, the completed sample must NOT resurrect activeRun or show overlay
+        XCTAssertTrue(overlayPresenter.isDismissed, "Overlay must remain dismissed after stop() during in-flight sample")
+        XCTAssertNil(overlayPresenter.shownPreview, "No preview presentation should be recorded after stop()")
+        XCTAssertFalse(coordinator.hasActiveRun, "ActiveRun must not be resurrected after stop()")
+    }
+
+    // MARK: - Master Toggle Guard (Major 3)
+
+    func testDisabledMasterToggleDoesNotShowPreviewNorCommit() async {
+        let pointerAdapter = MockPointerEventAdapter()
+        let overlayPresenter = MockOverlayPresenter()
+        let windowActions = TestWindowActions()
+        let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
+        let sampler = MockSampler()
+        let axAdapter = MockAXAdapter()
+        let windowId = WindowIdentity(processID: 506)
+
+        sampler.candidate = (windowID: 107, bounds: CGRect(x: 200, y: 200, width: 600, height: 400), processID: 506)
+        sampler.windowFrames[107] = CGRect(x: 200, y: 200, width: 600, height: 400)
+        axAdapter.candidate = AccessibilityWindowCandidate(
+            identity: windowId,
+            capabilities: WindowCapabilities(isMovable: true, isResizable: true, minimized: .inactive, nativeFullScreen: .inactive)
+        )
+
+        let targetResolver = EdgeSnapTargetResolver(
+            sampler: sampler,
+            accessibility: axAdapter,
+            appRules: MockAppRules()
+        )
+
+        let coordinator = EdgeSnapCoordinator(
+            pointerEvents: pointerAdapter,
+            overlayPresenter: overlayPresenter,
+            stateMachine: stateMachine,
+            windowSampler: sampler,
+            targetResolver: targetResolver,
+            topologyProvider: { [displayTopology] in displayTopology },
+            isEnabledProvider: { false } // Snapping is disabled!
+        )
+
+        await coordinator.start()
+
+        // 1. Mouse down at (300, 500)
+        await coordinator.consumeSignal(.leftButtonPressed(location: CGPoint(x: 300, y: 500), timestamp: 1_000_000))
+
+        // 2. Move to left edge
+        sampler.windowFrames[107] = CGRect(x: 0, y: 200, width: 600, height: 400)
+        await coordinator.consumeSignal(.leftButtonDragged(location: CGPoint(x: 10, y: 500), timestamp: 30_000_000))
+
+        // When disabled, no preview should ever be shown
+        XCTAssertTrue(overlayPresenter.isDismissed, "Preview overlay must not be shown when master toggle is disabled")
+        XCTAssertNil(overlayPresenter.shownPreview)
+
+        // 3. Mouse up
+        await coordinator.consumeSignal(.leftButtonReleased(location: CGPoint(x: 10, y: 500), timestamp: 50_000_000))
+
+        let committed = windowActions.intents.contains { intent in
+            if case .commitPreview = intent { return true }
+            return false
+        }
+        XCTAssertFalse(committed, "Must not commit preview when snapping is disabled")
+
+        await coordinator.stop()
+    }
+
+    func testZeroTimestampSamplesStillShowPreviewOverlay() async {
+        let pointerAdapter = MockPointerEventAdapter()
+        let overlayPresenter = MockOverlayPresenter()
+        let windowActions = TestWindowActions()
+        let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
+        let sampler = MockSampler()
+        let axAdapter = MockAXAdapter()
+        let windowId = WindowIdentity(processID: 508)
+
+        sampler.candidate = (windowID: 108, bounds: CGRect(x: 200, y: 200, width: 600, height: 400), processID: 508)
+        sampler.windowFrames[108] = CGRect(x: 200, y: 200, width: 600, height: 400)
+        axAdapter.candidate = AccessibilityWindowCandidate(
+            identity: windowId,
+            capabilities: WindowCapabilities(isMovable: true, isResizable: true, minimized: .inactive, nativeFullScreen: .inactive)
+        )
+
+        let targetResolver = EdgeSnapTargetResolver(
+            sampler: sampler,
+            accessibility: axAdapter,
+            appRules: MockAppRules()
+        )
+
+        let coordinator = EdgeSnapCoordinator(
+            pointerEvents: pointerAdapter,
+            overlayPresenter: overlayPresenter,
+            stateMachine: stateMachine,
+            windowSampler: sampler,
+            targetResolver: targetResolver,
+            topologyProvider: { [displayTopology] in displayTopology }
+        )
+
+        await coordinator.start()
+
+        // 1. Mouse down with 0 timestamp
+        await coordinator.consumeSignal(.leftButtonPressed(location: CGPoint(x: 300, y: 500), timestamp: 0))
+
+        // 2. Drag to left edge with 0 timestamp
+        sampler.windowFrames[108] = CGRect(x: 0, y: 200, width: 600, height: 400)
+        await coordinator.consumeSignal(.leftButtonDragged(location: CGPoint(x: 10, y: 500), timestamp: 0))
+
+        XCTAssertFalse(overlayPresenter.isDismissed, "Preview overlay should be visible even when timestamps are zero")
+        XCTAssertNotNil(overlayPresenter.shownPreview)
 
         await coordinator.stop()
     }

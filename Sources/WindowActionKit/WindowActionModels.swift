@@ -33,7 +33,10 @@ public enum WindowIntent: Sendable {
         targetDisplay: DisplayID? = nil
     )
     case commit(action: ActionID, source: ActionSource)
-    case commitPreview(interaction: InteractionID)
+    case commitPreview(
+        interaction: InteractionID,
+        acceptancePolicy: EdgeSnapAcceptancePolicy? = nil
+    )
     case cancelPreview(interaction: InteractionID)
     case undo(token: UndoToken?, source: ActionSource)
 }

@@ -77,6 +77,7 @@ final class EdgeSnapCoordinator: Sendable {
     private let topologyProvider: (@MainActor @Sendable () -> DisplayTopologySnapshot?)?
     private let systemTilingStateProvider: @MainActor @Sendable () -> SystemTilingState?
     private let zoneConfigurationProvider: @MainActor @Sendable () -> EdgeSnapZoneConfiguration
+    private let isEnabledProvider: @MainActor @Sendable () -> Bool
 
     private let classifier = WindowDragClassifier()
     private let seamGator = DisplaySeamGator()
@@ -90,6 +91,10 @@ final class EdgeSnapCoordinator: Sendable {
     private var generationCounter: UInt64 = 0
     private var activeRun: ActiveRun?
 
+    var hasActiveRun: Bool {
+        activeRun != nil
+    }
+
     private struct ActiveRun {
         let interaction: InteractionID
         let generation: UInt64
@@ -99,13 +104,14 @@ final class EdgeSnapCoordinator: Sendable {
         var trail: PointerTrail
         var isConfirmedMoving: Bool
         var isCancelled: Bool
-        var target: ResolvedSnapTarget?
-        var targetResolutionTask: Task<Result<ResolvedSnapTarget, TargetResolutionFailure>, Never>?
+        var target: ResolvedEdgeSnapCandidate?
+        var targetResolutionTask: Task<Result<ResolvedEdgeSnapCandidate, TargetResolutionFailure>, Never>?
         var currentZone: EdgeSnapZone?
         var lastSampleTimestampNanoseconds: UInt64
         var lastSampledWindowBounds: CGRect?
         var initialWindowBounds: CGRect?
         var windowID: CGWindowID?
+        var cachedSystemTilingState: SystemTilingState?
     }
 
     init(
@@ -117,7 +123,8 @@ final class EdgeSnapCoordinator: Sendable {
         topologyProvider: (@MainActor @Sendable () -> DisplayTopologySnapshot?)? = nil,
         topologyObserving: (any DisplayTopologyObserving)? = nil,
         systemTilingStateProvider: (@MainActor @Sendable () -> SystemTilingState?)? = nil,
-        zoneConfigurationProvider: (@MainActor @Sendable () -> EdgeSnapZoneConfiguration)? = nil
+        zoneConfigurationProvider: (@MainActor @Sendable () -> EdgeSnapZoneConfiguration)? = nil,
+        isEnabledProvider: (@MainActor @Sendable () -> Bool)? = nil
     ) {
         self.pointerEvents = pointerEvents
         self.overlayPresenter = overlayPresenter
@@ -131,6 +138,7 @@ final class EdgeSnapCoordinator: Sendable {
         self.zoneConfigurationProvider = zoneConfigurationProvider ?? {
             EdgeSnapZoneConfiguration()
         }
+        self.isEnabledProvider = isEnabledProvider ?? { true }
 
         if let topologyObserving {
             self.topologyTask = Task { [weak self] in
@@ -177,6 +185,15 @@ final class EdgeSnapCoordinator: Sendable {
     }
 
     func consumeSignal(_ signal: PointerPlatformSignal) async {
+        guard isEnabledProvider() else {
+            if let run = activeRun {
+                activeRun = nil
+                overlayPresenter.dismiss()
+                _ = await stateMachine.consume(.pointer(.cancelled(interaction: run.interaction)))
+            }
+            return
+        }
+
         switch signal {
         case .leftButtonPressed(let location, let timestamp):
             await handleButtonPressed(at: location, timestamp: timestamp)
@@ -195,6 +212,7 @@ final class EdgeSnapCoordinator: Sendable {
     // MARK: - Private Signal Handlers
 
     private func handleButtonPressed(at location: CGPoint, timestamp: UInt64) async {
+        guard isEnabledProvider() else { return }
         generationCounter &+= 1
         let generation = generationCounter
         generationBox.set(generation)
@@ -204,7 +222,7 @@ final class EdgeSnapCoordinator: Sendable {
 
         let resolver = targetResolver
         let box = generationBox
-        let task = Task { () -> Result<ResolvedSnapTarget, TargetResolutionFailure> in
+        let task = Task { () -> Result<ResolvedEdgeSnapCandidate, TargetResolutionFailure> in
             await resolver.resolveTarget(
                 at: location,
                 generation: generation,
@@ -277,6 +295,7 @@ final class EdgeSnapCoordinator: Sendable {
         } else {
             currentBounds = run.lastSampledWindowBounds ?? initialFrame
         }
+        guard activeRun?.generation == run.generation else { return }
 
         let pointerDelta = CGVector(
             dx: location.x - run.startLocation.x,
@@ -296,6 +315,7 @@ final class EdgeSnapCoordinator: Sendable {
                 run.currentZone = nil
                 overlayPresenter.dismiss()
                 _ = await stateMachine.consume(.edge(.zoneExited))
+                guard activeRun?.generation == run.generation else { return }
             }
             activeRun = run
             return
@@ -309,14 +329,17 @@ final class EdgeSnapCoordinator: Sendable {
                 pointerLocation: location
             )
             _ = await stateMachine.consume(.pointer(.began(context)))
+            guard activeRun?.generation == run.generation else { return }
         }
 
         guard run.isConfirmedMoving else {
+            guard activeRun?.generation == run.generation else { return }
             activeRun = run
             return
         }
 
         guard let topology = topologyProvider?() ?? currentTopologySnapshot else {
+            guard activeRun?.generation == run.generation else { return }
             activeRun = run
             return
         }
@@ -329,8 +352,10 @@ final class EdgeSnapCoordinator: Sendable {
         )
 
         if let snapTarget = resolvedSnapTarget {
-            let systemState = systemTilingStateProvider() ?? SystemTilingPreferenceReader().readState()
+            let systemState = run.cachedSystemTilingState ?? (systemTilingStateProvider() ?? SystemTilingPreferenceReader().readState())
+            run.cachedSystemTilingState = systemState
             guard let display = topology.displays.first(where: { $0.id == snapTarget.displayID }) else {
+                guard activeRun?.generation == run.generation else { return }
                 activeRun = run
                 return
             }
@@ -340,7 +365,7 @@ final class EdgeSnapCoordinator: Sendable {
                 on: display,
                 in: topology,
                 trail: run.trail,
-                evaluationTime: TimeInterval(timestamp) / 1_000_000_000.0
+                evaluationTime: timestamp > 0 ? (TimeInterval(timestamp) / 1_000_000_000.0) : nil
             )
 
             let isSharedSeam: Bool
@@ -362,6 +387,7 @@ final class EdgeSnapCoordinator: Sendable {
                     run.currentZone = nil
                     overlayPresenter.dismiss()
                     _ = await stateMachine.consume(.edge(.zoneExited))
+                    guard activeRun?.generation == run.generation else { return }
                 }
                 activeRun = run
                 return
@@ -372,6 +398,7 @@ final class EdgeSnapCoordinator: Sendable {
                     run.currentZone = nil
                     overlayPresenter.dismiss()
                     _ = await stateMachine.consume(.edge(.zoneExited))
+                    guard activeRun?.generation == run.generation else { return }
                 }
                 activeRun = run
                 return
@@ -382,6 +409,7 @@ final class EdgeSnapCoordinator: Sendable {
                 let actionResult = await stateMachine.consume(
                     .edge(.zoneEntered(action: snapTarget.action, displayID: snapTarget.displayID))
                 )
+                guard activeRun?.generation == run.generation else { return }
                 if let actionResult, actionResult.disposition == .succeeded,
                    case let .preview(frame, rawDisplayID, constrained) = actionResult.effect {
                     let presentation = PlacementPreviewPresentation(
@@ -397,9 +425,11 @@ final class EdgeSnapCoordinator: Sendable {
                 run.currentZone = nil
                 overlayPresenter.dismiss()
                 _ = await stateMachine.consume(.edge(.zoneExited))
+                guard activeRun?.generation == run.generation else { return }
             }
         }
 
+        guard activeRun?.generation == run.generation else { return }
         activeRun = run
     }
 

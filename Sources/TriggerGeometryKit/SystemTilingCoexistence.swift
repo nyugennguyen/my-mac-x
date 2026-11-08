@@ -157,6 +157,11 @@ public struct SystemTilingCoexistenceDetector: Sendable {
             return false
         }
 
+        // When separate Spaces is disabled (spans-displays = true), native macOS tiling is inert (Z-09).
+        guard state.screensHaveSeparateSpaces else {
+            return false
+        }
+
         if zone == .top && state.isTopTilingEnabled {
             return true
         }
@@ -188,11 +193,11 @@ public final class SystemTilingCoexistenceModel: ObservableObject {
     private let token = NotificationToken()
 
     private final class NotificationToken: @unchecked Sendable {
-        var observer: (any NSObjectProtocol)?
+        var observers: [any NSObjectProtocol] = []
 
         deinit {
-            if let observer {
-                NotificationCenter.default.removeObserver(observer)
+            observers.forEach {
+                NotificationCenter.default.removeObserver($0)
             }
         }
     }
@@ -201,7 +206,7 @@ public final class SystemTilingCoexistenceModel: ObservableObject {
         self.reader = reader
         let initialState = reader.readState()
         self.state = initialState
-        if initialState.operatingSystemMajorVersion >= 15 && (initialState.isEdgeTilingEnabled || initialState.isTopTilingEnabled) {
+        if initialState.operatingSystemMajorVersion >= 15 && initialState.screensHaveSeparateSpaces && (initialState.isEdgeTilingEnabled || initialState.isTopTilingEnabled) {
             self.status = .stoodDown(reason: SystemTilingStandDownReason(
                 isEdgeTilingEnabled: initialState.isEdgeTilingEnabled,
                 isTopTilingEnabled: initialState.isTopTilingEnabled,
@@ -212,20 +217,28 @@ public final class SystemTilingCoexistenceModel: ObservableObject {
             self.status = .active
         }
 
-        // Probe P-02: Listen for preferences change notification to support live toggling
-        token.observer = NotificationCenter.default.addObserver(
+        // Probe P-02: Listen for preferences change and app activation to support live toggling
+        let defaultsObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
             self?.refresh()
         }
+        let activeObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refresh()
+        }
+        token.observers = [defaultsObserver, activeObserver]
     }
 
     public func refresh() {
         let newState = reader.readState()
         self.state = newState
-        if newState.operatingSystemMajorVersion >= 15 && (newState.isEdgeTilingEnabled || newState.isTopTilingEnabled) {
+        if newState.operatingSystemMajorVersion >= 15 && newState.screensHaveSeparateSpaces && (newState.isEdgeTilingEnabled || newState.isTopTilingEnabled) {
             self.status = .stoodDown(reason: SystemTilingStandDownReason(
                 isEdgeTilingEnabled: newState.isEdgeTilingEnabled,
                 isTopTilingEnabled: newState.isTopTilingEnabled,

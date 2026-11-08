@@ -38,7 +38,8 @@ actor SnapInteractionStateMachine {
         case previewed(
             Binding,
             displayID: DisplayID,
-            action: ActionID
+            action: ActionID,
+            isEdge: Bool
         )
 
         var binding: Binding? {
@@ -47,7 +48,7 @@ actor SnapInteractionStateMachine {
                 nil
             case .tracking(let binding),
                  .choosing(let binding, _),
-                 .previewed(let binding, _, _):
+                 .previewed(let binding, _, _, _):
                 binding
             }
         }
@@ -109,6 +110,7 @@ actor SnapInteractionStateMachine {
                 if case .previewed(
                     let binding,
                     let activeDisplayID,
+                    _,
                     _
                 ) = state, activeDisplayID == displayID {
                     return await cancel(binding.interaction)
@@ -163,7 +165,7 @@ actor SnapInteractionStateMachine {
         let displayID: DisplayID
         switch state {
         case let .choosing(currentBinding, currentDisplayID),
-             let .previewed(currentBinding, currentDisplayID, _):
+             let .previewed(currentBinding, currentDisplayID, _, _):
             binding = currentBinding
             displayID = currentDisplayID
         case .idle, .tracking:
@@ -191,7 +193,8 @@ actor SnapInteractionStateMachine {
         state = .previewed(
             binding,
             displayID: displayID,
-            action: action
+            action: action,
+            isEdge: false
         )
         return result
     }
@@ -201,7 +204,7 @@ actor SnapInteractionStateMachine {
         switch state {
         case .tracking(let currentBinding):
             binding = currentBinding
-        case let .previewed(currentBinding, currentDisplayID, currentAction):
+        case let .previewed(currentBinding, currentDisplayID, currentAction, _):
             if currentDisplayID == displayID && currentAction == action {
                 return nil
             }
@@ -231,7 +234,8 @@ actor SnapInteractionStateMachine {
         state = .previewed(
             binding,
             displayID: displayID,
-            action: action
+            action: action,
+            isEdge: true
         )
         return result
     }
@@ -245,15 +249,16 @@ actor SnapInteractionStateMachine {
     private func release(_ interaction: InteractionID) async -> WindowActionResult? {
         guard state.interaction == interaction else { return nil }
 
-        if case .previewed = state {
+        if case let .previewed(binding, _, _, isEdge) = state {
             state = .idle
-            return await windowActions.perform(.commitPreview(interaction: interaction))
+            let policy: EdgeSnapAcceptancePolicy? = isEdge ? EdgeSnapAcceptancePolicy() : nil
+            return await windowActions.perform(.commitPreview(interaction: interaction, acceptancePolicy: policy))
         }
         return await cancel(interaction)
     }
 
     private func confirm(_ action: ActionID) async -> WindowActionResult? {
-        if case let .previewed(binding, _, previewedAction) = state,
+        if case let .previewed(binding, _, previewedAction, _) = state,
            previewedAction == action {
             return await release(binding.interaction)
         }

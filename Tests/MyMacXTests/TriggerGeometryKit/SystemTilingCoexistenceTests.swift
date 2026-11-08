@@ -148,6 +148,26 @@ final class SystemTilingCoexistenceTests: XCTestCase {
         XCTAssertFalse(detector.standsDown(for: .top, isSharedSeam: false, state: state))
     }
 
+    // MARK: - Spans Displays / Separate Spaces Disabled (Major 4, Z-09)
+
+    func testOuterWallsActiveWhenSeparateSpacesDisabledEvenWithTilingEnabled() {
+        let detector = SystemTilingCoexistenceDetector()
+        // When separate Spaces is disabled (spans-displays = true), macOS 15 tiling is inert
+        let state = SystemTilingState(
+            isEdgeTilingEnabled: true,
+            isTopTilingEnabled: true,
+            isOptionAcceleratorEnabled: false,
+            screensHaveSeparateSpaces: false,
+            operatingSystemMajorVersion: 15
+        )
+
+        XCTAssertFalse(detector.standsDown(for: .left, isSharedSeam: false, state: state), "Must not stand down on left edge when separate spaces is disabled")
+        XCTAssertFalse(detector.standsDown(for: .right, isSharedSeam: false, state: state), "Must not stand down on right edge when separate spaces is disabled")
+        XCTAssertFalse(detector.standsDown(for: .top, isSharedSeam: false, state: state), "Must not stand down on top edge when separate spaces is disabled")
+        XCTAssertFalse(detector.standsDown(for: .bottom, isSharedSeam: false, state: state), "Must not stand down on bottom edge when separate spaces is disabled")
+        XCTAssertFalse(detector.standsDown(for: .topLeft, isSharedSeam: false, state: state), "Must not stand down on corners when separate spaces is disabled")
+    }
+
     // MARK: - Observable Status Model
 
     @MainActor
@@ -177,5 +197,39 @@ final class SystemTilingCoexistenceTests: XCTestCase {
         model.refresh()
 
         XCTAssertEqual(model.status, .active)
+    }
+
+    func testAppDidBecomeActiveNotificationTriggersPreferenceRefresh() {
+        let mock = MockSystemTilingPreferencesAdapter()
+        mock.preferences = [
+            SystemTilingPreferenceReader.edgeTilingKey: true,
+            SystemTilingPreferenceReader.topTilingKey: true
+        ]
+        let reader = SystemTilingPreferenceReader(
+            adapter: mock,
+            spacesAdapter: MockSeparateSpacesAdapter(screensHaveSeparateSpaces: true),
+            osVersionProvider: { 15 }
+        )
+        let model = SystemTilingCoexistenceModel(reader: reader)
+        XCTAssertEqual(
+            model.status,
+            .stoodDown(reason: SystemTilingStandDownReason(
+                isEdgeTilingEnabled: true,
+                isTopTilingEnabled: true,
+                isOptionAcceleratorEnabled: false,
+                screensHaveSeparateSpaces: true
+            ))
+        )
+
+        // Preferences change externally (cross-process write via cfprefsd)
+        mock.preferences = [
+            SystemTilingPreferenceReader.edgeTilingKey: false,
+            SystemTilingPreferenceReader.topTilingKey: false
+        ]
+
+        // App becomes active
+        NotificationCenter.default.post(name: NSApplication.didBecomeActiveNotification, object: nil)
+
+        XCTAssertEqual(model.status, .active, "App activation must refresh system tiling preferences")
     }
 }

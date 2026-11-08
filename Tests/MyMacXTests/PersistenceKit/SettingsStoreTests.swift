@@ -213,6 +213,68 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertNil(persistedDocument)
     }
 
+    func testV3DocumentMigratesToV4AndReplacesDocumentAtomically() async {
+        let v3JSON = Data("""
+        {
+            "schemaVersion": 3,
+            "general": {"launchesAtLogin": false},
+            "snapping": {"isEnabled": true, "trigger": "notch", "dwellMilliseconds": 150, "showsPlacementPreview": true, "usesReducedEffects": false},
+            "hotkeyBindings": [],
+            "superMode": {"prefix": {"hardwareKeyCode": 49, "modifiers": 4}, "timeoutMilliseconds": 1000, "commandBindings": []},
+            "layouts": [],
+            "displayProfiles": [],
+            "appRules": {"unmatched": "included", "rules": []}
+        }
+        """.utf8)
+        let documents = InMemorySettingsDocumentAdapter(document: v3JSON)
+        let store = SettingsStore(documents: documents, actionRegistry: .builtIn)
+
+        let result = await store.loadConfiguration()
+        guard case let .loaded(snapshot, origin) = result else {
+            return XCTFail("Expected loaded configuration, got \(result)")
+        }
+        XCTAssertEqual(origin, .migrated(fromVersion: 3, toVersion: 4))
+        XCTAssertEqual(snapshot.edgeSnap, EdgeSnapZoneConfigurationSnapshot())
+
+        let replacementCount = await documents.replacementCallCount
+        XCTAssertEqual(replacementCount, 1)
+
+        let reloadedStore = SettingsStore(documents: documents, actionRegistry: .builtIn)
+        let reloadedResult = await reloadedStore.loadConfiguration()
+        guard case let .loaded(_, reloadedOrigin) = reloadedResult else {
+            return XCTFail("Expected reloaded configuration, got \(reloadedResult)")
+        }
+        XCTAssertEqual(reloadedOrigin, .persisted(schemaVersion: 4))
+    }
+
+    func testSimulatedWriteFailureDuringMigrationKeepsDocumentUnquarantinedAndSettingsLoaded() async {
+        let v3JSON = Data("""
+        {
+            "schemaVersion": 3,
+            "general": {"launchesAtLogin": false},
+            "snapping": {"isEnabled": true, "trigger": "notch", "dwellMilliseconds": 150, "showsPlacementPreview": true, "usesReducedEffects": false},
+            "hotkeyBindings": [],
+            "superMode": {"prefix": {"hardwareKeyCode": 49, "modifiers": 4}, "timeoutMilliseconds": 1000, "commandBindings": []},
+            "layouts": [],
+            "displayProfiles": [],
+            "appRules": {"unmatched": "included", "rules": []}
+        }
+        """.utf8)
+        let documents = InMemorySettingsDocumentAdapter(document: v3JSON)
+        await documents.setReplacementOutcome(.fails)
+        let store = SettingsStore(documents: documents, actionRegistry: .builtIn)
+
+        let result = await store.loadConfiguration()
+        guard case let .loaded(snapshot, origin) = result else {
+            return XCTFail("Expected loaded configuration despite write-back failure, got \(result)")
+        }
+        XCTAssertEqual(origin, .migrated(fromVersion: 3, toVersion: 4))
+        XCTAssertEqual(snapshot.edgeSnap, EdgeSnapZoneConfigurationSnapshot())
+
+        let currentDoc = await documents.document
+        XCTAssertEqual(currentDoc, v3JSON, "Valid document must not be quarantined on write-back failure")
+    }
+
     private var fixtureConfiguration: SuperModeConfiguration {
         SuperModeConfiguration(
             prefix: HotkeyChord(hardwareKeyCode: 49, modifiers: [.control, .option]),

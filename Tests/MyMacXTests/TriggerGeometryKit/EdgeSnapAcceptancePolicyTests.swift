@@ -73,6 +73,21 @@ final class EdgeSnapAcceptancePolicyTests: XCTestCase {
         XCTAssertTrue(policy.accepts(actualRect: clamped, targetRect: target, action: .topHalf))
     }
 
+    func testClampedMiddlePartitionPlacementAccepted() {
+        let target = CGRect(x: 0, y: 300, width: 1400, height: 300)
+        // Clamped window has larger height (400 pt instead of 300 pt) but is centered at midY=450
+        let clamped = CGRect(x: 0, y: 250, width: 1400, height: 400)
+
+        XCTAssertTrue(
+            policy.accepts(
+                actualRect: clamped,
+                targetRect: target,
+                action: ActionID(rawValue: "window.middle-third")
+            ),
+            "Middle third partition should accept clamped window when midY is centered"
+        )
+    }
+
     // MARK: - Corners (A-02)
 
     func testTopLeftQuarterAcceptsClampedWindowWithAnchoredCornerEdges() {

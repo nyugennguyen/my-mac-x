@@ -106,7 +106,11 @@ actor SettingsStore: SettingsStoring {
                 case let .current(version):
                     return .loaded(snapshot, origin: .persisted(schemaVersion: version))
                 case let .migrated(fromVersion, toVersion):
-                    try await documents.replaceDocumentAtomically(with: archive.export(snapshot))
+                    do {
+                        try await documents.replaceDocumentAtomically(with: archive.export(snapshot))
+                    } catch {
+                        // Isolate write-back errors: write failure must not quarantine valid source document
+                    }
                     return .loaded(snapshot, origin: .migrated(fromVersion: fromVersion, toVersion: toVersion))
                 }
             case .rejected(.unsupportedFutureVersion):
@@ -119,22 +123,26 @@ actor SettingsStore: SettingsStoring {
             switch try decode(data) {
             case let .current(settings):
                 let snapshot = ConfigurationSnapshot(hotkeySettings: settings, layouts: [], displayProfiles: [])
-                try await documents.replaceDocumentAtomically(with: archive.export(snapshot))
+                do {
+                    try await documents.replaceDocumentAtomically(with: archive.export(snapshot))
+                } catch {
+                    // Isolate write-back errors
+                }
                 return .loaded(snapshot, origin: .migrated(fromVersion: 2, toVersion: Self.currentSchemaVersion))
             case let .migration(settings, fromVersion):
+                let snapshot = ConfigurationSnapshot(hotkeySettings: settings, layouts: [], displayProfiles: [])
                 do {
-                    let snapshot = ConfigurationSnapshot(hotkeySettings: settings, layouts: [], displayProfiles: [])
                     try await documents.replaceDocumentAtomically(with: archive.export(snapshot))
-                    return .loaded(
-                        snapshot,
-                        origin: .migrated(
-                            fromVersion: fromVersion,
-                            toVersion: Self.currentSchemaVersion
-                        )
-                    )
                 } catch {
-                    return await recoverConfigurationFromCorruptDocument()
+                    // Isolate write-back errors
                 }
+                return .loaded(
+                    snapshot,
+                    origin: .migrated(
+                        fromVersion: fromVersion,
+                        toVersion: Self.currentSchemaVersion
+                    )
+                )
             case .future:
                 saveIsRecoveryLocked = true
                 return configurationDefaults(.unsupportedFutureVersion)

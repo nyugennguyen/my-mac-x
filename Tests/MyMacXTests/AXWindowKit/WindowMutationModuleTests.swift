@@ -147,6 +147,63 @@ final class WindowMutationModuleTests: XCTestCase {
         XCTAssertEqual(writeCount, 2)
     }
 
+    func testLenientAcceptancePolicyCommitsClampedFrameWithoutRollbackAndStrictRollsBack() async {
+        let identity = WindowIdentity()
+        let original = CGRect(x: 100, y: 100, width: 400, height: 350)
+        let target = CGRect(x: 20, y: 20, width: 300, height: 200)
+        let clampedReadBack = CGRect(x: 20, y: 20, width: 500, height: 400)
+
+        // 1. Lenient path: acceptance policy accepts clampedReadBack immediately
+        let lenientAdapter = ScriptedWindowAdapter(
+            captures: [.unsupported],
+            mutationSteps: [
+                .inspect(identity, frame: original, capabilities: .movableAndResizable),
+                .writeTarget(identity, frame: target, result: .accepted),
+                .inspect(identity, frame: clampedReadBack, capabilities: .movableAndResizable),
+            ]
+        )
+        let lenientResult = await WindowMutationModule(adapter: lenientAdapter).mutate(
+            window: identity,
+            to: ax(target),
+            within: defaultAllowedAXFrame,
+            acceptance: { actual, requested in
+                actual.cgRect.origin == requested.cgRect.origin
+            }
+        )
+        let lenientRollbackCount = await lenientAdapter.rollbackWriteCount
+        let lenientTargetCount = await lenientAdapter.targetWriteCount
+
+        XCTAssertEqual(lenientResult, .applied(actualFrame: ax(clampedReadBack), constrained: true))
+        XCTAssertEqual(lenientRollbackCount, 0)
+        XCTAssertEqual(lenientTargetCount, 1)
+
+        // 2. Strict path (acceptance is nil): rolls back after retry exhaustion
+        let strictAdapter = ScriptedWindowAdapter(
+            captures: [.unsupported],
+            mutationSteps: [
+                .inspect(identity, frame: original, capabilities: .movableAndResizable),
+                .writeTarget(identity, frame: target, result: .accepted),
+                .inspect(identity, frame: clampedReadBack, capabilities: .movableAndResizable),
+                .writeTarget(identity, frame: target, result: .accepted),
+                .inspect(identity, frame: clampedReadBack, capabilities: .movableAndResizable),
+                .writeTarget(identity, frame: target, result: .accepted),
+                .inspect(identity, frame: clampedReadBack, capabilities: .movableAndResizable),
+                .writeRollback(identity, frame: original, result: .accepted),
+                .inspect(identity, frame: original, capabilities: .movableAndResizable),
+            ]
+        )
+        let strictResult = await WindowMutationModule(adapter: strictAdapter).mutate(
+            window: identity,
+            to: ax(target),
+            within: defaultAllowedAXFrame,
+            acceptance: nil
+        )
+        let strictRollbackCount = await strictAdapter.rollbackWriteCount
+
+        XCTAssertEqual(strictResult, .failed(.verificationTimedOut))
+        XCTAssertEqual(strictRollbackCount, 1)
+    }
+
     func testRepositionsAStableMinimumSizeClampInsideTheAllowedFrame() async {
         let identity = WindowIdentity()
         let original = CGRect(x: 1_920, y: 33, width: 800, height: 923)

@@ -56,6 +56,10 @@ public struct EdgeSnapGeometryResolver: Sendable {
             return nil
         }
 
+        guard display.frame.width > 0, display.frame.height > 0 else {
+            return nil
+        }
+
         guard let (zone, region) = resolveZone(at: pointerLocation, in: display.frame) else {
             return nil
         }
@@ -128,6 +132,9 @@ public struct EdgeSnapGeometryResolver: Sendable {
         at point: CGPoint,
         in frame: CGRect
     ) -> (zone: EdgeSnapZone, region: CGRect)? {
+        guard frame.width > 0, frame.height > 0 else {
+            return nil
+        }
         let actDist = Self.activationDistance
         let cWidth = Self.cornerWidth(for: frame.width)
         let cHeight = Self.cornerHeight(for: frame.height)
