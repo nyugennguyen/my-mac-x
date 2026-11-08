@@ -10,6 +10,7 @@ public enum DiagnosticsFailure: Error, Equatable, Sendable {
     case accessibility(AccessibilityFailure)
     case input(InputFailure)
     case window(WindowActionFailure)
+    case persistence(PersistenceFailure)
 }
 
 /// Stable Accessibility failures that may be shown to callers or recorded in diagnostics.
@@ -57,7 +58,7 @@ public enum InputFailure: Error, Equatable, Sendable {
     case bindingUnsupported
 }
 
-/// Domain failures that Window Action callers can render without receiving AX objects.
+/// Stable failures that Window Action callers can render without receiving AX objects.
 public enum WindowActionFailure: Error, Equatable, Sendable {
     case accessibilityPermissionRequired
     case noFocusedWindow
@@ -73,6 +74,13 @@ public enum WindowActionFailure: Error, Equatable, Sendable {
     case verificationTimedOut
     case previewMissingOrExpired
     case rollbackIncomplete
+}
+
+/// Stable failures from the persistence and configuration path.
+public enum PersistenceFailure: Error, Equatable, Sendable {
+    case decodeAnomaly
+    case corruptDocument
+    case unsupportedFutureVersion
 }
 
 /// The complete allowlist of codes that may be emitted by `PrivacySafeDiagnosticsLogger`.
@@ -104,6 +112,10 @@ public enum DiagnosticsCode: String, Equatable, Sendable {
     case windowVerificationTimedOut = "window.verification-timed-out"
     case windowPreviewMissingOrExpired = "window.preview-missing-or-expired"
     case windowRollbackIncomplete = "window.rollback-incomplete"
+
+    case persistenceDecodeAnomaly = "persistence.decode-anomaly"
+    case persistenceCorruptDocument = "persistence.corrupt-document"
+    case persistenceUnsupportedFutureVersion = "persistence.unsupported-future-version"
 }
 
 public enum DiagnosticsSeverity: Equatable, Sendable {
@@ -180,6 +192,12 @@ private extension DiagnosticsFailure {
             case .verificationTimedOut: .windowVerificationTimedOut
             case .previewMissingOrExpired: .windowPreviewMissingOrExpired
             case .rollbackIncomplete: .windowRollbackIncomplete
+            }
+        case .persistence(let failure):
+            switch failure {
+            case .decodeAnomaly: .persistenceDecodeAnomaly
+            case .corruptDocument: .persistenceCorruptDocument
+            case .unsupportedFutureVersion: .persistenceUnsupportedFutureVersion
             }
         }
     }

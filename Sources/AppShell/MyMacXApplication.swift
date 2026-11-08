@@ -230,6 +230,9 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
             topologyObserving: topologyObserver,
             systemTilingStateProvider: { [systemTilingModel] in
                 systemTilingModel.state
+            },
+            zoneConfigurationProvider: { [settingsRuntime] in
+                settingsRuntime.currentEdgeSnapConfiguration()
             }
         )
         lifecycleCoordinator = AppLifecycleCoordinator(
@@ -908,7 +911,8 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
                 inputMonitoring: inputMonitoringAccess(),
                 eventTap: eventTapStatus(),
                 app: appStatus()
-            )
+            ),
+            edgeSnap: configuration.edgeSnap
         )
     }
 
@@ -1015,6 +1019,9 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
             replaceConfiguration(general: general, snapping: snapping, appRulePolicy: policy)
             Task { [appRules] in await appRules.replace(with: policy) }
             return
+        case let .updateEdgeSnapZoneConfiguration(snapshot):
+            replaceConfiguration(general: general, snapping: snapping, edgeSnap: snapshot)
+            return
         }
         configuration = ConfigurationSnapshot(
             general: general,
@@ -1022,7 +1029,8 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
             hotkeySettings: configuration.hotkeySettings,
             layouts: configuration.layouts,
             displayProfiles: configuration.displayProfiles,
-            appRulePolicy: configuration.appRulePolicy
+            appRulePolicy: configuration.appRulePolicy,
+            edgeSnap: configuration.edgeSnap
         )
         persist(configuration)
     }
@@ -1032,7 +1040,8 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
         snapping: SnappingSettings,
         layouts: [LayoutDraft]? = nil,
         displayProfiles: [DisplayProfile]? = nil,
-        appRulePolicy: AppRulePolicy? = nil
+        appRulePolicy: AppRulePolicy? = nil,
+        edgeSnap: EdgeSnapZoneConfigurationSnapshot? = nil
     ) {
         configuration = ConfigurationSnapshot(
             general: general,
@@ -1040,7 +1049,8 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
             hotkeySettings: configuration.hotkeySettings,
             layouts: layouts ?? configuration.layouts,
             displayProfiles: displayProfiles ?? configuration.displayProfiles,
-            appRulePolicy: appRulePolicy ?? configuration.appRulePolicy
+            appRulePolicy: appRulePolicy ?? configuration.appRulePolicy,
+            edgeSnap: edgeSnap ?? configuration.edgeSnap
         )
         persist(configuration)
     }
@@ -1071,8 +1081,13 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
             hotkeySettings: settings,
             layouts: configuration.layouts,
             displayProfiles: configuration.displayProfiles,
-            appRulePolicy: configuration.appRulePolicy
+            appRulePolicy: configuration.appRulePolicy,
+            edgeSnap: configuration.edgeSnap
         )
+    }
+
+    func currentEdgeSnapConfiguration() -> EdgeSnapZoneConfiguration {
+        configuration.edgeSnap.toZoneConfiguration()
     }
 
     func importConfiguration(completion: @escaping @MainActor () -> Void) {

@@ -32,6 +32,9 @@ final class PrivacySafeDiagnosticsLoggerTests: XCTestCase {
             ("window verification timed out", .window(.verificationTimedOut), .windowVerificationTimedOut),
             ("window preview missing or expired", .window(.previewMissingOrExpired), .windowPreviewMissingOrExpired),
             ("window rollback incomplete", .window(.rollbackIncomplete), .windowRollbackIncomplete),
+            ("persistence decode anomaly", .persistence(.decodeAnomaly), .persistenceDecodeAnomaly),
+            ("persistence corrupt document", .persistence(.corruptDocument), .persistenceCorruptDocument),
+            ("persistence unsupported future version", .persistence(.unsupportedFutureVersion), .persistenceUnsupportedFutureVersion),
         ]
 
         for testCase in cases {
@@ -71,6 +74,9 @@ final class PrivacySafeDiagnosticsLoggerTests: XCTestCase {
             (.windowVerificationTimedOut, "window.verification-timed-out"),
             (.windowPreviewMissingOrExpired, "window.preview-missing-or-expired"),
             (.windowRollbackIncomplete, "window.rollback-incomplete"),
+            (.persistenceDecodeAnomaly, "persistence.decode-anomaly"),
+            (.persistenceCorruptDocument, "persistence.corrupt-document"),
+            (.persistenceUnsupportedFutureVersion, "persistence.unsupported-future-version"),
         ]
 
         for (code, rawValue) in cases {

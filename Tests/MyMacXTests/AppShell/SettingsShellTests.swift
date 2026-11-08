@@ -636,6 +636,8 @@ private final class RuntimeHarness: SettingsRuntimeProviding {
             snapshot.snapping.usesReducedEffects = isEnabled
         case let .launchAtLoginEnabled(isEnabled):
             snapshot.general.launchesAtLogin = isEnabled
+        case let .updateEdgeSnapZoneConfiguration(edgeSnap):
+            snapshot.edgeSnap = edgeSnap
         case .saveLayout, .editLayout, .deleteLayout, .saveDisplayProfile,
              .createDisplayProfilesForConnectedDisplays, .deleteDisplayProfile, .replaceAppRules:
             break

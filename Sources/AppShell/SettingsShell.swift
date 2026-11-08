@@ -545,6 +545,7 @@ public struct SettingsRuntimeSnapshot: Equatable, Sendable {
     public var appRules: SettingsAppRulesPresentation
     public var transfer: SettingsTransferPresentation
     public var diagnostics: SettingsDiagnosticsPresentation
+    public var edgeSnap: EdgeSnapZoneConfigurationSnapshot
 
     public init(
         general: SettingsGeneralSnapshot,
@@ -554,7 +555,8 @@ public struct SettingsRuntimeSnapshot: Equatable, Sendable {
         displayProfiles: [SettingsDisplayProfilePresentation] = [],
         appRules: SettingsAppRulesPresentation = .init(),
         transfer: SettingsTransferPresentation = .init(),
-        diagnostics: SettingsDiagnosticsPresentation = .unavailable
+        diagnostics: SettingsDiagnosticsPresentation = .unavailable,
+        edgeSnap: EdgeSnapZoneConfigurationSnapshot = EdgeSnapZoneConfigurationSnapshot()
     ) {
         self.general = general
         self.snapping = snapping
@@ -564,6 +566,7 @@ public struct SettingsRuntimeSnapshot: Equatable, Sendable {
         self.appRules = appRules
         self.transfer = transfer
         self.diagnostics = diagnostics
+        self.edgeSnap = edgeSnap
     }
 }
 
@@ -581,6 +584,7 @@ public enum SettingsRuntimeChange: Equatable, Sendable {
     case createDisplayProfilesForConnectedDisplays
     case deleteDisplayProfile(stableDisplayID: String)
     case replaceAppRules(defaultDecision: AppRuleDecision, rules: [AppRule])
+    case updateEdgeSnapZoneConfiguration(EdgeSnapZoneConfigurationSnapshot)
 }
 
 /// Composition boundary for the Settings UI. A production adapter applies each
@@ -677,6 +681,9 @@ public final class SettingsShellModel: ObservableObject {
     public func deleteDisplayProfile(stableDisplayID: String) { apply(.deleteDisplayProfile(stableDisplayID: stableDisplayID)) }
     public func replaceAppRules(defaultDecision: AppRuleDecision, rules: [AppRule]) {
         apply(.replaceAppRules(defaultDecision: defaultDecision, rules: rules))
+    }
+    public func updateEdgeSnapZoneConfiguration(_ snapshot: EdgeSnapZoneConfigurationSnapshot) {
+        apply(.updateEdgeSnapZoneConfiguration(snapshot))
     }
     public func importConfiguration() {
         runtime.importConfiguration { [weak self] in self?.reload() }
@@ -2048,6 +2055,17 @@ public enum SettingsCopy {
     public static let eventTap = localized("Event Tap")
     public static let redactedDiagnosticsReport = localized("Redacted diagnostics report")
     public static let copyDiagnostics = localized("Copy Diagnostics Report")
+
+    public static let edgeSnapSectionTitle = localized("Edge Snap Zones")
+    public static let edgeSnapZoneMapTitle = localized("Perimeter Zone Map")
+    public static let resetAllZonesToDefaults = localized("Reset All Zones to Defaults")
+    public static let resetZoneToDefault = localized("Reset to Default")
+    public static let seamGatingTitle = localized("Multi-Display Seam Gating")
+    public static let seamGatingExplanation = localized("Prevent accidental docking across connected screens by gating fast pointer movement across shared boundaries.")
+    public static let seamCrossingSpeedThreshold = localized("Seam Crossing Speed Threshold")
+    public static let enableEdgeSnapZone = localized("Enable Zone")
+    public static let disableEdgeSnapZone = localized("Disable Zone")
+    public static let systemTilingStandDownNotice = localized("macOS System Tiling is active. Edge snapping stands down on perimeter edges.")
 
     public static func regionCount(_ count: Int) -> String {
         if count == 1 {

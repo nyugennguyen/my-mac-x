@@ -11,7 +11,7 @@ final class ConfigurationArchiveTests: XCTestCase {
         let data = try archive.export(snapshot)
         let result = archive.import(data)
 
-        XCTAssertEqual(result, .imported(snapshot, origin: .current(schemaVersion: 3)))
+        XCTAssertEqual(result, .imported(snapshot, origin: .current(schemaVersion: 4)))
     }
 
     func testExportContainsOnlyTheStrictPortableSchema() throws {
@@ -23,15 +23,21 @@ final class ConfigurationArchiveTests: XCTestCase {
 
         XCTAssertEqual(
             Set(object.keys),
-            ["schemaVersion", "general", "snapping", "hotkeyBindings", "superMode", "layouts", "displayProfiles", "appRules"]
+            ["schemaVersion", "general", "snapping", "hotkeyBindings", "superMode", "layouts", "displayProfiles", "appRules", "edgeSnap"]
         )
         XCTAssertNil(object["machineSecret"])
         XCTAssertNil(object["settingsPath"])
         XCTAssertNil(object["accessibilityTrust"])
     }
 
-    func testV3RoundTripPreservesRuntimeSettingsAndAppRules() throws {
+    func testV4RoundTripPreservesRuntimeSettingsAppRulesAndEdgeSnap() throws {
         let identifier = try XCTUnwrap(ApplicationBundleIdentifier("com.example.Editor"))
+        let edgeSnap = EdgeSnapZoneConfigurationSnapshot(
+            customActions: [.top: .topHalf],
+            customPartitions: [.right: [.topHalf, .bottomHalf]],
+            disabledZones: [.bottomLeft],
+            seamGating: SeamGateSettings(isEnabled: false, crossingSpeedThreshold: 350.0)
+        )
         let snapshot = ConfigurationSnapshot(
             general: GeneralSettings(launchesAtLogin: true),
             snapping: SnappingSettings(
@@ -47,14 +53,102 @@ final class ConfigurationArchiveTests: XCTestCase {
             appRulePolicy: AppRulePolicy(
                 unmatched: .excluded,
                 rules: [AppRule(bundleIdentifier: identifier, decision: .included)]
-            )
+            ),
+            edgeSnap: edgeSnap
         )
         let archive = ConfigurationArchive(actionRegistry: .builtIn)
 
         XCTAssertEqual(
             archive.import(try archive.export(snapshot)),
-            .imported(snapshot, origin: .current(schemaVersion: 3))
+            .imported(snapshot, origin: .current(schemaVersion: 4))
         )
+    }
+
+    func testExportAppliesDeltaCompactionToDefaultEdgeSnap() throws {
+        let archive = ConfigurationArchive(actionRegistry: .builtIn)
+        let data = try archive.export(try fixtureSnapshot())
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let edgeSnap = try XCTUnwrap(object["edgeSnap"] as? [String: Any])
+
+        XCTAssertEqual(edgeSnap["zoneActions"] as? String, "")
+        XCTAssertEqual((edgeSnap["disabledZones"] as? [String])?.isEmpty, true)
+    }
+
+    func testV3ImportMigratesWithDefaultEdgeSnapConfiguration() throws {
+        let v3JSON = Data("""
+        {
+            "schemaVersion": 3,
+            "general": {"launchesAtLogin": false},
+            "snapping": {"isEnabled": true, "trigger": "notch", "dwellMilliseconds": 150, "showsPlacementPreview": true, "usesReducedEffects": false},
+            "hotkeyBindings": [],
+            "superMode": {"prefix": {"hardwareKeyCode": 49, "modifiers": 4}, "timeoutMilliseconds": 1000, "commandBindings": []},
+            "layouts": [],
+            "displayProfiles": [],
+            "appRules": {"unmatched": "included", "rules": []}
+        }
+        """.utf8)
+        let archive = ConfigurationArchive(actionRegistry: .builtIn)
+        let result = archive.import(v3JSON)
+
+        let expected = ConfigurationSnapshot(
+            general: GeneralSettings(launchesAtLogin: false),
+            snapping: SnappingSettings(
+                isEnabled: true,
+                trigger: .notch,
+                dwellMilliseconds: 150,
+                showsPlacementPreview: true,
+                usesReducedEffects: false
+            ),
+            hotkeySettings: HotkeySettings(
+                bindings: [],
+                superModeConfiguration: SuperModeConfiguration(
+                    prefix: HotkeyChord(hardwareKeyCode: 49, modifiers: HotkeyModifiers(rawValue: 4)),
+                    timeoutMilliseconds: 1000,
+                    commandBindings: []
+                )
+            ),
+            layouts: [],
+            displayProfiles: [],
+            appRulePolicy: AppRulePolicy(),
+            edgeSnap: EdgeSnapZoneConfigurationSnapshot()
+        )
+        XCTAssertEqual(result, .imported(expected, origin: .migrated(fromVersion: 3, toVersion: 4)))
+    }
+
+    func testV4ImportDegradesSafelyOnUnknownFieldInEdgeSnapAndSurfacesAnomaly() throws {
+        let writer = RecordingDiagnosticsWriter()
+        let logger = PrivacySafeDiagnosticsLogger(writer: writer)
+        let archive = ConfigurationArchive(actionRegistry: .builtIn, diagnosticsLogger: logger)
+
+        let v4WithUnknownField = Data("""
+        {
+            "schemaVersion": 4,
+            "general": {"launchesAtLogin": false},
+            "snapping": {"isEnabled": true, "trigger": "notch", "dwellMilliseconds": 150, "showsPlacementPreview": true, "usesReducedEffects": false},
+            "hotkeyBindings": [],
+            "superMode": {"prefix": {"hardwareKeyCode": 49, "modifiers": 4}, "timeoutMilliseconds": 1000, "commandBindings": []},
+            "layouts": [],
+            "displayProfiles": [],
+            "appRules": {"unmatched": "included", "rules": []},
+            "edgeSnap": {
+                "zoneActions": "top=window.top-half",
+                "disabledZones": ["bottomLeft"],
+                "seamGating": {"isEnabled": true, "crossingSpeedThreshold": 400},
+                "futureFeatureFlag": true
+            }
+        }
+        """.utf8)
+
+        let result = archive.import(v4WithUnknownField)
+        guard case let .imported(snapshot, origin) = result else {
+            XCTFail("Expected imported snapshot but got \(result)")
+            return
+        }
+
+        XCTAssertEqual(origin, .current(schemaVersion: 4))
+        XCTAssertEqual(snapshot.edgeSnap.customActions[.top], .topHalf)
+        XCTAssertEqual(snapshot.edgeSnap.disabledZones, [.bottomLeft])
+        XCTAssertEqual(writer.entries, [DiagnosticsLogEntry(code: .persistenceDecodeAnomaly, severity: .error)])
     }
 
     func testImportRejectsUnknownMachineSecretField() {
@@ -97,7 +191,7 @@ final class ConfigurationArchiveTests: XCTestCase {
 
         XCTAssertEqual(
             ConfigurationArchive(actionRegistry: .builtIn).import(data),
-            .imported(expected, origin: .migrated(fromVersion: 1, toVersion: 3))
+            .imported(expected, origin: .migrated(fromVersion: 1, toVersion: 4))
         )
     }
 
@@ -135,7 +229,7 @@ final class ConfigurationArchiveTests: XCTestCase {
 
         let result = archive.import(try archive.export(snapshot))
 
-        XCTAssertEqual(result, .imported(snapshot, origin: .current(schemaVersion: 3)))
+        XCTAssertEqual(result, .imported(snapshot, origin: .current(schemaVersion: 4)))
     }
 
     private func fixtureSnapshot() throws -> ConfigurationSnapshot {
@@ -170,5 +264,20 @@ final class ConfigurationArchiveTests: XCTestCase {
             id: LayoutRegionID(rawValue: id),
             normalizedFrame: CGRect(x: x, y: y, width: width, height: height)
         )
+    }
+}
+
+private final class RecordingDiagnosticsWriter: DiagnosticsLogWriting, @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedEntries: [DiagnosticsLogEntry] = []
+
+    var entries: [DiagnosticsLogEntry] {
+        lock.withLock { storedEntries }
+    }
+
+    func write(_ entry: DiagnosticsLogEntry) {
+        lock.withLock {
+            storedEntries.append(entry)
+        }
     }
 }

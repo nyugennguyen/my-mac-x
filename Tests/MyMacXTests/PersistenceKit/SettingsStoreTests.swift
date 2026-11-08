@@ -6,21 +6,28 @@ final class SettingsStoreTests: XCTestCase {
         let documents = InMemorySettingsDocumentAdapter()
         let store = SettingsStore(documents: documents, actionRegistry: .builtIn)
         let identifier = try XCTUnwrap(ApplicationBundleIdentifier("com.example.Editor"))
+        let edgeSnap = EdgeSnapZoneConfigurationSnapshot(
+            customActions: [.top: .topHalf],
+            customPartitions: [.right: [.topHalf, .bottomHalf]],
+            disabledZones: [.bottomLeft],
+            seamGating: SeamGateSettings(isEnabled: false, crossingSpeedThreshold: 350.0)
+        )
         let snapshot = ConfigurationSnapshot(
             general: GeneralSettings(launchesAtLogin: true),
             snapping: SnappingSettings(isEnabled: false, trigger: .topCenter, dwellMilliseconds: 275, showsPlacementPreview: false, usesReducedEffects: true),
             hotkeySettings: HotkeySettings(bindings: [fixtureBinding]),
             layouts: [LayoutDraft(id: "wide", name: "Wide", regions: [LayoutRegionDraft(id: LayoutRegionID(rawValue: "all"), normalizedFrame: CGRect(x: 0, y: 0, width: 1, height: 1))])],
             displayProfiles: [try DisplayProfile(stableDisplayID: StableDisplayID(rawValue: "uuid:main"), gap: 8, layoutIDs: ["wide"])],
-            appRulePolicy: AppRulePolicy(unmatched: .included, rules: [AppRule(bundleIdentifier: identifier, decision: .excluded)])
+            appRulePolicy: AppRulePolicy(unmatched: .included, rules: [AppRule(bundleIdentifier: identifier, decision: .excluded)]),
+            edgeSnap: edgeSnap
         )
 
         let saveResult = await store.saveConfiguration(snapshot)
         let loadResult = await store.loadConfiguration()
-        XCTAssertEqual(saveResult, .saved(schemaVersion: 3))
+        XCTAssertEqual(saveResult, .saved(schemaVersion: 4))
         XCTAssertEqual(
             loadResult,
-            .loaded(snapshot, origin: .persisted(schemaVersion: 3))
+            .loaded(snapshot, origin: .persisted(schemaVersion: 4))
         )
     }
     func testMissingDocumentLoadsEmptyDefaultsWithoutWriting() async {
@@ -52,7 +59,7 @@ final class SettingsStoreTests: XCTestCase {
         )
 
         let saveResult = await store.save(settings)
-        XCTAssertEqual(saveResult, .saved(schemaVersion: 3))
+        XCTAssertEqual(saveResult, .saved(schemaVersion: 4))
 
         let reloaded: any SettingsStoring = SettingsStore(
             documents: documents,
@@ -61,7 +68,7 @@ final class SettingsStoreTests: XCTestCase {
         let reloadedResult = await reloaded.load()
         XCTAssertEqual(
             reloadedResult,
-            .loaded(settings, origin: .persisted(schemaVersion: 3))
+            .loaded(settings, origin: .persisted(schemaVersion: 4))
         )
     }
 
@@ -78,7 +85,7 @@ final class SettingsStoreTests: XCTestCase {
         let migratedResult = await store.load()
         XCTAssertEqual(
             migratedResult,
-            .loaded(settings, origin: .migrated(fromVersion: 0, toVersion: 3))
+            .loaded(settings, origin: .migrated(fromVersion: 0, toVersion: 4))
         )
 
         let reloaded: any SettingsStoring = SettingsStore(
@@ -88,7 +95,7 @@ final class SettingsStoreTests: XCTestCase {
         let reloadedResult = await reloaded.load()
         XCTAssertEqual(
             reloadedResult,
-            .loaded(settings, origin: .persisted(schemaVersion: 3))
+            .loaded(settings, origin: .persisted(schemaVersion: 4))
         )
     }
 
@@ -107,7 +114,7 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(
             result,
-            .loaded(settings, origin: .migrated(fromVersion: 1, toVersion: 3))
+            .loaded(settings, origin: .migrated(fromVersion: 1, toVersion: 4))
         )
         XCTAssertEqual(replacementCallCount, 1)
     }
@@ -119,7 +126,7 @@ final class SettingsStoreTests: XCTestCase {
         let loadResult = await store.load()
         XCTAssertEqual(loadResult, .loaded(HotkeySettings(bindings: []), origin: .defaults(reason: .corruptDocumentQuarantined)))
         let saveResult = await store.save(HotkeySettings(bindings: [fixtureBinding]))
-        XCTAssertEqual(saveResult, .saved(schemaVersion: 3))
+        XCTAssertEqual(saveResult, .saved(schemaVersion: 4))
     }
 
     func testUnquarantinableCorruptDocumentBlocksSave() async {
@@ -138,7 +145,7 @@ final class SettingsStoreTests: XCTestCase {
         let documents = InMemorySettingsDocumentAdapter()
         let initialStore: any SettingsStoring = SettingsStore(documents: documents, actionRegistry: .builtIn)
         let initialSaveResult = await initialStore.save(settings)
-        XCTAssertEqual(initialSaveResult, .saved(schemaVersion: 3))
+        XCTAssertEqual(initialSaveResult, .saved(schemaVersion: 4))
         await documents.setReplacementOutcome(.fails)
 
         let failedSaveResult = await initialStore.save(HotkeySettings(bindings: []))
@@ -146,7 +153,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let reloaded: any SettingsStoring = SettingsStore(documents: documents, actionRegistry: .builtIn)
         let reloadedResult = await reloaded.load()
-        XCTAssertEqual(reloadedResult, .loaded(settings, origin: .persisted(schemaVersion: 3)))
+        XCTAssertEqual(reloadedResult, .loaded(settings, origin: .persisted(schemaVersion: 4)))
     }
 
     func testUnsafePersistedBindingRecoversWithoutReturningIt() async {
@@ -177,13 +184,13 @@ final class SettingsStoreTests: XCTestCase {
             loadResult,
             .loaded(
                 HotkeySettings(bindings: [binding]),
-                origin: .migrated(fromVersion: 1, toVersion: 3)
+                origin: .migrated(fromVersion: 1, toVersion: 4)
             )
         )
     }
 
     func testFutureVersionIsPreservedAndSaveIsBlocked() async {
-        let future = Data("{\"schemaVersion\":4,\"hotkeyBindings\":[]}".utf8)
+        let future = Data("{\"schemaVersion\":5,\"hotkeyBindings\":[]}".utf8)
         let documents = InMemorySettingsDocumentAdapter(document: future)
         let store: any SettingsStoring = SettingsStore(documents: documents, actionRegistry: .builtIn)
 

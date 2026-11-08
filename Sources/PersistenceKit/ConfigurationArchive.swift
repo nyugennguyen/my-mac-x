@@ -48,6 +48,7 @@ struct ConfigurationSnapshot: Equatable, Sendable {
     let layouts: [LayoutDraft]
     let displayProfiles: [DisplayProfile]
     let appRulePolicy: AppRulePolicy
+    let edgeSnap: EdgeSnapZoneConfigurationSnapshot
 
     init(
         general: GeneralSettings = GeneralSettings(),
@@ -55,7 +56,8 @@ struct ConfigurationSnapshot: Equatable, Sendable {
         hotkeySettings: HotkeySettings,
         layouts: [LayoutDraft],
         displayProfiles: [DisplayProfile],
-        appRulePolicy: AppRulePolicy = AppRulePolicy()
+        appRulePolicy: AppRulePolicy = AppRulePolicy(),
+        edgeSnap: EdgeSnapZoneConfigurationSnapshot = EdgeSnapZoneConfigurationSnapshot()
     ) {
         self.general = general
         self.snapping = snapping
@@ -63,6 +65,23 @@ struct ConfigurationSnapshot: Equatable, Sendable {
         self.layouts = layouts
         self.displayProfiles = displayProfiles
         self.appRulePolicy = appRulePolicy
+        self.edgeSnap = edgeSnap
+    }
+
+    init(
+        hotkeySettings: HotkeySettings,
+        layouts: [LayoutDraft],
+        displayProfiles: [DisplayProfile]
+    ) {
+        self.init(
+            general: GeneralSettings(),
+            snapping: SnappingSettings(),
+            hotkeySettings: hotkeySettings,
+            layouts: layouts,
+            displayProfiles: displayProfiles,
+            appRulePolicy: AppRulePolicy(),
+            edgeSnap: EdgeSnapZoneConfigurationSnapshot()
+        )
     }
 }
 
@@ -101,13 +120,16 @@ enum ConfigurationValidationFailure: Error, Equatable, Sendable {
     case unknownProfileLayout(stableDisplayID: StableDisplayID, layoutID: String)
     case invalidSnappingDwellMilliseconds(UInt32)
     case duplicateAppRule(ApplicationBundleIdentifier)
+    case invalidSeamCrossingSpeedThreshold(Double)
+    case unpermittedZoneAction(zone: EdgeSnapZone, actionID: ActionID)
+    case invalidZonePartition(zone: EdgeSnapZone, partitions: [ActionID])
 }
 
 /// Strict, versioned import/export codec for configuration backup and restore.
 struct ConfigurationArchive: Sendable {
     static let maximumDocumentSize = 256 * 1024
 
-    static let currentSchemaVersion: UInt16 = 3
+    static let currentSchemaVersion: UInt16 = 4
     private static let supportedModifierBits = HotkeyModifiers.command.rawValue
         | HotkeyModifiers.option.rawValue
         | HotkeyModifiers.control.rawValue
@@ -115,10 +137,15 @@ struct ConfigurationArchive: Sendable {
 
     private let actionRegistry: ActionRegistry
     private let superModeValidator: SuperModeConfigurationValidator
+    private let diagnosticsLogger: PrivacySafeDiagnosticsLogger
 
-    init(actionRegistry: ActionRegistry) {
+    init(
+        actionRegistry: ActionRegistry,
+        diagnosticsLogger: PrivacySafeDiagnosticsLogger = PrivacySafeDiagnosticsLogger()
+    ) {
         self.actionRegistry = actionRegistry
-        superModeValidator = SuperModeConfigurationValidator(actionRegistry: actionRegistry)
+        self.superModeValidator = SuperModeConfigurationValidator(actionRegistry: actionRegistry)
+        self.diagnosticsLogger = diagnosticsLogger
     }
 
     func export(_ snapshot: ConfigurationSnapshot) throws -> Data {
@@ -129,7 +156,7 @@ struct ConfigurationArchive: Sendable {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.sortedKeys]
-            let data = try encoder.encode(V3ConfigurationDocument(snapshot))
+            let data = try encoder.encode(V4ConfigurationDocument(snapshot))
             guard data.count <= Self.maximumDocumentSize else {
                 throw ConfigurationExportFailure.documentTooLarge(
                     maximumBytes: Self.maximumDocumentSize
@@ -186,7 +213,7 @@ struct ConfigurationArchive: Sendable {
                 }
                 snapshot = try decodeSnapshot(fields: fields, superMode: superMode)
                 origin = .migrated(fromVersion: 2, toVersion: Self.currentSchemaVersion)
-            case Self.currentSchemaVersion:
+            case 3:
                 guard Set(fields.keys) == [
                     "schemaVersion", "general", "snapping", "hotkeyBindings", "superMode",
                     "layouts", "displayProfiles", "appRules",
@@ -201,7 +228,28 @@ struct ConfigurationArchive: Sendable {
                     superMode: superMode,
                     general: general,
                     snapping: snapping,
-                    appRulePolicy: appRules
+                    appRulePolicy: appRules,
+                    edgeSnap: EdgeSnapZoneConfigurationSnapshot()
+                )
+                origin = .migrated(fromVersion: 3, toVersion: Self.currentSchemaVersion)
+            case Self.currentSchemaVersion:
+                guard Set(fields.keys) == [
+                    "schemaVersion", "general", "snapping", "hotkeyBindings", "superMode",
+                    "layouts", "displayProfiles", "appRules", "edgeSnap",
+                ], let superMode = try decodeSuperMode(fields["superMode"]),
+                   let general = decodeGeneral(fields["general"]),
+                   let snapping = decodeSnapping(fields["snapping"]),
+                   let appRules = try decodeAppRules(fields["appRules"]),
+                   let edgeSnap = decodeEdgeSnap(fields["edgeSnap"]) else {
+                    return .rejected(.malformedOrUnexpectedSchema)
+                }
+                snapshot = try decodeSnapshot(
+                    fields: fields,
+                    superMode: superMode,
+                    general: general,
+                    snapping: snapping,
+                    appRulePolicy: appRules,
+                    edgeSnap: edgeSnap
                 )
                 origin = .current(schemaVersion: Self.currentSchemaVersion)
             default:
@@ -229,7 +277,8 @@ struct ConfigurationArchive: Sendable {
         superMode: SuperModeConfiguration,
         general: GeneralSettings = GeneralSettings(),
         snapping: SnappingSettings = SnappingSettings(),
-        appRulePolicy: AppRulePolicy = AppRulePolicy()
+        appRulePolicy: AppRulePolicy = AppRulePolicy(),
+        edgeSnap: EdgeSnapZoneConfigurationSnapshot = EdgeSnapZoneConfigurationSnapshot()
     ) throws -> ConfigurationSnapshot {
         guard let bindings = try decodeHotkeyBindings(fields["hotkeyBindings"]),
               let layouts = try decodeLayouts(fields["layouts"]),
@@ -246,7 +295,8 @@ struct ConfigurationArchive: Sendable {
             ),
             layouts: layouts,
             displayProfiles: profiles,
-            appRulePolicy: appRulePolicy
+            appRulePolicy: appRulePolicy,
+            edgeSnap: edgeSnap
         )
     }
 
@@ -287,6 +337,94 @@ struct ConfigurationArchive: Sendable {
             return AppRule(bundleIdentifier: identifier, decision: decision)
         }
         return AppRulePolicy(unmatched: unmatched, rules: rules)
+    }
+
+    private func decodeEdgeSnap(_ value: ConfigurationJSONValue?) -> EdgeSnapZoneConfigurationSnapshot? {
+        guard case let .object(fields)? = value else { return nil }
+
+        let knownKeys: Set<String> = ["zoneActions", "disabledZones", "seamGating"]
+        let unknownKeys = Set(fields.keys).subtracting(knownKeys)
+        if !unknownKeys.isEmpty {
+            diagnosticsLogger.record(.persistence(.decodeAnomaly))
+        }
+
+        let customActions: [EdgeSnapZone: ActionID]
+        let customPartitions: [EdgeSnapZone: [ActionID]]
+        if let zoneActionsValue = fields["zoneActions"] {
+            if case let .string(zoneActionsString) = zoneActionsValue {
+                let decoded = EdgeSnapZoneDeltaCodec.decodeZoneActions(zoneActionsString, diagnostics: diagnosticsLogger)
+                customActions = decoded.customActions
+                customPartitions = decoded.customPartitions
+            } else {
+                diagnosticsLogger.record(.persistence(.decodeAnomaly))
+                customActions = [:]
+                customPartitions = [:]
+            }
+        } else {
+            customActions = [:]
+            customPartitions = [:]
+        }
+
+        let disabledZones: Set<EdgeSnapZone>
+        if let disabledValue = fields["disabledZones"] {
+            if case let .array(items) = disabledValue {
+                let strings = items.compactMap { item -> String? in
+                    if case let .string(str) = item { return str }
+                    return nil
+                }
+                if strings.count != items.count {
+                    diagnosticsLogger.record(.persistence(.decodeAnomaly))
+                }
+                disabledZones = EdgeSnapZoneDeltaCodec.decodeDisabledZones(strings, diagnostics: diagnosticsLogger)
+            } else {
+                diagnosticsLogger.record(.persistence(.decodeAnomaly))
+                disabledZones = []
+            }
+        } else {
+            disabledZones = []
+        }
+
+        let seamGating: SeamGateSettings
+        if let seamGatingValue = fields["seamGating"] {
+            if case let .object(seamFields) = seamGatingValue {
+                let seamUnknown = Set(seamFields.keys).subtracting(["isEnabled", "crossingSpeedThreshold"])
+                if !seamUnknown.isEmpty {
+                    diagnosticsLogger.record(.persistence(.decodeAnomaly))
+                }
+                let isEnabled: Bool
+                if case let .bool(val)? = seamFields["isEnabled"] {
+                    isEnabled = val
+                } else if seamFields["isEnabled"] != nil {
+                    diagnosticsLogger.record(.persistence(.decodeAnomaly))
+                    isEnabled = true
+                } else {
+                    isEnabled = true
+                }
+
+                let threshold: Double
+                if let num = number(seamFields["crossingSpeedThreshold"]) {
+                    threshold = EdgeSnapZoneDeltaCodec.validateCrossingSpeedThreshold(num, diagnostics: diagnosticsLogger)
+                } else if seamFields["crossingSpeedThreshold"] != nil {
+                    diagnosticsLogger.record(.persistence(.decodeAnomaly))
+                    threshold = SeamGateSettings.defaultCrossingSpeedThreshold
+                } else {
+                    threshold = SeamGateSettings.defaultCrossingSpeedThreshold
+                }
+                seamGating = SeamGateSettings(isEnabled: isEnabled, crossingSpeedThreshold: threshold)
+            } else {
+                diagnosticsLogger.record(.persistence(.decodeAnomaly))
+                seamGating = SeamGateSettings()
+            }
+        } else {
+            seamGating = SeamGateSettings()
+        }
+
+        return EdgeSnapZoneConfigurationSnapshot(
+            customActions: customActions,
+            customPartitions: customPartitions,
+            disabledZones: disabledZones,
+            seamGating: seamGating
+        )
     }
 
     private func decodeHotkeyBindings(
@@ -490,6 +628,22 @@ struct ConfigurationArchive: Sendable {
         for rule in snapshot.appRulePolicy.rules where !appIdentifiers.insert(rule.bundleIdentifier).inserted {
             return .duplicateAppRule(rule.bundleIdentifier)
         }
+
+        guard snapshot.edgeSnap.seamGating.crossingSpeedThreshold > 0,
+              snapshot.edgeSnap.seamGating.crossingSpeedThreshold.isFinite else {
+            return .invalidSeamCrossingSpeedThreshold(snapshot.edgeSnap.seamGating.crossingSpeedThreshold)
+        }
+        for (zone, action) in snapshot.edgeSnap.customActions {
+            guard EdgeSnapZone.isPermittedAction(action) else {
+                return .unpermittedZoneAction(zone: zone, actionID: action)
+            }
+        }
+        for (zone, partitions) in snapshot.edgeSnap.customPartitions {
+            let maxParts = zone.isCorner ? 1 : 4
+            guard partitions.count <= maxParts, partitions.allSatisfy(EdgeSnapZone.isPermittedAction) else {
+                return .invalidZonePartition(zone: zone, partitions: partitions)
+            }
+        }
         return nil
     }
 
@@ -515,6 +669,51 @@ struct ConfigurationArchive: Sendable {
 private enum ConfigurationDecodeFailure: Error {
     case invalidShape
     case invalidConfiguration(ConfigurationValidationFailure)
+}
+
+private struct V4ConfigurationDocument: Encodable {
+    let schemaVersion: UInt16 = 4
+    let general: EncodedGeneralSettings
+    let snapping: EncodedSnappingSettings
+    let hotkeyBindings: [EncodedHotkeyBinding]
+    let superMode: EncodedSuperMode
+    let layouts: [EncodedLayout]
+    let displayProfiles: [EncodedDisplayProfile]
+    let appRules: EncodedAppRules
+    let edgeSnap: EncodedEdgeSnapSettings
+
+    init(_ snapshot: ConfigurationSnapshot) {
+        general = EncodedGeneralSettings(snapshot.general)
+        snapping = EncodedSnappingSettings(snapshot.snapping)
+        hotkeyBindings = snapshot.hotkeySettings.bindings.map(EncodedHotkeyBinding.init)
+        superMode = EncodedSuperMode(snapshot.hotkeySettings.superModeConfiguration)
+        layouts = snapshot.layouts.map(EncodedLayout.init)
+        displayProfiles = snapshot.displayProfiles.map(EncodedDisplayProfile.init)
+        appRules = EncodedAppRules(snapshot.appRulePolicy)
+        edgeSnap = EncodedEdgeSnapSettings(snapshot.edgeSnap)
+    }
+}
+
+private struct EncodedEdgeSnapSettings: Encodable {
+    let zoneActions: String
+    let disabledZones: [String]
+    let seamGating: EncodedSeamGating
+
+    init(_ snapshot: EdgeSnapZoneConfigurationSnapshot) {
+        zoneActions = EdgeSnapZoneDeltaCodec.encodeZoneActions(snapshot)
+        disabledZones = EdgeSnapZoneDeltaCodec.encodeDisabledZones(snapshot)
+        seamGating = EncodedSeamGating(snapshot.seamGating)
+    }
+}
+
+private struct EncodedSeamGating: Encodable {
+    let isEnabled: Bool
+    let crossingSpeedThreshold: Double
+
+    init(_ settings: SeamGateSettings) {
+        isEnabled = settings.isEnabled
+        crossingSpeedThreshold = settings.crossingSpeedThreshold
+    }
 }
 
 private struct V3ConfigurationDocument: Encodable {

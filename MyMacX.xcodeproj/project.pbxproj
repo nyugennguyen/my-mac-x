@@ -151,6 +151,8 @@
 		10000000000000000000009F /* EdgeSnapCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20000000000000000000009F /* EdgeSnapCoordinatorTests.swift */; };
 		1000000000000000000000A0 /* LayoutThumbnailGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A0 /* LayoutThumbnailGeometry.swift */; };
 		1000000000000000000000A1 /* LayoutThumbnailRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A1 /* LayoutThumbnailRenderer.swift */; };
+		1000000000000000000000A2 /* EdgeSnapZoneConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A2 /* EdgeSnapZoneConfigurationStore.swift */; };
+		1000000000000000000000A3 /* EdgeSnapZoneConfigurationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A3 /* EdgeSnapZoneConfigurationStoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -313,6 +315,8 @@
 		20000000000000000000009F /* EdgeSnapCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSnapCoordinatorTests.swift; sourceTree = "<group>"; };
 		2000000000000000000000A0 /* LayoutThumbnailGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutThumbnailGeometry.swift; sourceTree = "<group>"; };
 		2000000000000000000000A1 /* LayoutThumbnailRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutThumbnailRenderer.swift; sourceTree = "<group>"; };
+		2000000000000000000000A2 /* EdgeSnapZoneConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSnapZoneConfigurationStore.swift; sourceTree = "<group>"; };
+		2000000000000000000000A3 /* EdgeSnapZoneConfigurationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSnapZoneConfigurationStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -733,6 +737,7 @@
 				200000000000000000000042 /* LocalSettingsDocumentAdapter.swift */,
 				200000000000000000000043 /* StrictJSONParser.swift */,
 				200000000000000000000074 /* ConfigurationArchive.swift */,
+				2000000000000000000000A2 /* EdgeSnapZoneConfigurationStore.swift */,
 			);
 			path = PersistenceKit;
 			sourceTree = "<group>";
@@ -743,6 +748,7 @@
 				200000000000000000000044 /* SettingsStoreTests.swift */,
 				200000000000000000000045 /* InMemorySettingsDocumentAdapter.swift */,
 				200000000000000000000075 /* ConfigurationArchiveTests.swift */,
+				2000000000000000000000A3 /* EdgeSnapZoneConfigurationStoreTests.swift */,
 			);
 			path = PersistenceKit;
 			sourceTree = "<group>";
@@ -1050,6 +1056,7 @@
 				10000000000000000000007A /* PerformanceBudgetPolicy.swift in Sources */,
 				1000000000000000000000A0 /* LayoutThumbnailGeometry.swift in Sources */,
 				1000000000000000000000A1 /* LayoutThumbnailRenderer.swift in Sources */,
+				1000000000000000000000A2 /* EdgeSnapZoneConfigurationStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1124,6 +1131,7 @@
 				100000000000000000000077 /* AppRulePolicyTests.swift in Sources */,
 				100000000000000000000079 /* DiagnosticsReportBuilderTests.swift in Sources */,
 				10000000000000000000007B /* PerformanceBudgetPolicyTests.swift in Sources */,
+				1000000000000000000000A3 /* EdgeSnapZoneConfigurationStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

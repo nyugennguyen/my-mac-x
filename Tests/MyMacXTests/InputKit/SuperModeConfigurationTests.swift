@@ -276,7 +276,7 @@ final class SuperModeConfigurationTests: XCTestCase {
         XCTAssertEqual(replacementCallCount, 2)
         XCTAssertEqual(
             reloadResult,
-            .loaded(secondSettings, origin: .persisted(schemaVersion: 3))
+            .loaded(secondSettings, origin: .persisted(schemaVersion: 4))
         )
 
         var reducer = SuperModeReducer(commandTree: secondRuntime.commandTree)
@@ -401,7 +401,7 @@ final class SuperModeConfigurationTests: XCTestCase {
             persistedResult,
             .loaded(
                 persistedSettings,
-                origin: .persisted(schemaVersion: 3)
+                origin: .persisted(schemaVersion: 4)
             )
         )
     }

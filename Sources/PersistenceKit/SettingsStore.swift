@@ -157,7 +157,8 @@ actor SettingsStore: SettingsStoring {
                 hotkeySettings: settings,
                 layouts: current.layouts,
                 displayProfiles: current.displayProfiles,
-                appRulePolicy: current.appRulePolicy
+                appRulePolicy: current.appRulePolicy,
+                edgeSnap: current.edgeSnap
             )
         }
         return await saveConfiguration(snapshot)
