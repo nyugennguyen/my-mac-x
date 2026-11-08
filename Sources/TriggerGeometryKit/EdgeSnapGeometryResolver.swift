@@ -4,17 +4,20 @@ import CoreGraphics
 public struct EdgeSnapTarget: Equatable, Sendable {
     public let displayID: DisplayID
     public let zone: EdgeSnapZone
+    public let partitionIndex: Int
     public let action: ActionID
     public let activationRegion: CGRect
 
     public init(
         displayID: DisplayID,
         zone: EdgeSnapZone,
+        partitionIndex: Int = 0,
         action: ActionID,
         activationRegion: CGRect
     ) {
         self.displayID = displayID
         self.zone = zone
+        self.partitionIndex = partitionIndex
         self.action = action
         self.activationRegion = activationRegion
     }
@@ -62,13 +65,61 @@ public struct EdgeSnapGeometryResolver: Sendable {
             return nil
         }
 
-        let action = configuration.action(for: zone)
+        let zoneActions = configuration.actions(for: zone)
+        let partitionCount = zoneActions.count
+        let (partitionIndex, activationRegion) = resolvePartition(
+            at: pointerLocation,
+            in: display.frame,
+            zone: zone,
+            partitionCount: partitionCount,
+            baseRegion: region
+        )
+
+        let action = configuration.action(for: zone, partitionIndex: partitionIndex)
         return EdgeSnapTarget(
             displayID: display.id,
             zone: zone,
+            partitionIndex: partitionIndex,
             action: action,
-            activationRegion: region
+            activationRegion: activationRegion
         )
+    }
+
+    // MARK: - Z-03 & Z-04 Partition Resolution
+
+    public func resolvePartition(
+        at point: CGPoint,
+        in frame: CGRect,
+        zone: EdgeSnapZone,
+        partitionCount: Int,
+        baseRegion: CGRect
+    ) -> (partitionIndex: Int, activationRegion: CGRect) {
+        guard zone.isStraightEdge, partitionCount > 1 else {
+            return (0, baseRegion)
+        }
+
+        let cWidth = Self.cornerWidth(for: frame.width)
+        let cHeight = Self.cornerHeight(for: frame.height)
+
+        if zone.isHorizontalEdge {
+            let straightWidth = max(frame.width - 2 * cWidth, 1)
+            let f = (point.x - frame.minX - cWidth) / straightWidth
+            let clampedF = min(max(f, 0.0), 1.0)
+            let index = min(max(Int(floor(clampedF * Double(partitionCount))), 0), partitionCount - 1)
+            let partWidth = (frame.width - 2 * cWidth) / CGFloat(partitionCount)
+            let partX = frame.minX + cWidth + CGFloat(index) * partWidth
+            let partRegion = CGRect(x: partX, y: baseRegion.minY, width: partWidth, height: baseRegion.height)
+            return (index, partRegion)
+        } else {
+            let straightHeight = max(frame.height - 2 * cHeight, 1)
+            let f = (frame.maxY - cHeight - point.y) / straightHeight
+            let clampedF = min(max(f, 0.0), 1.0)
+            let index = min(max(Int(floor(clampedF * Double(partitionCount))), 0), partitionCount - 1)
+            let partHeight = (frame.height - 2 * cHeight) / CGFloat(partitionCount)
+            let partY = frame.maxY - cHeight - CGFloat(index + 1) * partHeight
+            let partRegion = CGRect(x: baseRegion.minX, y: partY, width: baseRegion.width, height: partHeight)
+            return (index, partRegion)
+        }
     }
 
     // MARK: - Internal Zone Resolution

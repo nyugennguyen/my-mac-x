@@ -153,6 +153,8 @@
 		1000000000000000000000A1 /* LayoutThumbnailRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A1 /* LayoutThumbnailRenderer.swift */; };
 		1000000000000000000000A2 /* EdgeSnapZoneConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A2 /* EdgeSnapZoneConfigurationStore.swift */; };
 		1000000000000000000000A3 /* EdgeSnapZoneConfigurationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A3 /* EdgeSnapZoneConfigurationStoreTests.swift */; };
+		1000000000000000000000A4 /* ZoneMapPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A4 /* ZoneMapPicker.swift */; };
+		1000000000000000000000A5 /* ZoneMapPickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A5 /* ZoneMapPickerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -317,6 +319,8 @@
 		2000000000000000000000A1 /* LayoutThumbnailRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutThumbnailRenderer.swift; sourceTree = "<group>"; };
 		2000000000000000000000A2 /* EdgeSnapZoneConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSnapZoneConfigurationStore.swift; sourceTree = "<group>"; };
 		2000000000000000000000A3 /* EdgeSnapZoneConfigurationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeSnapZoneConfigurationStoreTests.swift; sourceTree = "<group>"; };
+		2000000000000000000000A4 /* ZoneMapPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneMapPicker.swift; sourceTree = "<group>"; };
+		2000000000000000000000A5 /* ZoneMapPickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneMapPickerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -393,6 +397,7 @@
 				200000000000000000000059 /* CrossDisplayDragComposition.swift */,
 				20000000000000000000009E /* EdgeSnapCoordinator.swift */,
 				2000000000000000000000A1 /* LayoutThumbnailRenderer.swift */,
+				2000000000000000000000A4 /* ZoneMapPicker.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -493,6 +498,7 @@
 				200000000000000000000083 /* SettingsSearchTests.swift */,
 				200000000000000000000049 /* HotkeyRuntimeBindingUpdaterTests.swift */,
 				20000000000000000000009F /* EdgeSnapCoordinatorTests.swift */,
+				2000000000000000000000A5 /* ZoneMapPickerTests.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -1057,6 +1063,7 @@
 				1000000000000000000000A0 /* LayoutThumbnailGeometry.swift in Sources */,
 				1000000000000000000000A1 /* LayoutThumbnailRenderer.swift in Sources */,
 				1000000000000000000000A2 /* EdgeSnapZoneConfigurationStore.swift in Sources */,
+				1000000000000000000000A4 /* ZoneMapPicker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1132,6 +1139,7 @@
 				100000000000000000000079 /* DiagnosticsReportBuilderTests.swift in Sources */,
 				10000000000000000000007B /* PerformanceBudgetPolicyTests.swift in Sources */,
 				1000000000000000000000A3 /* EdgeSnapZoneConfigurationStoreTests.swift in Sources */,
+				1000000000000000000000A5 /* ZoneMapPickerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

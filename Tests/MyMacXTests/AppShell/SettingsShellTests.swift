@@ -192,6 +192,28 @@ final class SettingsShellTests: XCTestCase {
         XCTAssertEqual(model.generalPermissionMessage, SettingsCopy.accessibilityGranted)
     }
 
+    func testEdgeSnapZoneConfigurationUpdatesApplyThroughRuntimeAndPersist() {
+        let runtime = RuntimeHarness(
+            snapshot: .init(
+                general: .init(accessibility: .granted, inputMonitoringGranted: true, launchesAtLogin: false),
+                snapping: .default,
+                hotkeys: .empty,
+                edgeSnap: .init(customActions: [:], customPartitions: [:], disabledZones: [])
+            )
+        )
+        let model = SettingsShellModel(runtime: runtime)
+
+        var newSnapshot = EdgeSnapZoneConfigurationSnapshot()
+        newSnapshot.customPartitions[.top] = [.leftHalf, .rightHalf]
+        newSnapshot.disabledZones = [.bottom]
+
+        model.updateEdgeSnapZoneConfiguration(newSnapshot)
+
+        XCTAssertEqual(runtime.changes, [.updateEdgeSnapZoneConfiguration(newSnapshot)])
+        XCTAssertEqual(model.snapshot.edgeSnap.customPartitions[.top], [.leftHalf, .rightHalf])
+        XCTAssertTrue(model.snapshot.edgeSnap.disabledZones.contains(.bottom))
+    }
+
     func testHotkeyEditorStateProvidesAnAccessibleTreeAndRoutesToTheRequestedEditor() {
         let runtime = RuntimeHarness(
             snapshot: .init(

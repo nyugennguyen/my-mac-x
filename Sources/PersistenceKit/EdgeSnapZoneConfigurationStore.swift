@@ -64,6 +64,7 @@ public struct EdgeSnapZoneConfigurationSnapshot: Equatable, Sendable {
     public func toZoneConfiguration() -> EdgeSnapZoneConfiguration {
         EdgeSnapZoneConfiguration(
             customActions: customActions,
+            customPartitions: customPartitions,
             disabledZones: disabledZones
         )
     }

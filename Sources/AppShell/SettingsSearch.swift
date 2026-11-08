@@ -10,6 +10,8 @@ public enum SettingsAnchorID: String, CaseIterable, Identifiable, Sendable {
     case snappingTrigger = "snapping.trigger"
     case snappingPreview = "snapping.preview"
     case snappingReducedEffects = "snapping.reduced_effects"
+    case snappingZoneMap = "snapping.zone_map"
+    case snappingSeamGating = "snapping.seam_gating"
     case hotkeysSuperMode = "hotkeys.super_mode"
     case hotkeysCommandTree = "hotkeys.command_tree"
     case hotkeysGlobal = "hotkeys.global"
@@ -25,7 +27,7 @@ public enum SettingsAnchorID: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .generalPermissions, .generalStartup:
             return .general
-        case .snappingMaster, .snappingTrigger, .snappingPreview, .snappingReducedEffects:
+        case .snappingMaster, .snappingTrigger, .snappingPreview, .snappingReducedEffects, .snappingZoneMap, .snappingSeamGating:
             return .snapping
         case .hotkeysSuperMode, .hotkeysCommandTree, .hotkeysGlobal:
             return .hotkeys
@@ -56,6 +58,10 @@ public enum SettingsAnchorID: String, CaseIterable, Identifiable, Sendable {
             return "Placement Preview"
         case .snappingReducedEffects:
             return "Reduce Visual Effects"
+        case .snappingZoneMap:
+            return "Perimeter Zone Map"
+        case .snappingSeamGating:
+            return "Multi-Display Seam Gating"
         case .hotkeysSuperMode:
             return "Super Mode"
         case .hotkeysCommandTree:
@@ -177,6 +183,18 @@ public struct SettingsSearchIndex: Sendable {
             title: "Reduce Visual Effects",
             caption: "Simplify overlay motion and transparency during window snapping.",
             keywords: ["reduced motion", "transparency", "performance", "contrast"]
+        ),
+        SettingsSearchItem(
+            anchor: .snappingZoneMap,
+            title: "Perimeter Zone Map",
+            caption: "Configure screen edge and corner docking actions and partitions.",
+            keywords: ["zone map", "edge snap", "corners", "partitions", "half", "quarter", "third"]
+        ),
+        SettingsSearchItem(
+            anchor: .snappingSeamGating,
+            title: "Multi-Display Seam Gating",
+            caption: "Prevent accidental docking across connected screens with pointer speed gating.",
+            keywords: ["seam gating", "multi-display", "threshold", "crossing speed", "screens"]
         ),
 
         // Hotkeys & Super Mode

@@ -1652,86 +1652,156 @@ private struct GeneralSettingsView: View {
 
 private struct SnappingSettingsView: View {
     @ObservedObject var model: SettingsShellModel
+    @StateObject private var tilingModel: SystemTilingCoexistenceModel
+    @StateObject private var zoneStore: EdgeSnapZoneConfigurationStore
+    @StateObject private var pickerViewModel: ZoneMapPickerViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-    var body: some View {
-        Form {
-            Section(SettingsCopy.snappingSectionTitle) {
-                Toggle(
-                    SettingsCopy.enableSnapping,
-                    isOn: Binding(
-                        get: { model.snapshot.snapping.isEnabled },
-                        set: { model.setSnappingEnabled($0) }
-                    )
-                )
-                .accessibilityIdentifier(SettingsAccessibilityID.snappingEnabled)
-                .settingsSectionAnchor(.snappingMaster)
+    init(model: SettingsShellModel) {
+        self.model = model
+        let store = EdgeSnapZoneConfigurationStore(snapshot: model.snapshot.edgeSnap)
+        _zoneStore = StateObject(wrappedValue: store)
+        _tilingModel = StateObject(wrappedValue: SystemTilingCoexistenceModel())
+        _pickerViewModel = StateObject(wrappedValue: ZoneMapPickerViewModel(
+            store: store,
+            onSave: { [weak model] snapshot in
+                model?.updateEdgeSnapZoneConfiguration(snapshot)
+            }
+        ))
+    }
 
-                Picker(
-                    SettingsCopy.trigger,
-                    selection: Binding(
-                        get: { model.snapshot.snapping.trigger },
-                        set: { model.setSnappingTrigger($0) }
-                    )
-                ) {
-                    ForEach(SnappingTrigger.allCases) { trigger in
-                        Text(trigger.title).tag(trigger)
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: SettingsSpacing.cardStackGap) {
+                // ADR-0002 Fail-Visible System Tiling Stand-Down Banner
+                if case let .stoodDown(reason) = tilingModel.status {
+                    SystemTilingStandDownBanner(reason: reason)
+                }
+
+                // General Snapping Settings Card
+                SettingsCard(label: SettingsCopy.snappingSectionTitle) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle(
+                            SettingsCopy.enableSnapping,
+                            isOn: Binding(
+                                get: { model.snapshot.snapping.isEnabled },
+                                set: { model.setSnappingEnabled($0) }
+                            )
+                        )
+                        .accessibilityIdentifier(SettingsAccessibilityID.snappingEnabled)
+                        .settingsSectionAnchor(.snappingMaster)
+
+                        Picker(
+                            SettingsCopy.trigger,
+                            selection: Binding(
+                                get: { model.snapshot.snapping.trigger },
+                                set: { model.setSnappingTrigger($0) }
+                            )
+                        ) {
+                            ForEach(SnappingTrigger.allCases) { trigger in
+                                Text(trigger.title).tag(trigger)
+                            }
+                        }
+                        .disabled(!model.snapshot.snapping.isEnabled || triggerIsUnavailable)
+                        .accessibilityIdentifier(SettingsAccessibilityID.snappingTrigger)
+                        .settingsSectionAnchor(.snappingTrigger)
+
+                        if case let .unavailable(message) = model.snapshot.snapping.triggerAvailability {
+                            Text(message)
+                                .foregroundStyle(.secondary)
+                                .accessibilityLabel(message)
+                        }
+
+                        Stepper(
+                            "\(SettingsCopy.activationDelay): \(model.snapshot.snapping.dwellMilliseconds) ms",
+                            value: Binding(
+                                get: { model.snapshot.snapping.dwellMilliseconds },
+                                set: { model.setSnappingDwellMilliseconds($0) }
+                            ),
+                            in: 50...1_000,
+                            step: 50
+                        )
+                        .disabled(!model.snapshot.snapping.isEnabled)
+                        .accessibilityIdentifier(SettingsAccessibilityID.snappingDwell)
+                        .settingsSectionAnchor(.snappingTrigger)
+
+                        Toggle(
+                            SettingsCopy.showPlacementPreview,
+                            isOn: Binding(
+                                get: { model.snapshot.snapping.showsPlacementPreview },
+                                set: { model.setPlacementPreviewEnabled($0) }
+                            )
+                        )
+                        .disabled(!model.snapshot.snapping.isEnabled)
+                        .settingsSectionAnchor(.snappingPreview)
+
+                        Toggle(
+                            SettingsCopy.reduceVisualEffects,
+                            isOn: Binding(
+                                get: { model.snapshot.snapping.usesReducedEffects },
+                                set: { model.setReducedEffectsEnabled($0) }
+                            )
+                        )
+                        .accessibilityIdentifier(SettingsAccessibilityID.reducedEffects)
+                        .settingsSectionAnchor(.snappingReducedEffects)
+
+                        if reduceMotion || reduceTransparency {
+                            Text(SettingsCopy.systemReducedEffectsNotice)
+                                .font(SettingsTypography.rowCaption)
+                                .foregroundStyle(.secondary)
+                                .accessibilityLabel(SettingsCopy.systemReducedEffectsNotice)
+                        }
                     }
                 }
-                .disabled(!model.snapshot.snapping.isEnabled || triggerIsUnavailable)
-                .accessibilityIdentifier(SettingsAccessibilityID.snappingTrigger)
-                .settingsSectionAnchor(.snappingTrigger)
 
-                if case let .unavailable(message) = model.snapshot.snapping.triggerAvailability {
-                    Text(message)
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel(message)
+                // Zone-Map Picker Card (Shared Component)
+                SettingsCard(label: SettingsCopy.edgeSnapSectionTitle) {
+                    ZoneMapPickerView(model: pickerViewModel)
                 }
+                .settingsSectionAnchor(.snappingZoneMap)
 
-                Stepper(
-                    "\(SettingsCopy.activationDelay): \(model.snapshot.snapping.dwellMilliseconds) ms",
-                    value: Binding(
-                        get: { model.snapshot.snapping.dwellMilliseconds },
-                        set: { model.setSnappingDwellMilliseconds($0) }
-                    ),
-                    in: 50...1_000,
-                    step: 50
-                )
-                .disabled(!model.snapshot.snapping.isEnabled)
-                .accessibilityIdentifier(SettingsAccessibilityID.snappingDwell)
-                .settingsSectionAnchor(.snappingTrigger)
+                // Multi-Display Seam Gating Card
+                SettingsCard(label: SettingsCopy.seamGatingTitle) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(SettingsCopy.seamGatingExplanation)
+                            .font(SettingsTypography.rowCaption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                Toggle(
-                    SettingsCopy.showPlacementPreview,
-                    isOn: Binding(
-                        get: { model.snapshot.snapping.showsPlacementPreview },
-                        set: { model.setPlacementPreviewEnabled($0) }
-                    )
-                )
-                .disabled(!model.snapshot.snapping.isEnabled)
-                .settingsSectionAnchor(.snappingPreview)
+                        Toggle(
+                            SettingsCopy.seamGatingTitle,
+                            isOn: Binding(
+                                get: { zoneStore.seamGateSettings().isEnabled },
+                                set: { zoneStore.setSeamGatingEnabled($0) }
+                            )
+                        )
 
-                Toggle(
-                    SettingsCopy.reduceVisualEffects,
-                    isOn: Binding(
-                        get: { model.snapshot.snapping.usesReducedEffects },
-                        set: { model.setReducedEffectsEnabled($0) }
-                    )
-                )
-                .accessibilityIdentifier(SettingsAccessibilityID.reducedEffects)
-                .settingsSectionAnchor(.snappingReducedEffects)
-
-                if reduceMotion || reduceTransparency {
-                    Text(SettingsCopy.systemReducedEffectsNotice)
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel(SettingsCopy.systemReducedEffectsNotice)
+                        HStack {
+                            Text("\(SettingsCopy.seamCrossingSpeedThreshold): \(Int(zoneStore.seamGateSettings().crossingSpeedThreshold)) pt/s")
+                                .font(SettingsTypography.rowCaption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Stepper("", value: Binding(
+                                get: { zoneStore.seamGateSettings().crossingSpeedThreshold },
+                                set: { zoneStore.setCrossingSpeedThreshold($0) }
+                            ), in: 100...1_200, step: 50)
+                            .disabled(!zoneStore.seamGateSettings().isEnabled)
+                        }
+                    }
                 }
+                .settingsSectionAnchor(.snappingSeamGating)
             }
+            .padding()
+            .frame(maxWidth: SettingsCardLayout.maxContentWidth)
         }
-        .formStyle(.grouped)
         .navigationTitle(SettingsCopy.snappingSectionTitle)
-        .padding()
+        .onChange(of: model.snapshot.edgeSnap) { newSnapshot in
+            zoneStore.load(from: newSnapshot)
+        }
+        .onDisappear {
+            pickerViewModel.flushSave()
+        }
     }
 
     private var triggerIsUnavailable: Bool {
@@ -2066,6 +2136,28 @@ public enum SettingsCopy {
     public static let enableEdgeSnapZone = localized("Enable Zone")
     public static let disableEdgeSnapZone = localized("Disable Zone")
     public static let systemTilingStandDownNotice = localized("macOS System Tiling is active. Edge snapping stands down on perimeter edges.")
+    public static let systemTilingStandDownBannerTitle = localized("macOS System Tiling Active")
+    public static let systemTilingStandDownBannerMessage = localized("macOS system tiling owns screen edges — Edge Snap stands down on outer edges. Shared display seams remain active.")
+    public static let edgeSnapZoneMapCaption = localized("Drag a window to an edge or corner to trigger the assigned Window Action.")
+    public static let partitionCountTitle = localized("Partitions")
+    public static let selectZonePrompt = localized("Select a perimeter zone to configure its assigned actions.")
+
+    public static func partitionAreaLabel(index: Int, total: Int) -> String {
+        localized("Area \(index + 1) of \(total)")
+    }
+
+    public static func zoneTitle(_ zone: EdgeSnapZone) -> String {
+        switch zone {
+        case .topLeft: localized("Top-Left Corner")
+        case .top: localized("Top Edge")
+        case .topRight: localized("Top-Right Corner")
+        case .left: localized("Left Edge")
+        case .right: localized("Right Edge")
+        case .bottomLeft: localized("Bottom-Left Corner")
+        case .bottom: localized("Bottom Edge")
+        case .bottomRight: localized("Bottom-Right Corner")
+        }
+    }
 
     public static func regionCount(_ count: Int) -> String {
         if count == 1 {
@@ -2098,6 +2190,16 @@ public enum SettingsAccessibilityID {
     public static let displayProfiles = "settings.displays.profiles"
     public static let appRuleBundleIdentifier = "settings.app-rules.bundle-identifier"
     public static let diagnostics = "settings.about.diagnostics"
+
+    public static let zoneMapPicker = "settings.snapping.zone-map"
+    public static let zoneMapResetAll = "settings.snapping.zone-map.reset-all"
+    public static let zoneMapResetZone = "settings.snapping.zone-map.reset-zone"
+    public static let zoneMapPartitionPicker = "settings.snapping.zone-map.partition-picker"
+    public static let systemTilingBanner = "settings.snapping.system-tiling-banner"
+
+    public static func zoneCell(_ zone: EdgeSnapZone) -> String {
+        "settings.snapping.zone-cell.\(zone.rawValue)"
+    }
 
     public static func section(_ section: SettingsSection) -> String {
         "settings.section.\(section.rawValue)"

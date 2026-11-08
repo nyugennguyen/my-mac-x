@@ -54,6 +54,59 @@ public enum EdgeSnapZone: String, CaseIterable, Hashable, Codable, Sendable {
         }
     }
 
+    /// Default partition assignments per Z-03.
+    public func defaultPartitions(count: Int) -> [ActionID] {
+        if isCorner {
+            return [defaultAction]
+        }
+        let clampedCount = min(max(count, 1), 4)
+        if isHorizontalEdge {
+            switch clampedCount {
+            case 1:
+                return [defaultAction]
+            case 2:
+                return [.leftHalf, .rightHalf]
+            case 3:
+                return [
+                    .leftThird,
+                    ActionID(rawValue: "window.center-third"),
+                    ActionID(rawValue: "window.right-third")
+                ]
+            case 4:
+                return [
+                    ActionID(rawValue: "window.left-quarter"),
+                    ActionID(rawValue: "window.left-middle-quarter"),
+                    ActionID(rawValue: "window.right-middle-quarter"),
+                    ActionID(rawValue: "window.right-quarter")
+                ]
+            default:
+                return [defaultAction]
+            }
+        } else {
+            switch clampedCount {
+            case 1:
+                return [defaultAction]
+            case 2:
+                return [.topHalf, .bottomHalf]
+            case 3:
+                return [
+                    ActionID(rawValue: "window.top-third"),
+                    ActionID(rawValue: "window.middle-third"),
+                    ActionID(rawValue: "window.bottom-third")
+                ]
+            case 4:
+                return [
+                    ActionID(rawValue: "window.top-quarter"),
+                    ActionID(rawValue: "window.upper-middle-quarter"),
+                    ActionID(rawValue: "window.lower-middle-quarter"),
+                    ActionID(rawValue: "window.bottom-quarter")
+                ]
+            default:
+                return [defaultAction]
+            }
+        }
+    }
+
     /// Allowed action whitelist per Z-05.
     public static func isPermittedAction(_ actionID: ActionID) -> Bool {
         let permitted: Set<ActionID> = [
@@ -98,25 +151,62 @@ public enum EdgeSnapZone: String, CaseIterable, Hashable, Codable, Sendable {
     }
 }
 
-/// User-configurable zone-to-action bindings and per-zone disabled switches (Z-07, Z-08).
+/// User-configurable zone-to-action bindings, multi-area partitions, and per-zone disabled switches (Z-03, Z-04, Z-07, Z-08).
 public struct EdgeSnapZoneConfiguration: Equatable, Sendable {
     public var customActions: [EdgeSnapZone: ActionID]
+    public var customPartitions: [EdgeSnapZone: [ActionID]]
     public var disabledZones: Set<EdgeSnapZone>
 
     public init(
         customActions: [EdgeSnapZone: ActionID] = [:],
+        customPartitions: [EdgeSnapZone: [ActionID]] = [:],
         disabledZones: Set<EdgeSnapZone> = []
     ) {
-        self.customActions = customActions
+        var actions = customActions
+        var partitions = customPartitions
+
+        for (zone, action) in customActions {
+            if partitions[zone] == nil || partitions[zone]?.isEmpty == true {
+                partitions[zone] = [action]
+            }
+        }
+        for (zone, actionList) in partitions {
+            if actions[zone] == nil, let first = actionList.first {
+                actions[zone] = first
+            }
+        }
+
+        self.customActions = actions
+        self.customPartitions = partitions
         self.disabledZones = disabledZones
     }
 
-    /// Resolves the action for a zone, falling back to default action per Z-02/Z-07.
-    public func action(for zone: EdgeSnapZone) -> ActionID {
-        if let custom = customActions[zone], EdgeSnapZone.isPermittedAction(custom) {
-            return custom
+    /// Resolves the partitions for a zone, validating whitelist and partition counts,
+    /// falling back cleanly to defaults per Z-05/Z-07.
+    public func actions(for zone: EdgeSnapZone) -> [ActionID] {
+        let maxParts = zone.isCorner ? 1 : 4
+        if let partitions = customPartitions[zone], !partitions.isEmpty {
+            if partitions.count <= maxParts && partitions.allSatisfy(EdgeSnapZone.isPermittedAction) {
+                return partitions
+            }
+            return [zone.defaultAction]
         }
-        return zone.defaultAction
+        if let custom = customActions[zone] {
+            if EdgeSnapZone.isPermittedAction(custom) {
+                return [custom]
+            }
+            return [zone.defaultAction]
+        }
+        return [zone.defaultAction]
+    }
+
+    /// Resolves the action for a zone and sub-partition index, falling back to default action per Z-02/Z-07.
+    public func action(for zone: EdgeSnapZone, partitionIndex: Int = 0) -> ActionID {
+        let list = actions(for: zone)
+        if partitionIndex >= 0 && partitionIndex < list.count {
+            return list[partitionIndex]
+        }
+        return list.first ?? zone.defaultAction
     }
 
     /// Checks if a zone is enabled per Z-08.
