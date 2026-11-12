@@ -1,0 +1,977 @@
+
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyMacX — Settings</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f2f1f6;--card:rgba(0,0,0,.045);--card-solid:#fff;
+  --fg:#1d1d1f;--fg2:#6e6e73;--fg3:#aeaeb2;--fg4:rgba(0,0,0,.18);
+  --divider:rgba(0,0,0,.11);--sidebar-hover:rgba(0,0,0,.06);--sidebar-active:rgba(0,0,0,.09);
+  --accent:#007aff;--accent-fill:rgba(0,122,255,.12);
+  --green:#34c759;--orange:#ff9500;--red:#ff3b30;
+  --keycap-bg:rgba(0,0,0,.055);--keycap-border:rgba(0,0,0,.18);
+  --toggle-bg:rgba(0,0,0,.17);--toggle-on:#34c759;
+  --field-bg:rgba(0,0,0,.06);
+  --code-bg:rgba(0,0,0,.04);
+  --font-display:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;
+  --font-body:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;
+  --font-mono:'SF Mono',SFMono-Regular,ui-monospace,Menlo,monospace;
+}
+[data-theme="dark"]{
+  --bg:#1c1c1e;--card:rgba(255,255,255,.065);--card-solid:#2c2c2e;
+  --fg:#f5f5f7;--fg2:#98989d;--fg3:#636366;--fg4:rgba(255,255,255,.18);
+  --divider:rgba(255,255,255,.12);--sidebar-hover:rgba(255,255,255,.07);--sidebar-active:rgba(255,255,255,.12);
+  --accent:#0a84ff;--accent-fill:rgba(10,132,255,.18);
+  --green:#30d158;--orange:#ff9f0a;--red:#ff453a;
+  --keycap-bg:rgba(255,255,255,.09);--keycap-border:rgba(255,255,255,.22);
+  --toggle-bg:rgba(255,255,255,.22);--toggle-on:#30d158;
+  --field-bg:rgba(255,255,255,.08);
+  --code-bg:rgba(255,255,255,.06);
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1c1c1e;--card:rgba(255,255,255,.065);--card-solid:#2c2c2e;
+    --fg:#f5f5f7;--fg2:#98989d;--fg3:#636366;--fg4:rgba(255,255,255,.18);
+    --divider:rgba(255,255,255,.12);--sidebar-hover:rgba(255,255,255,.07);--sidebar-active:rgba(255,255,255,.12);
+    --accent:#0a84ff;--accent-fill:rgba(10,132,255,.18);
+    --green:#30d158;--orange:#ff9f0a;--red:#ff453a;
+    --keycap-bg:rgba(255,255,255,.09);--keycap-border:rgba(255,255,255,.22);
+    --toggle-bg:rgba(255,255,255,.22);--toggle-on:#30d158;
+    --field-bg:rgba(255,255,255,.08);
+    --code-bg:rgba(255,255,255,.06);
+  }
+}
+
+html,body{height:100%;font-family:var(--font-body);-webkit-font-smoothing:antialiased;color:var(--fg)}
+body{display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,#4b6d8b 0%,#5d7e72 45%,#8a7a65 100%);overflow:hidden}
+
+/* ===== Window ===== */
+.window{width:1060px;height:690px;background:var(--bg);border-radius:10px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.35),0 0 0 .5px rgba(0,0,0,.2);position:relative}
+.window-body{display:flex;flex:1;min-height:0}
+
+/* ===== Sidebar ===== */
+.sidebar{width:244px;min-width:244px;display:flex;flex-direction:column;border-right:.5px solid var(--divider);user-select:none}
+.sidebar-chrome{height:52px;display:flex;align-items:center;padding:0 18px;-webkit-app-region:drag;flex-shrink:0}
+.traffic-lights{display:flex;gap:8px}
+.tl-btn{width:12px;height:12px;border-radius:50%;border:none;cursor:default;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:transparent;line-height:1;padding:0;transition:color .1s}
+.tl-close{background:#ff5f57}.tl-minimize{background:#febc2e}.tl-maximize{background:#28c840}
+.window:hover .tl-close:hover{color:rgba(80,0,0,.8)}.window:hover .tl-minimize:hover{color:rgba(80,50,0,.8)}.window:hover .tl-maximize:hover{color:rgba(0,60,0,.8)}
+.sidebar-search{padding:0 12px 8px;flex-shrink:0}
+.search-field{display:flex;align-items:center;gap:6px;background:var(--field-bg);border-radius:8px;padding:5px 8px;position:relative}
+.search-field svg{width:14px;height:14px;flex-shrink:0;color:var(--fg3)}
+.search-field input{border:none;background:none;outline:none;font:13px/1.3 var(--font-body);color:var(--fg);width:100%;padding:0}
+.search-field input::placeholder{color:var(--fg3)}
+.search-clear{display:none;border:none;background:var(--fg3);color:var(--bg);border-radius:50%;width:14px;height:14px;font-size:10px;cursor:pointer;padding:0;line-height:14px;text-align:center;flex-shrink:0}
+.search-field.has-value .search-clear{display:block}
+
+.sidebar-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 10px 16px;scrollbar-width:none}
+.sidebar-nav::-webkit-scrollbar{display:none}
+.sidebar-group{margin-top:4px}
+.group-header{display:flex;align-items:center;gap:2px;padding:6px 8px 4px;cursor:pointer;font:11px/1.3 var(--font-body);font-weight:600;color:var(--fg2);text-transform:uppercase;letter-spacing:.02em}
+.group-header svg{width:10px;height:10px;transition:transform .18s ease;color:var(--fg3);flex-shrink:0}
+.group-header.collapsed svg{transform:rotate(-90deg)}
+.group-items{overflow:hidden;transition:max-height .2s ease}
+.group-items.collapsed{max-height:0 !important}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:7px;cursor:default;transition:background .12s;font:13px/1.3 var(--font-body);color:var(--fg)}
+.sidebar-item:hover{background:var(--sidebar-hover)}
+.sidebar-item.active{background:var(--sidebar-active);font-weight:500}
+.sidebar-item .icon-tile{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+.sidebar-item .icon-tile svg{width:14px;height:14px}
+.sidebar-sep{height:1px;background:var(--divider);margin:6px 8px}
+
+/* ===== Content ===== */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--fg4) transparent}
+.content::-webkit-scrollbar{width:6px}
+.content::-webkit-scrollbar-thumb{background:var(--fg4);border-radius:3px}
+.pane{display:none;padding:28px 36px 48px;max-width:830px}
+.pane.active{display:block}
+.pane-title{font:28px/1.15 var(--font-display);font-weight:700;letter-spacing:-.015em;margin-bottom:24px;color:var(--fg)}
+
+/* ===== Cards & Rows ===== */
+.card{background:var(--card);border-radius:16px;padding:4px 16px;margin-bottom:20px}
+.card-label{font:11px/1.3 var(--font-body);font-weight:600;text-transform:uppercase;color:var(--fg2);letter-spacing:.02em;padding:12px 0 4px}
+.card-label:first-child{padding-top:8px}
+.section-label{font:13px/1.3 var(--font-body);font-weight:600;color:var(--fg2);margin:28px 0 8px;padding-left:2px}
+.section-label:first-child{margin-top:0}
+
+.row{display:flex;align-items:center;gap:12px;padding:10px 0;position:relative;min-height:36px}
+.row+.row{border-top:.5px solid var(--divider)}
+.row-icon{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.row-icon svg{width:13px;height:13px}
+.row-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.row-title{font:13px/1.35 var(--font-body);color:var(--fg)}
+.row-caption{font:11px/1.35 var(--font-body);color:var(--fg2)}
+.row-trail{flex-shrink:0;display:flex;align-items:center;gap:8px;margin-left:auto}
+
+/* ===== Toggle ===== */
+.toggle{position:relative;display:inline-block;width:32px;height:20px;flex-shrink:0;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;border-radius:10px;background:var(--toggle-bg);transition:background .2s}
+.toggle-track::after{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
+.toggle input:checked+.toggle-track{background:var(--toggle-on)}
+.toggle input:checked+.toggle-track::after{transform:translateX(12px)}
+.toggle input:focus-visible+.toggle-track{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ===== Segmented Control ===== */
+.segmented{display:inline-flex;background:var(--field-bg);border-radius:8px;padding:2px;gap:1px}
+.seg-btn{border:none;background:none;font:12px/1.3 var(--font-body);font-weight:500;color:var(--fg2);padding:5px 14px;border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.seg-btn.active{background:var(--card-solid);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.seg-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* ===== Keycap ===== */
+.keycap{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:6px;background:var(--keycap-bg);border:.5px solid var(--keycap-border);font:12px/1 var(--font-mono);font-weight:500;color:var(--fg);white-space:nowrap;vertical-align:middle}
+.key-seq{display:inline-flex;align-items:center;gap:3px;flex-wrap:wrap}
+.key-arrow{color:var(--fg3);font-size:10px;margin:0 1px}
+
+/* ===== Recorder ===== */
+.recorder-group{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.recorder-btn{min-width:120px;height:26px;border-radius:6px;border:.5px solid var(--keycap-border);background:var(--keycap-bg);display:flex;align-items:center;justify-content:center;gap:3px;padding:0 10px;cursor:pointer;font:12px/1 var(--font-mono);color:var(--fg);transition:all .15s}
+.recorder-btn:hover{background:var(--sidebar-hover)}
+.recorder-btn.listening{border-color:var(--accent);background:var(--accent-fill);color:var(--accent);animation:pulse-border 1.5s ease infinite}
+.recorder-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@keyframes pulse-border{0%,100%{border-color:var(--accent)}50%{border-color:transparent}}
+.recorder-clear{border:none;background:none;color:var(--fg3);font-size:14px;cursor:pointer;padding:2px;line-height:1}
+.recorder-clear:hover{color:var(--fg)}
+.recorder-reset{border:none;background:none;color:var(--accent);font:12px/1 var(--font-body);cursor:pointer;padding:2px}
+.recorder-reset:hover{text-decoration:underline}
+
+/* ===== Status ===== */
+.status-ok{color:var(--green);font:11px/1.35 var(--font-body)}
+.status-warn{color:var(--orange);font:11px/1.35 var(--font-body)}
+.status-err{color:var(--red);font:11px/1.35 var(--font-body)}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.status-dot.active{background:var(--green)}.status-dot.inactive{background:var(--fg3)}
+.badge{display:inline-block;padding:1px 6px;border-radius:4px;font:700 8.5px/1.4 var(--font-body);text-transform:uppercase;letter-spacing:.04em;background:var(--accent-fill);color:var(--accent)}
+
+/* ===== Stepper ===== */
+.stepper{display:inline-flex;align-items:center;background:var(--field-bg);border-radius:7px;overflow:hidden;height:26px}
+.stepper-btn{border:none;background:none;width:28px;height:100%;font-size:15px;color:var(--fg2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s}
+.stepper-btn:hover{background:var(--sidebar-hover);color:var(--fg)}
+.stepper-btn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.stepper-val{width:54px;text-align:center;font:12px/1 var(--font-mono);color:var(--fg);border-left:.5px solid var(--divider);border-right:.5px solid var(--divider);font-variant-numeric:tabular-nums}
+
+/* ===== Appearance Picker ===== */
+.appearance-picker{display:flex;gap:16px;padding:8px 0 12px}
+.appearance-option{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:4px;border-radius:10px;border:2px solid transparent;transition:border-color .15s}
+.appearance-option.active{border-color:var(--accent)}
+.appearance-option:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.appearance-thumb{width:76px;height:52px;border-radius:8px;overflow:hidden;border:.5px solid var(--divider);position:relative}
+.appearance-thumb.light-thumb{background:#f2f1f6}
+.appearance-thumb.light-thumb::after{content:'';position:absolute;inset:8px;border-radius:4px;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.1)}
+.appearance-thumb.dark-thumb{background:#1c1c1e}
+.appearance-thumb.dark-thumb::after{content:'';position:absolute;inset:8px;border-radius:4px;background:#2c2c2e;box-shadow:0 0 0 .5px rgba(255,255,255,.1)}
+.appearance-thumb.system-thumb{background:linear-gradient(90deg,#f2f1f6 50%,#1c1c1e 50%)}
+.appearance-thumb.system-thumb::after{content:'';position:absolute;inset:8px;border-radius:4px;background:linear-gradient(90deg,#fff 50%,#2c2c2e 50%);box-shadow:0 0 0 .5px rgba(0,0,0,.15)}
+.appearance-option span{font:11px/1.3 var(--font-body);color:var(--fg2)}
+.appearance-option.active span{color:var(--accent);font-weight:500}
+
+/* ===== Zone Map ===== */
+.zone-map-wrap{display:flex;align-items:center;gap:12px;padding:8px 0 4px}
+.zone-map{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:156px}
+.zone-cell{width:48px;height:34px;border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s;background:var(--field-bg);position:relative}
+.zone-cell:hover{background:var(--sidebar-active)}
+.zone-cell.disabled{opacity:.4;cursor:default}
+.zone-cell.disabled::after{content:'✕';position:absolute;font:700 9px/1 var(--font-body);color:var(--fg2)}
+.zone-cell svg{width:40px;height:28px}
+.zone-label{font:10px/1.2 var(--font-mono);color:var(--fg3);text-align:center;margin-top:2px}
+.zone-reset{width:24px;height:24px;border-radius:50%;border:.5px solid var(--divider);background:var(--field-bg);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--fg3);font-size:12px;transition:all .12s;flex-shrink:0}
+.zone-reset:hover{background:var(--sidebar-hover);color:var(--fg)}
+
+/* ===== Layout Thumb ===== */
+.layout-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;padding:4px 0}
+.layout-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px;border-radius:12px;background:var(--field-bg);cursor:pointer;transition:background .12s;border:1.5px solid transparent}
+.layout-card:hover{background:var(--sidebar-hover)}
+.layout-card.active{border-color:var(--accent);background:var(--accent-fill)}
+.layout-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.layout-thumb{width:80px;height:52px}
+.layout-name{font:12px/1.3 var(--font-body);font-weight:500;color:var(--fg)}
+.layout-tag{font:10px/1.2 var(--font-body);color:var(--fg3)}
+
+/* ===== Display Card ===== */
+.display-card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px}
+.display-card.disconnected{opacity:.55}
+.display-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.display-icon{width:36px;height:28px;border-radius:4px;border:1.5px solid var(--fg3);display:flex;align-items:center;justify-content:center;position:relative}
+.display-icon::after{content:'';position:absolute;bottom:-5px;left:25%;width:50%;height:3px;border-bottom:1.5px solid var(--fg3)}
+.display-name{font:14px/1.3 var(--font-body);font-weight:600;color:var(--fg)}
+.display-sub{font:11px/1.3 var(--font-mono);color:var(--fg2);font-variant-numeric:tabular-nums}
+
+/* ===== App Icon ===== */
+.app-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font:700 12px/1 var(--font-mono);color:#fff;flex-shrink:0}
+
+/* ===== Buttons ===== */
+.btn{border:none;border-radius:7px;font:13px/1.3 var(--font-body);font-weight:500;padding:6px 16px;cursor:pointer;transition:all .12s;white-space:nowrap}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-secondary{background:var(--field-bg);color:var(--fg)}
+.btn-secondary:hover{background:var(--sidebar-hover)}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ===== Text Field ===== */
+.text-field{border:none;border-radius:7px;background:var(--field-bg);font:13px/1.3 var(--font-body);color:var(--fg);padding:6px 10px;outline:none;width:100%}
+.text-field:focus{box-shadow:0 0 0 2px var(--accent)}
+.text-field::placeholder{color:var(--fg3)}
+
+/* ===== Code Box ===== */
+.code-box{background:var(--code-bg);border-radius:8px;padding:12px;font:11px/1.55 var(--font-mono);color:var(--fg);white-space:pre-wrap;word-break:break-all;max-height:140px;overflow-y:auto;position:relative;user-select:text}
+
+/* ===== Inline field row ===== */
+.inline-field{display:flex;align-items:center;gap:8px}
+.inline-field .text-field{max-width:260px}
+
+/* ===== Reduced motion ===== */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:0s !important;animation-duration:0s !important}
+}
+</style>
+</head>
+<body>
+
+<div class="window" data-od-id="settings-window">
+<div class="window-body">
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar" data-od-id="sidebar">
+  <div class="sidebar-chrome">
+    <div class="traffic-lights">
+      <button class="tl-btn tl-close" aria-label="Close">×</button>
+      <button class="tl-btn tl-minimize" aria-label="Minimize">−</button>
+      <button class="tl-btn tl-maximize" aria-label="Zoom">+</button>
+    </div>
+  </div>
+
+  <div class="sidebar-search">
+    <div class="search-field" id="searchField">
+      <svg viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M10.2 10.2l4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      <input type="text" placeholder="Search" id="searchInput">
+      <button class="search-clear" id="searchClear">×</button>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav" id="sidebarNav">
+    <div class="sidebar-item active" data-pane="general" tabindex="0" data-od-id="nav-general">
+      <span class="icon-tile" style="background:#8e8e93"><svg viewBox="0 0 14 14" fill="none"><circle cx="4" cy="4" r="1.2" fill="#fff"/><circle cx="10" cy="7" r="1.2" fill="#fff"/><circle cx="5" cy="10" r="1.2" fill="#fff"/><rect x="1" y="3.5" width="6" height="1" rx=".5" fill="#fff"/><rect x="7" y="6.5" width="6" height="1" rx=".5" fill="#fff"/><rect x="1" y="9.5" width="8" height="1" rx=".5" fill="#fff"/></svg></span>
+      <span>General</span>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="group-header" data-group="wm">
+        <svg viewBox="0 0 10 10" fill="none"><path d="M2.5 3.5l2.5 3 2.5-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Window Management</span>
+      </div>
+      <div class="group-items" id="group-wm">
+        <div class="sidebar-item" data-pane="snapping" tabindex="0" data-od-id="nav-snapping">
+          <span class="icon-tile" style="background:#007aff"><svg viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="#fff" stroke-width="1.2"/><rect x="2" y="2" width="5" height="10" rx="1" fill="#fff" opacity=".5"/></svg></span>
+          <span>Snapping</span>
+        </div>
+        <div class="sidebar-item" data-pane="hotkeys" tabindex="0" data-od-id="nav-hotkeys">
+          <span class="icon-tile" style="background:#af52de"><svg viewBox="0 0 14 14" fill="none"><rect x="1.5" y="4" width="11" height="7" rx="1.5" stroke="#fff" stroke-width="1.1"/><rect x="3.5" y="6" width="1.5" height="1" rx=".3" fill="#fff"/><rect x="6.25" y="6" width="1.5" height="1" rx=".3" fill="#fff"/><rect x="9" y="6" width="1.5" height="1" rx=".3" fill="#fff"/><rect x="4" y="8.5" width="6" height="1" rx=".3" fill="#fff"/></svg></span>
+          <span>Hotkeys &amp; Super Mode</span>
+        </div>
+        <div class="sidebar-item" data-pane="layouts" tabindex="0" data-od-id="nav-layouts">
+          <span class="icon-tile" style="background:#34c759"><svg viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="4.5" height="4.5" rx="1" fill="#fff" opacity=".8"/><rect x="7.5" y="2" width="4.5" height="4.5" rx="1" fill="#fff" opacity=".8"/><rect x="2" y="7.5" width="4.5" height="4.5" rx="1" fill="#fff" opacity=".8"/><rect x="7.5" y="7.5" width="4.5" height="4.5" rx="1" fill="#fff" opacity=".5"/></svg></span>
+          <span>Layout Library</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="group-header" data-group="hw">
+        <svg viewBox="0 0 10 10" fill="none"><path d="M2.5 3.5l2.5 3 2.5-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Hardware</span>
+      </div>
+      <div class="group-items" id="group-hw">
+        <div class="sidebar-item" data-pane="displays" tabindex="0" data-od-id="nav-displays">
+          <span class="icon-tile" style="background:#5ac8fa"><svg viewBox="0 0 14 14" fill="none"><rect x="1.5" y="2" width="11" height="7.5" rx="1.2" stroke="#fff" stroke-width="1.1"/><path d="M5 11.5h4M7 9.5v2" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/></svg></span>
+          <span>Display Profiles</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-group">
+      <div class="group-header" data-group="adv">
+        <svg viewBox="0 0 10 10" fill="none"><path d="M2.5 3.5l2.5 3 2.5-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Advanced</span>
+      </div>
+      <div class="group-items" id="group-adv">
+        <div class="sidebar-item" data-pane="apprules" tabindex="0" data-od-id="nav-apprules">
+          <span class="icon-tile" style="background:#ff9500"><svg viewBox="0 0 14 14" fill="none"><path d="M3 4h5M3 7h8M3 10h6" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/><path d="M10.5 3l1 1.5-1 1.5" stroke="#fff" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span>App Rules</span>
+        </div>
+        <div class="sidebar-item" data-pane="importexport" tabindex="0" data-od-id="nav-importexport">
+          <span class="icon-tile" style="background:#64d2ff"><svg viewBox="0 0 14 14" fill="none"><path d="M7 2v4.5M4.5 4.5L7 2l2.5 2.5M7 12V7.5M4.5 9.5L7 12l2.5-2.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span>Import &amp; Export</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-sep"></div>
+    <div class="sidebar-item" data-pane="about" tabindex="0" data-od-id="nav-about">
+      <span class="icon-tile" style="background:#8e8e93"><svg viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="#fff" stroke-width="1.1"/><path d="M7 6.2v4" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/><circle cx="7" cy="4.2" r=".7" fill="#fff"/></svg></span>
+      <span>About &amp; Diagnostics</span>
+    </div>
+  </nav>
+</aside>
+
+<!-- ===== CONTENT ===== -->
+<main class="content" data-od-id="content">
+
+<!-- ────── GENERAL ────── -->
+<div class="pane active" id="pane-general" data-od-id="pane-general">
+  <h1 class="pane-title">General</h1>
+
+  <div class="section-label">Permissions</div>
+  <div class="card" data-od-id="permissions-card">
+    <div class="row">
+      <div class="row-icon" style="background:var(--accent-fill)"><svg viewBox="0 0 13 13" fill="none"><path d="M6.5 1.5A3.5 3.5 0 003 5v2.5a1 1 0 001 1h5a1 1 0 001-1V5a3.5 3.5 0 00-3.5-3.5z" stroke="var(--accent)" stroke-width="1.1"/><circle cx="6.5" cy="5.5" r=".8" fill="var(--accent)"/><path d="M3 8.5v1a2 2 0 002 2h3a2 2 0 002-2v-1" stroke="var(--accent)" stroke-width="1.1"/></svg></div>
+      <div class="row-body">
+        <span class="row-title">Accessibility</span>
+        <span class="status-ok">✓ Permission granted</span>
+      </div>
+      <span class="status-dot active" title="Active"></span>
+    </div>
+    <div class="row">
+      <div class="row-icon" style="background:rgba(88,86,214,.12)"><svg viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="4" r="2" stroke="#5856d6" stroke-width="1.1"/><path d="M6.5 6v3.5M4 8l2.5 2.5L9 8" stroke="#5856d6" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="row-body">
+        <span class="row-title">Input Monitoring</span>
+        <span class="status-ok">✓ Permission granted</span>
+      </div>
+      <span class="status-dot active" title="Active"></span>
+    </div>
+  </div>
+
+  <div class="section-label">Startup</div>
+  <div class="card">
+    <div class="row">
+      <div class="row-body">
+        <span class="row-title">Launch at Login</span>
+        <span class="row-caption">Start MyMacX automatically when you log in</span>
+      </div>
+      <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+    </div>
+  </div>
+
+  <div class="section-label">Appearance</div>
+  <div class="card" data-od-id="appearance-card">
+    <div class="appearance-picker">
+      <div class="appearance-option active" data-theme-val="system" tabindex="0">
+        <div class="appearance-thumb system-thumb"></div>
+        <span>System</span>
+      </div>
+      <div class="appearance-option" data-theme-val="light" tabindex="0">
+        <div class="appearance-thumb light-thumb"></div>
+        <span>Light</span>
+      </div>
+      <div class="appearance-option" data-theme-val="dark" tabindex="0">
+        <div class="appearance-thumb dark-thumb"></div>
+        <span>Dark</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────── SNAPPING ────── -->
+<div class="pane" id="pane-snapping" data-od-id="pane-snapping">
+  <h1 class="pane-title">Snapping</h1>
+
+  <div class="card" data-od-id="snap-master">
+    <div class="row">
+      <div class="row-body">
+        <span class="row-title">Enable Snapping</span>
+        <span class="row-caption">Snap windows to screen edges and corners using drag or hotkeys</span>
+      </div>
+      <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+    </div>
+  </div>
+
+  <div class="section-label">Trigger</div>
+  <div class="card">
+    <div class="row">
+      <div class="row-body"><span class="row-title">Snap Trigger</span><span class="row-caption">Where the snap target activates when dragging a window</span></div>
+      <div class="segmented">
+        <button class="seg-btn active" data-val="notch">Notch</button>
+        <button class="seg-btn" data-val="top-center">Top Center</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Activation Delay</span><span class="row-caption">Milliseconds before the snap preview appears</span></div>
+      <div class="stepper" data-od-id="stepper-delay"><button class="stepper-btn" data-dir="-1">−</button><span class="stepper-val" data-val="150">150 ms</span><button class="stepper-btn" data-dir="1">+</button></div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Show Placement Preview</span><span class="row-caption">Display a translucent overlay showing where the window will land</span></div>
+      <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Reduce Visual Effects</span><span class="row-caption">Use simpler animations for the snap preview</span></div>
+      <label class="toggle"><input type="checkbox"><span class="toggle-track"></span></label>
+    </div>
+  </div>
+
+  <div class="section-label">Zone Map</div>
+  <div class="card" data-od-id="zone-map-card">
+    <div class="row-caption" style="padding:8px 0 4px">Drag a window to an edge or corner to trigger the assigned Window Action.</div>
+    <div class="zone-map-wrap">
+      <div>
+        <div class="zone-map" id="zoneMap"></div>
+      </div>
+      <button class="zone-reset" title="Reset zones to defaults" id="zoneReset">↺</button>
+    </div>
+  </div>
+</div>
+
+<!-- ────── HOTKEYS & SUPER MODE ────── -->
+<div class="pane" id="pane-hotkeys" data-od-id="pane-hotkeys">
+  <h1 class="pane-title">Hotkeys &amp; Super Mode</h1>
+
+  <div class="section-label">Super Mode</div>
+  <div class="card" data-od-id="super-mode-card">
+    <div class="row">
+      <div class="row-body">
+        <span class="row-title">Enable Super Mode</span>
+        <span class="row-caption">Press a prefix chord, then a single key to execute a Window Action. Press Escape to cancel.</span>
+      </div>
+      <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Prefix</span></div>
+      <div class="key-seq"><span class="keycap">⌃</span><span class="keycap">Space</span></div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Timeout</span><span class="row-caption">Cancel Super Mode if no key is pressed within this duration</span></div>
+      <div class="stepper"><button class="stepper-btn" data-dir="-1">−</button><span class="stepper-val" data-val="1500">1500 ms</span><button class="stepper-btn" data-dir="1">+</button></div>
+    </div>
+  </div>
+
+  <div class="section-label">Command Tree</div>
+  <div class="card" data-od-id="command-tree">
+    <div class="row">
+      <div class="row-body"><span class="row-title">Left Half</span></div>
+      <div class="key-seq"><span class="keycap">⌃</span><span class="keycap">Space</span><span class="key-arrow">▸</span><span class="keycap">1</span></div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Right Half</span></div>
+      <div class="key-seq"><span class="keycap">⌃</span><span class="keycap">Space</span><span class="key-arrow">▸</span><span class="keycap">2</span></div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Top Half</span></div>
+      <div class="key-seq"><span class="keycap">⌃</span><span class="keycap">Space</span><span class="key-arrow">▸</span><span class="keycap">3</span></div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Bottom Half</span></div>
+      <div class="key-seq"><span class="keycap">⌃</span><span class="keycap">Space</span><span class="key-arrow">▸</span><span class="keycap">4</span></div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Maximize</span></div>
+      <div class="key-seq"><span class="keycap">⌃</span><span class="keycap">Space</span><span class="key-arrow">▸</span><span class="keycap">M</span></div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Undo</span></div>
+      <div class="key-seq"><span class="keycap">⌃</span><span class="keycap">Space</span><span class="key-arrow">▸</span><span class="keycap">U</span></div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Next Display</span></div>
+      <div class="key-seq"><span class="keycap">⌃</span><span class="keycap">Space</span><span class="key-arrow">▸</span><span class="keycap">N</span></div>
+    </div>
+  </div>
+
+  <div class="section-label">Global Hotkeys</div>
+  <div class="card" data-od-id="global-hotkeys">
+    <div class="row">
+      <div class="row-body"><span class="row-title">Left Half</span></div>
+      <div class="recorder-group">
+        <button class="recorder-btn" data-keys="⌃⌥←"><span class="keycap">⌃</span><span class="keycap">⌥</span><span class="keycap">←</span></button>
+        <button class="recorder-clear" title="Clear shortcut">×</button>
+        <button class="recorder-reset">Reset</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Right Half</span></div>
+      <div class="recorder-group">
+        <button class="recorder-btn" data-keys="⌃⌥→"><span class="keycap">⌃</span><span class="keycap">⌥</span><span class="keycap">→</span></button>
+        <button class="recorder-clear" title="Clear shortcut">×</button>
+        <button class="recorder-reset">Reset</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Top Half</span></div>
+      <div class="recorder-group">
+        <button class="recorder-btn" data-keys="⌃⌥↑"><span class="keycap">⌃</span><span class="keycap">⌥</span><span class="keycap">↑</span></button>
+        <button class="recorder-clear" title="Clear shortcut">×</button>
+        <button class="recorder-reset">Reset</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Bottom Half</span></div>
+      <div class="recorder-group">
+        <button class="recorder-btn" data-keys="⌃⌥↓"><span class="keycap">⌃</span><span class="keycap">⌥</span><span class="keycap">↓</span></button>
+        <button class="recorder-clear" title="Clear shortcut">×</button>
+        <button class="recorder-reset">Reset</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Maximize</span></div>
+      <div class="recorder-group">
+        <button class="recorder-btn" data-keys="⌃⌥M"><span class="keycap">⌃</span><span class="keycap">⌥</span><span class="keycap">M</span></button>
+        <button class="recorder-clear" title="Clear shortcut">×</button>
+        <button class="recorder-reset">Reset</button>
+      </div>
+    </div>
+    <div class="row" data-od-id="conflict-row">
+      <div class="row-body">
+        <span class="row-title">Show Desktop</span>
+        <span class="status-warn">⚠ Conflicts with system shortcut</span>
+      </div>
+      <div class="recorder-group">
+        <button class="recorder-btn" data-keys="⌃⌥D" style="border-color:var(--orange)"><span class="keycap">⌃</span><span class="keycap">⌥</span><span class="keycap">D</span></button>
+        <button class="recorder-clear" title="Clear shortcut">×</button>
+        <button class="recorder-reset">Reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────── LAYOUT LIBRARY ────── -->
+<div class="pane" id="pane-layouts" data-od-id="pane-layouts">
+  <h1 class="pane-title">Layout Library</h1>
+
+  <div class="section-label">Presets</div>
+  <div class="layout-grid" data-od-id="layout-presets" id="layoutGrid"></div>
+
+  <div class="section-label" style="margin-top:24px">Edit Layout</div>
+  <div class="card">
+    <div class="row">
+      <div class="row-body"><span class="row-caption">Select a layout above, then use the actions below to modify its regions.</span></div>
+    </div>
+    <div class="row">
+      <div class="btn-group">
+        <button class="btn btn-secondary">Split Columns</button>
+        <button class="btn btn-secondary">Split Rows</button>
+        <button class="btn btn-secondary">Merge</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────── DISPLAY PROFILES ────── -->
+<div class="pane" id="pane-displays" data-od-id="pane-displays">
+  <h1 class="pane-title">Display Profiles</h1>
+
+  <div class="display-card" data-od-id="display-builtin">
+    <div class="display-header">
+      <div class="display-icon"></div>
+      <div>
+        <div class="display-name">Built-in Retina Display</div>
+        <div class="display-sub">Stable ID: 4280A3F1</div>
+      </div>
+      <span class="status-dot active" style="margin-left:auto" title="Connected"></span>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Window Gap</span><span class="row-caption">Spacing between tiled windows in points</span></div>
+      <div class="stepper"><button class="stepper-btn" data-dir="-1">−</button><span class="stepper-val" data-val="8">8 pt</span><button class="stepper-btn" data-dir="1">+</button></div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Default Layout</span></div>
+      <div class="segmented">
+        <button class="seg-btn active">Halves</button>
+        <button class="seg-btn">Quarters</button>
+        <button class="seg-btn">Thirds</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="display-card disconnected" data-od-id="display-external">
+    <div class="display-header">
+      <div class="display-icon"></div>
+      <div>
+        <div class="display-name">LG 27UK850 4K</div>
+        <div class="display-sub">Stable ID: 7B12E4D0</div>
+      </div>
+      <span class="status-dot inactive" style="margin-left:auto" title="Disconnected"></span>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Window Gap</span></div>
+      <div class="stepper"><button class="stepper-btn" data-dir="-1">−</button><span class="stepper-val" data-val="12">12 pt</span><button class="stepper-btn" data-dir="1">+</button></div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Default Layout</span></div>
+      <div class="segmented">
+        <button class="seg-btn">Halves</button>
+        <button class="seg-btn active">Quarters</button>
+        <button class="seg-btn">Thirds</button>
+      </div>
+    </div>
+    <div style="padding:4px 0 8px"><span class="row-caption" style="color:var(--fg3)">This display is currently disconnected. Settings will apply when reconnected.</span></div>
+  </div>
+</div>
+
+<!-- ────── APP RULES ────── -->
+<div class="pane" id="pane-apprules" data-od-id="pane-apprules">
+  <h1 class="pane-title">App Rules</h1>
+
+  <div class="section-label">Default Behavior</div>
+  <div class="card">
+    <div class="row">
+      <div class="row-body"><span class="row-caption">New applications are managed by MyMacX unless explicitly excluded.</span></div>
+      <div class="segmented" data-od-id="default-behavior">
+        <button class="seg-btn active" data-val="included">Included</button>
+        <button class="seg-btn" data-val="excluded">Excluded</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Rules</div>
+  <div class="card" data-od-id="app-rules-list">
+    <div class="row">
+      <div class="app-icon" style="background:#1d1d1f"><span style="font:700 11px/1 var(--font-mono);color:#30d158">▸_</span></div>
+      <div class="row-body">
+        <span class="row-title">Terminal</span>
+        <span class="row-caption" style="font-family:var(--font-mono);font-size:10.5px">com.apple.Terminal</span>
+      </div>
+      <span class="badge" style="background:rgba(52,199,89,.12);color:var(--green)">Included</span>
+    </div>
+    <div class="row">
+      <div class="app-icon" style="background:#1b2838"><span style="font:700 12px/1 var(--font-display)">S</span></div>
+      <div class="row-body">
+        <span class="row-title">Steam</span>
+        <span class="row-caption" style="font-family:var(--font-mono);font-size:10.5px">com.valvesoftware.steam</span>
+      </div>
+      <span class="badge" style="background:rgba(255,149,0,.12);color:var(--orange)">Excluded</span>
+    </div>
+  </div>
+
+  <div class="section-label">Add Rule</div>
+  <div class="card">
+    <div class="row">
+      <div class="inline-field" style="flex:1">
+        <input class="text-field" type="text" placeholder="com.example.app" style="max-width:280px" data-od-id="bundle-id-field">
+        <button class="btn btn-primary">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────── IMPORT & EXPORT ────── -->
+<div class="pane" id="pane-importexport" data-od-id="pane-importexport">
+  <h1 class="pane-title">Import &amp; Export</h1>
+
+  <div class="card">
+    <div class="row">
+      <div class="row-body">
+        <span class="row-title">Export Settings</span>
+        <span class="row-caption">Save all preferences, hotkeys, layouts, and app rules to a JSON file</span>
+      </div>
+      <button class="btn btn-secondary">Export…</button>
+    </div>
+    <div class="row">
+      <div class="row-body">
+        <span class="row-title">Import Settings</span>
+        <span class="row-caption">Load a previously exported configuration file</span>
+      </div>
+      <button class="btn btn-secondary">Import…</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="row-body">
+        <span class="status-ok">✓ Settings exported successfully — 2 Nov 2026, 14:32</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────── ABOUT & DIAGNOSTICS ────── -->
+<div class="pane" id="pane-about" data-od-id="pane-about">
+  <h1 class="pane-title">About &amp; Diagnostics</h1>
+
+  <div class="section-label">Application</div>
+  <div class="card" data-od-id="about-app">
+    <div class="row">
+      <div class="row-body"><span class="row-title">MyMacX</span></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font:12px/1 var(--font-mono);color:var(--fg2);font-variant-numeric:tabular-nums">0.1.0</span>
+        <span class="badge">Beta</span>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">macOS</span></div>
+      <span style="font:12px/1 var(--font-mono);color:var(--fg2)">26.2 (25F79)</span>
+    </div>
+  </div>
+
+  <div class="section-label">Permission Summary</div>
+  <div class="card" data-od-id="perm-summary">
+    <div class="row">
+      <div class="row-body"><span class="row-title">Accessibility</span></div>
+      <span class="status-ok">✓ Granted</span>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Input Monitoring</span></div>
+      <span class="status-ok">✓ Granted</span>
+    </div>
+    <div class="row">
+      <div class="row-body"><span class="row-title">Screen Recording</span></div>
+      <span class="status-warn">Not granted</span>
+    </div>
+  </div>
+
+  <div class="section-label">Diagnostics</div>
+  <div class="card" data-od-id="diagnostics">
+    <div class="row-caption" style="padding:8px 0 4px">System information for troubleshooting. Share this with support if requested.</div>
+    <div class="code-box" id="diagBox">MyMacX 0.1.0-beta (build 47)
+macOS 26.2 (25F79) — Apple M3 Pro
+Accessibility: granted
+Input Monitoring: granted
+Screen Recording: not granted
+Displays: 2 (1 connected)
+  Built-in Retina — 2560×1600 @2x — ID 4280A3F1
+  LG 27UK850 — 3840×2160 @1x — ID 7B12E4D0 (disconnected)
+Spaces: 4
+Active layouts: Halves, Coding
+Super Mode prefix: ⌃Space (timeout 1500ms)
+Global hotkeys: 6 registered, 1 conflict</div>
+    <div style="padding:8px 0 4px;text-align:right">
+      <button class="btn btn-secondary" id="copyDiag">Copy</button>
+    </div>
+  </div>
+</div>
+
+</main>
+</div><!-- /window-body -->
+</div><!-- /window -->
+
+<script>
+/* ===== State ===== */
+const stored = k => { try { return localStorage.getItem('mymacx-' + k) } catch { return null } }
+const persist = (k, v) => { try { localStorage.setItem('mymacx-' + k, v) } catch {} }
+
+let activePane = stored('pane') || 'general'
+let theme = stored('theme') || 'system'
+
+/* ===== Theme ===== */
+function applyTheme(t) {
+  theme = t
+  persist('theme', t)
+  document.documentElement.setAttribute('data-theme', t)
+  document.querySelectorAll('.appearance-option').forEach(o => {
+    o.classList.toggle('active', o.dataset.themeVal === t)
+  })
+}
+applyTheme(theme)
+
+document.querySelectorAll('.appearance-option').forEach(o => {
+  o.addEventListener('click', () => applyTheme(o.dataset.themeVal))
+  o.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyTheme(o.dataset.themeVal) } })
+})
+
+/* ===== Navigation ===== */
+function navigateTo(paneId) {
+  activePane = paneId
+  persist('pane', paneId)
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.toggle('active', i.dataset.pane === paneId))
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + paneId))
+  document.querySelector('.content').scrollTop = 0
+}
+navigateTo(activePane)
+
+document.querySelectorAll('.sidebar-item[data-pane]').forEach(item => {
+  item.addEventListener('click', () => navigateTo(item.dataset.pane))
+  item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateTo(item.dataset.pane) } })
+})
+
+/* ===== Sidebar Groups ===== */
+document.querySelectorAll('.group-header').forEach(h => {
+  h.addEventListener('click', () => {
+    h.classList.toggle('collapsed')
+    const items = h.nextElementSibling
+    if (h.classList.contains('collapsed')) {
+      items.style.maxHeight = items.scrollHeight + 'px'
+      requestAnimationFrame(() => items.classList.add('collapsed'))
+    } else {
+      items.classList.remove('collapsed')
+      items.style.maxHeight = items.scrollHeight + 'px'
+    }
+  })
+  // Init max-height
+  const items = h.nextElementSibling
+  items.style.maxHeight = items.scrollHeight + 'px'
+})
+
+/* ===== Search ===== */
+const searchInput = document.getElementById('searchInput')
+const searchField = document.getElementById('searchField')
+const searchClear = document.getElementById('searchClear')
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase()
+  searchField.classList.toggle('has-value', q.length > 0)
+  document.querySelectorAll('.sidebar-item[data-pane]').forEach(item => {
+    const match = !q || item.textContent.toLowerCase().includes(q)
+    item.style.display = match ? '' : 'none'
+  })
+})
+searchClear.addEventListener('click', () => {
+  searchInput.value = ''
+  searchInput.dispatchEvent(new Event('input'))
+  searchInput.focus()
+})
+
+/* ===== Segmented Controls ===== */
+document.querySelectorAll('.segmented').forEach(seg => {
+  seg.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      seg.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+    })
+  })
+})
+
+/* ===== Steppers ===== */
+document.querySelectorAll('.stepper').forEach(s => {
+  s.querySelectorAll('.stepper-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const valEl = s.querySelector('.stepper-val')
+      let v = parseInt(valEl.dataset.val)
+      const dir = parseInt(btn.dataset.dir)
+      const unit = valEl.textContent.replace(/[\d\s]/g, '')
+      const step = unit === 'ms' ? (v >= 500 ? 250 : 50) : (unit === 'pt' ? 2 : 50)
+      v = Math.max(0, v + dir * step)
+      valEl.dataset.val = v
+      valEl.textContent = v + ' ' + unit
+    })
+  })
+})
+
+/* ===== Recorder Buttons ===== */
+document.querySelectorAll('.recorder-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const wasListening = btn.classList.contains('listening')
+    document.querySelectorAll('.recorder-btn.listening').forEach(b => {
+      b.classList.remove('listening')
+      b.innerHTML = b._savedHTML || 'Press keys…'
+    })
+    if (!wasListening) {
+      btn._savedHTML = btn.innerHTML
+      btn.classList.add('listening')
+      btn.textContent = 'Press keys…'
+    }
+  })
+})
+document.addEventListener('keydown', e => {
+  const active = document.querySelector('.recorder-btn.listening')
+  if (!active) return
+  e.preventDefault()
+  if (e.key === 'Escape') {
+    active.classList.remove('listening')
+    active.innerHTML = active._savedHTML || ''
+    return
+  }
+  let parts = []
+  if (e.ctrlKey) parts.push('⌃')
+  if (e.altKey) parts.push('⌥')
+  if (e.shiftKey) parts.push('⇧')
+  if (e.metaKey) parts.push('⌘')
+  const keyMap = {ArrowLeft:'←',ArrowRight:'→',ArrowUp:'↑',ArrowDown:'↓',Backspace:'⌫',Delete:'⌦',Enter:'↩',Tab:'⇥',' ':'Space'}
+  const k = keyMap[e.key] || (e.key.length === 1 ? e.key.toUpperCase() : null)
+  if (k && !['Control','Alt','Shift','Meta'].includes(e.key)) parts.push(k)
+  if (parts.length > 0) {
+    active.innerHTML = parts.map(p => '<span class="keycap">' + p + '</span>').join('')
+    active.classList.remove('listening')
+  }
+})
+
+/* ===== Zone Map ===== */
+const zones = [
+  { label:'Top Left', x:2,y:2,w:17,h:10 },
+  { label:'Top Half', x:2,y:2,w:36,h:10 },
+  { label:'Top Right', x:21,y:2,w:17,h:10 },
+  { label:'Left Half', x:2,y:2,w:17,h:22 },
+  { label:'Maximize', x:2,y:2,w:36,h:22 },
+  { label:'Right Half', x:21,y:2,w:17,h:22 },
+  { label:'Btm Left', x:2,y:14,w:17,h:10, disabled:true },
+  { label:'Bottom Half', x:2,y:14,w:36,h:10 },
+  { label:'Btm Right', x:21,y:14,w:17,h:10 },
+]
+const mapEl = document.getElementById('zoneMap')
+zones.forEach((z, i) => {
+  const cell = document.createElement('div')
+  cell.className = 'zone-cell' + (z.disabled ? ' disabled' : '')
+  cell.title = z.label
+  cell.tabIndex = 0
+  cell.innerHTML = '<svg viewBox="0 0 40 28" fill="none">'
+    + '<rect x="1" y="1" width="38" height="22" rx="2" stroke="currentColor" stroke-width=".8" opacity=".35"/>'
+    + '<line x1="15" y1="24" x2="25" y2="24" stroke="currentColor" stroke-width=".8" opacity=".3"/>'
+    + (z.disabled ? '' : '<rect x="'+z.x+'" y="'+z.y+'" width="'+z.w+'" height="'+z.h+'" rx="1" fill="currentColor" opacity=".22"/>')
+    + '</svg>'
+    + '<div class="zone-label">' + z.label + '</div>'
+  cell.addEventListener('click', () => {
+    if (z.disabled) {
+      z.disabled = false
+      cell.classList.remove('disabled')
+    } else {
+      z.disabled = true
+      cell.classList.add('disabled')
+    }
+    renderZoneCell(cell, z)
+  })
+  mapEl.appendChild(cell)
+})
+function renderZoneCell(cell, z) {
+  cell.querySelector('svg').innerHTML =
+    '<rect x="1" y="1" width="38" height="22" rx="2" stroke="currentColor" stroke-width=".8" opacity=".35"/>'
+    + '<line x1="15" y1="24" x2="25" y2="24" stroke="currentColor" stroke-width=".8" opacity=".3"/>'
+    + (z.disabled ? '' : '<rect x="'+z.x+'" y="'+z.y+'" width="'+z.w+'" height="'+z.h+'" rx="1" fill="currentColor" opacity=".22"/>')
+}
+document.getElementById('zoneReset').addEventListener('click', () => {
+  zones.forEach((z, i) => {
+    z.disabled = i === 6
+    const cell = mapEl.children[i]
+    cell.classList.toggle('disabled', z.disabled)
+    renderZoneCell(cell, z)
+  })
+})
+
+/* ===== Layout Library ===== */
+const layouts = [
+  { name:'Halves', tag:'Preset', regions:[{x:1,y:1,w:38,h:30},{x:41,y:1,w:38,h:30}] },
+  { name:'Quarters', tag:'Preset', regions:[{x:1,y:1,w:38,h:14},{x:41,y:1,w:38,h:14},{x:1,y:17,w:38,h:14},{x:41,y:17,w:38,h:14}] },
+  { name:'Thirds', tag:'Preset', regions:[{x:1,y:1,w:25,h:30},{x:27.5,y:1,w:25,h:30},{x:54,y:1,w:25,h:30}] },
+  { name:'Center', tag:'Preset', regions:[{x:12,y:4,w:56,h:24}] },
+  { name:'Coding', tag:'Custom', regions:[{x:1,y:1,w:50,h:30},{x:53,y:1,w:26,h:14},{x:53,y:17,w:26,h:14}] },
+]
+const layoutGrid = document.getElementById('layoutGrid')
+layouts.forEach((l, i) => {
+  const card = document.createElement('div')
+  card.className = 'layout-card' + (i === 0 ? ' active' : '')
+  card.tabIndex = 0
+  let svg = '<svg class="layout-thumb" viewBox="0 0 80 32" fill="none"><rect x="0" y="0" width="80" height="32" rx="3" stroke="currentColor" stroke-width=".6" opacity=".25"/>'
+  l.regions.forEach(r => {
+    svg += '<rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.h+'" rx="1.5" fill="currentColor" opacity=".18"/>'
+  })
+  svg += '</svg>'
+  card.innerHTML = svg + '<div class="layout-name">' + l.name + '</div>' + '<div class="layout-tag">' + l.tag + '</div>'
+  card.addEventListener('click', () => {
+    layoutGrid.querySelectorAll('.layout-card').forEach(c => c.classList.remove('active'))
+    card.classList.add('active')
+  })
+  layoutGrid.appendChild(card)
+})
+
+/* ===== Copy Diagnostics ===== */
+document.getElementById('copyDiag').addEventListener('click', function() {
+  const text = document.getElementById('diagBox').textContent
+  navigator.clipboard.writeText(text).then(() => {
+    this.textContent = 'Copied'
+    setTimeout(() => { this.textContent = 'Copy' }, 1800)
+  }).catch(() => {
+    this.textContent = 'Failed'
+    setTimeout(() => { this.textContent = 'Copy' }, 1800)
+  })
+})
+</script>
+</body>
+</html>
