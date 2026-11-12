@@ -328,18 +328,42 @@ actor SuperModeConfigurationModule {
         }
     }
 
+    /// Applies `configuration` and persists it together with the global hotkeys that are
+    /// currently persisted in the store.
+    ///
+    /// The store is authoritative for global hotkeys. `hotkeyBindings` never decides what is
+    /// written to disk: a caller-supplied list is a snapshot that can be stale or empty (the
+    /// Settings window caches one), and letting it through would erase live global hotkey
+    /// registrations while the runtime kept firing them from memory. The argument is retained
+    /// only so the Super Mode prefix is still checked against bindings a caller is about to
+    /// register; it is deprecated for persistence purposes.
     func apply(
         _ configuration: SuperModeConfiguration,
         hotkeyBindings: [HotkeyBinding]
     ) async -> SuperModeConfigurationApplyResult {
         await acquireApplyPermit()
         defer { releaseApplyPermit() }
-        switch validator.validate(configuration, hotkeyBindings: hotkeyBindings) {
+
+        let persistedBindings: [HotkeyBinding]
+        switch await store.load() {
+        case let .loaded(settings, _):
+            persistedBindings = settings.bindings
+        }
+
+        // Persisted bindings are what will actually be registered, so they carry the conflict
+        // check; caller-supplied bindings can only widen it with chords that are not on disk yet.
+        var bindingsForValidation = persistedBindings
+        let persistedBindingIDs = Set(persistedBindings.map(\.id))
+        bindingsForValidation.append(
+            contentsOf: hotkeyBindings.filter { !persistedBindingIDs.contains($0.id) }
+        )
+
+        switch validator.validate(configuration, hotkeyBindings: bindingsForValidation) {
         case let .invalid(failure):
             return .rejected(failure)
         case let .valid(validated):
             let settings = HotkeySettings(
-                bindings: hotkeyBindings,
+                bindings: persistedBindings,
                 superModeConfiguration: configuration
             )
             switch await store.save(settings) {

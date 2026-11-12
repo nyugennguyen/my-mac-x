@@ -776,6 +776,13 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
         displayProfiles: []
     )
     private var persistenceTask: Task<Void, Never>?
+    private var loadTask: Task<Void, Never>?
+    /// Counts runtime state changes. A `start()` load that began before a change completed must
+    /// not assign its now-stale snapshot over the newer state.
+    private var settingsChangeGeneration = 0
+    /// Counts whole-document writes. A write superseded by a newer one (or by an import) must
+    /// not land after it and resurrect stale values.
+    private var documentWriteGeneration = 0
     private var transfer = SettingsTransferPresentation()
     private var layoutValidationMessages: [String: String] = [:]
 
@@ -817,21 +824,34 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
 
     deinit {
         persistenceTask?.cancel()
+        loadTask?.cancel()
     }
 
     /// Loads the complete schema-v3 document before replacing runtime policy.
     /// Repeated starts are harmless and the latest completed load wins.
+    ///
+    /// The load runs on its own task so a pending write is never cancelled by a start, and a
+    /// load that began before a user change is discarded rather than reverting newer state.
     func start() {
-        persistenceTask?.cancel()
-        persistenceTask = Task { [weak self, store, appRules, profileLayouts] in
+        loadTask?.cancel()
+        let generation = settingsChangeGeneration
+        // Let any in-flight write land first, so this load cannot read a document that is one
+        // change behind the runtime's in-memory state.
+        let pendingWrite = persistenceTask
+        loadTask = Task { [weak self, store, appRules, profileLayouts] in
+            _ = await pendingWrite?.value
             let result = await store.loadConfiguration()
             guard !Task.isCancelled else { return }
+            // A user change completed after this load began, so the state that change produced
+            // is newer than the document this load read. Discard the whole result instead of
+            // reverting the runtime or the shared app-rule/profile policy to it.
+            guard let self, self.settingsChangeGeneration == generation else { return }
             switch result {
             case let .loaded(snapshot, _):
                 await appRules.replace(with: snapshot.appRulePolicy)
                 try? await profileLayouts.replaceProfiles(snapshot.displayProfiles)
                 guard !Task.isCancelled else { return }
-                self?.configuration = snapshot
+                self.configuration = snapshot
             }
         }
     }
@@ -1042,6 +1062,9 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
             replaceConfiguration(general: general, snapping: snapping, edgeSnap: snapshot)
             return
         }
+        // This change only touches general/snapping policy; layouts and display profiles keep
+        // whatever the runtime (or the document) already holds.
+        let baseline = configuration
         configuration = ConfigurationSnapshot(
             general: general,
             snapping: snapping,
@@ -1051,7 +1074,7 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
             appRulePolicy: configuration.appRulePolicy,
             edgeSnap: configuration.edgeSnap
         )
-        persist(configuration)
+        persist(configuration, baseline: baseline)
     }
 
     private func replaceConfiguration(
@@ -1062,6 +1085,7 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
         appRulePolicy: AppRulePolicy? = nil,
         edgeSnap: EdgeSnapZoneConfigurationSnapshot? = nil
     ) {
+        let baseline = configuration
         configuration = ConfigurationSnapshot(
             general: general,
             snapping: snapping,
@@ -1071,14 +1095,113 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
             appRulePolicy: appRulePolicy ?? configuration.appRulePolicy,
             edgeSnap: edgeSnap ?? configuration.edgeSnap
         )
-        persist(configuration)
+        persist(configuration, baseline: baseline)
     }
 
-    private func persist(_ snapshot: ConfigurationSnapshot) {
+    /// Persists `snapshot` (the post-change configuration), taking untouched sections from the
+    /// document instead of from possibly-empty in-memory state.
+    ///
+    /// - Parameter baseline: the configuration this change was built on, captured before the
+    ///   mutation. A section the change did not touch still equals `baseline` and must come from
+    ///   the document; a section that differs from `baseline` was edited by this change and wins.
+    private func persist(_ snapshot: ConfigurationSnapshot, baseline: ConfigurationSnapshot) {
+        markNewerSettingsState()
+        let settingsGeneration = settingsChangeGeneration
+        documentWriteGeneration &+= 1
+        let writeGeneration = documentWriteGeneration
         persistenceTask?.cancel()
-        persistenceTask = Task { [store, profileLayouts] in
-            _ = await store.saveConfiguration(snapshot)
-            try? await profileLayouts.replaceProfiles(snapshot.displayProfiles)
+        persistenceTask = Task { [weak self, store, profileLayouts] in
+            // The document is authoritative for sections this change did not touch: global
+            // hotkeys, layouts and display profiles. Their in-memory copies can be stale or
+            // still empty when a change races the initial load; writing them verbatim would
+            // erase live hotkeys (while the runtime keeps firing the old registrations from
+            // memory) or wipe persisted layouts and profiles. Only the values this change
+            // actually modified are taken from the snapshot.
+            for attempt in 0..<2 {
+                let persisted = await Self.persistedSections(store)
+                guard !Task.isCancelled, let self else { return }
+                // A newer write or an import owns the document now; this snapshot is stale.
+                guard self.documentWriteGeneration == writeGeneration else { return }
+                // A section this change did not touch is taken from the document. A section the
+                // change did touch, or one edited again after this snapshot was built, keeps
+                // the newer in-memory value.
+                let hotkeySettings = self.configuration.hotkeySettings == snapshot.hotkeySettings
+                    ? persisted.hotkeySettings
+                    : self.configuration.hotkeySettings
+                let layouts = Self.persistedOrCurrent(
+                    baseline: baseline.layouts,
+                    current: self.configuration.layouts,
+                    persisted: persisted.layouts
+                )
+                let displayProfiles = Self.persistedOrCurrent(
+                    baseline: baseline.displayProfiles,
+                    current: self.configuration.displayProfiles,
+                    persisted: persisted.displayProfiles
+                )
+                let merged = ConfigurationSnapshot(
+                    general: snapshot.general,
+                    snapping: snapshot.snapping,
+                    hotkeySettings: hotkeySettings,
+                    layouts: layouts,
+                    displayProfiles: displayProfiles,
+                    appRulePolicy: snapshot.appRulePolicy,
+                    edgeSnap: snapshot.edgeSnap
+                )
+                guard case .saved = await store.saveConfiguration(merged) else { return }
+                guard !Task.isCancelled else { return }
+                // A hotkey replacement landed while this save was in flight, so the document
+                // now holds the value this attempt read. Rewrite it once with the newer value
+                // rather than leaving the user's hotkeys overwritten on disk. (Layout and
+                // profile edits always start a newer write, so they are caught above.)
+                if attempt == 0,
+                   self.configuration.hotkeySettings != merged.hotkeySettings,
+                   self.documentWriteGeneration == writeGeneration {
+                    continue
+                }
+                // Keep the in-memory presentation in step with what was written, so the
+                // Settings GUI (which reads currentSettings()) and the document agree.
+                guard self.settingsChangeGeneration == settingsGeneration else { return }
+                self.configuration = ConfigurationSnapshot(
+                    general: self.configuration.general,
+                    snapping: self.configuration.snapping,
+                    hotkeySettings: merged.hotkeySettings,
+                    layouts: merged.layouts,
+                    displayProfiles: merged.displayProfiles,
+                    appRulePolicy: self.configuration.appRulePolicy,
+                    edgeSnap: self.configuration.edgeSnap
+                )
+                try? await profileLayouts.replaceProfiles(merged.displayProfiles)
+                return
+            }
+        }
+    }
+
+    /// Records that runtime state changed, so any load or write that began earlier is stale.
+    private func markNewerSettingsState() {
+        settingsChangeGeneration &+= 1
+    }
+
+    /// Picks a section's value for the document write.
+    ///
+    /// The document is authoritative for a section this change did not touch (`current` still
+    /// equals the pre-change `baseline`), which is what stops a routine change that races the
+    /// initial load from writing an empty in-memory list. A newer in-memory edit (`current` no
+    /// longer equals `baseline`) wins, so an in-flight layout/profile/hotkey save is not
+    /// reverted by an older write landing after it.
+    nonisolated private static func persistedOrCurrent<T: Equatable>(
+        baseline: T,
+        current: T,
+        persisted: T
+    ) -> T {
+        current == baseline ? persisted : current
+    }
+
+    /// Reads the sections the document is authoritative for (hotkeys, layouts, display
+    /// profiles) in a single load, so a whole-document write never erases what it did not edit.
+    nonisolated private static func persistedSections(_ store: SettingsStore) async -> ConfigurationSnapshot {
+        switch await store.loadConfiguration() {
+        case let .loaded(snapshot, _):
+            snapshot
         }
     }
 
@@ -1094,6 +1217,7 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
     }
 
     func replaceHotkeySettings(_ settings: HotkeySettings) {
+        markNewerSettingsState()
         configuration = ConfigurationSnapshot(
             general: configuration.general,
             snapping: configuration.snapping,
@@ -1138,6 +1262,9 @@ final class ProductionSettingsRuntime: SettingsRuntimeProviding {
         _ snapshot: ConfigurationSnapshot,
         completion: @escaping @MainActor () -> Void
     ) {
+        // An import rewrites the whole document on purpose; invalidate any earlier load/write.
+        markNewerSettingsState()
+        documentWriteGeneration &+= 1
         persistenceTask?.cancel()
         let previous = configuration
         persistenceTask = Task { [weak self, store, appRules, profileLayouts, applyImportedHotkeys, setLaunchAtLoginAction] in

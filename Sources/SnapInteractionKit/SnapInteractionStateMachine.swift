@@ -104,20 +104,21 @@ actor SnapInteractionStateMachine {
             return nil
 
         case .trigger(.deactivated(let displayID)):
-            guard case .choosing(let binding, let activeDisplayID) = state,
-                  activeDisplayID == displayID
-            else {
-                if case .previewed(
-                    let binding,
-                    let activeDisplayID,
-                    _,
-                    _
-                ) = state, activeDisplayID == displayID {
-                    return await cancel(binding.interaction)
-                }
+            // Dwell deactivation mid-drag dismisses the chooser; it does NOT end the
+            // interaction. Keep the binding so a later .trigger(.activated) can re-enter
+            // .choosing and the pointer release still commits.
+            switch state {
+            case .previewed(let binding, let activeDisplayID, _, _):
+                guard activeDisplayID == displayID else { return nil }
+                return await cancelPreview(interaction: binding.interaction)
+            case .choosing(let binding, let activeDisplayID):
+                guard activeDisplayID == displayID else { return nil }
+                // No preview was live: cross no Window Intent, per the actor contract.
+                state = .tracking(binding)
+                return nil
+            case .idle, .tracking:
                 return nil
             }
-            return await cancel(binding.interaction)
 
         case .chooser(.selectionChanged(let action)):
             return await preview(action)

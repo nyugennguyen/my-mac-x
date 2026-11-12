@@ -469,6 +469,86 @@ final class SnapInteractionStateMachineTests: XCTestCase {
             )
         )
     }
+
+    // MARK: - Trigger dwell deactivation mid-drag keeps the Interaction alive
+
+    func testDwellDeactivationMidDragDismissesTheChooserAndReactivationResumesTheSameInteraction() async {
+        let windowActions = RecordingSnapWindowActions()
+        let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
+        let interaction = interactionID("7F3A9C21-5D8E-4B6A-9C0F-1E2D3C4B5A69")
+        let display = DisplayID(rawValue: 7)
+
+        _ = await stateMachine.consume(
+            .pointer(.began(dragContext(interaction, capturedWindow: capturedWindowIdentity)))
+        )
+        _ = await stateMachine.consume(.trigger(.activated(display)))
+        let firstSelection = await stateMachine.consume(
+            .chooser(.selectionChanged(action: .leftHalf))
+        )
+        let chooserDismissed = await stateMachine.consume(.trigger(.deactivated(display)))
+        _ = await stateMachine.consume(.trigger(.activated(display)))
+        let secondSelection = await stateMachine.consume(
+            .chooser(.selectionChanged(action: .rightHalf))
+        )
+        let committed = await stateMachine.consume(.pointer(.released(interaction: interaction)))
+        let intents = await windowActions.recordedIntents()
+
+        XCTAssertEqual(firstSelection, .previewResult)
+        XCTAssertEqual(chooserDismissed, .cancelledResult)
+        XCTAssertEqual(secondSelection, .previewResult)
+        XCTAssertEqual(committed, .committedResult)
+        XCTAssertEqual(
+            intents,
+            [
+                .preview(
+                    action: .leftHalf,
+                    interaction: interaction,
+                    capturedWindow: capturedWindowIdentity,
+                    targetDisplay: display
+                ),
+                .cancelPreview(interaction: interaction),
+                .preview(
+                    action: .rightHalf,
+                    interaction: interaction,
+                    capturedWindow: capturedWindowIdentity,
+                    targetDisplay: display
+                ),
+                .commitPreview(interaction: interaction),
+            ]
+        )
+    }
+
+    func testDwellDeactivationWithoutALivePreviewCancelsNoPreviewAndReactivationCommitsTheSelection() async {
+        let windowActions = RecordingSnapWindowActions()
+        let stateMachine = SnapInteractionStateMachine(windowActions: windowActions)
+        let interaction = interactionID("8A4B0D32-6E9F-4C7B-AD10-2F3E4D5C6B7A")
+        let display = DisplayID(rawValue: 7)
+
+        _ = await stateMachine.consume(
+            .pointer(.began(dragContext(interaction, capturedWindow: capturedWindowIdentity)))
+        )
+        _ = await stateMachine.consume(.trigger(.activated(display)))
+        _ = await stateMachine.consume(.trigger(.deactivated(display)))
+        _ = await stateMachine.consume(.trigger(.activated(display)))
+        let selection = await stateMachine.consume(.chooser(.selectionChanged(action: .leftHalf)))
+        let committed = await stateMachine.consume(.pointer(.released(interaction: interaction)))
+        let intents = await windowActions.recordedIntents()
+
+        XCTAssertEqual(selection, .previewResult)
+        XCTAssertEqual(committed, .committedResult)
+        XCTAssertEqual(
+            intents,
+            [
+                .preview(
+                    action: .leftHalf,
+                    interaction: interaction,
+                    capturedWindow: capturedWindowIdentity,
+                    targetDisplay: display
+                ),
+                .commitPreview(interaction: interaction),
+            ]
+        )
+    }
 }
 
 // MARK: - Test Helpers
