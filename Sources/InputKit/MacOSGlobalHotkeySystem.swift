@@ -17,11 +17,44 @@ final class MacOSGlobalHotkeySystem: GlobalHotkeySystem {
         let binding: HotkeyBinding
     }
 
-    private var registrations: [Chord: Registration] = [:]
+    private final class CleanupState: @unchecked Sendable {
+        var registrations: [Chord: Registration] = [:]
+        var eventHandlerReference: EventHandlerRef?
+        var workspaceObservationTokens: [NSObjectProtocol] = []
+
+        func unregisterAll() {
+            for registration in registrations.values {
+                UnregisterEventHotKey(registration.reference)
+            }
+            registrations.removeAll()
+            if let eventHandlerReference {
+                RemoveEventHandler(eventHandlerReference)
+                self.eventHandlerReference = nil
+            }
+            let center = NSWorkspace.shared.notificationCenter
+            for token in workspaceObservationTokens {
+                center.removeObserver(token)
+            }
+            workspaceObservationTokens.removeAll()
+        }
+    }
+
+    private let cleanupState = CleanupState()
+
+    private var registrations: [Chord: Registration] {
+        get { cleanupState.registrations }
+        set { cleanupState.registrations = newValue }
+    }
     private var bindingsByNumericID: [UInt32: HotkeyBinding] = [:]
     private var nextNumericID: UInt32 = 1
-    private var eventHandlerReference: EventHandlerRef?
-    private var workspaceObservationTokens: [NSObjectProtocol] = []
+    private var eventHandlerReference: EventHandlerRef? {
+        get { cleanupState.eventHandlerReference }
+        set { cleanupState.eventHandlerReference = newValue }
+    }
+    private var workspaceObservationTokens: [NSObjectProtocol] {
+        get { cleanupState.workspaceObservationTokens }
+        set { cleanupState.workspaceObservationTokens = newValue }
+    }
 
     func observeLifecycle(
         _ handler: @escaping @Sendable (GlobalHotkeyLifecycleEvent) async -> Void
@@ -115,17 +148,8 @@ final class MacOSGlobalHotkeySystem: GlobalHotkeySystem {
         return .degraded(activeBindingIDs: activeBindingIDs, failures: failures)
     }
 
-    isolated deinit {
-        for registration in registrations.values {
-            UnregisterEventHotKey(registration.reference)
-        }
-        if let eventHandlerReference {
-            RemoveEventHandler(eventHandlerReference)
-        }
-        let center = NSWorkspace.shared.notificationCenter
-        for token in workspaceObservationTokens {
-            center.removeObserver(token)
-        }
+    deinit {
+        cleanupState.unregisterAll()
     }
 
     private var activeBindingIDs: [UUID] {
