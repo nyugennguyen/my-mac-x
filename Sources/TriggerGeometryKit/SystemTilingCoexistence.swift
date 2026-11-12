@@ -223,14 +223,18 @@ public final class SystemTilingCoexistenceModel: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.refresh()
+            MainActor.assumeIsolated {
+                self?.refresh()
+            }
         }
         let activeObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.refresh()
+            MainActor.assumeIsolated {
+                self?.refresh()
+            }
         }
         token.observers = [defaultsObserver, activeObserver]
     }
