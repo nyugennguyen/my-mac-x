@@ -252,7 +252,15 @@ final class EdgeSnapCoordinatorTests: XCTestCase {
             stateMachine: stateMachine,
             windowSampler: sampler,
             targetResolver: targetResolver,
-            topologyProvider: { [displayTopology] in displayTopology }
+            topologyProvider: { [displayTopology] in displayTopology },
+            systemTilingStateProvider: {
+                SystemTilingState(
+                    isEdgeTilingEnabled: false,
+                    isTopTilingEnabled: false,
+                    isOptionAcceleratorEnabled: false,
+                    screensHaveSeparateSpaces: true
+                )
+            }
         )
 
         await coordinator.start()
@@ -524,7 +532,15 @@ final class EdgeSnapCoordinatorTests: XCTestCase {
             stateMachine: stateMachine,
             windowSampler: sampler,
             targetResolver: targetResolver,
-            topologyProvider: { [displayTopology] in displayTopology }
+            topologyProvider: { [displayTopology] in displayTopology },
+            systemTilingStateProvider: {
+                SystemTilingState(
+                    isEdgeTilingEnabled: false,
+                    isTopTilingEnabled: false,
+                    isOptionAcceleratorEnabled: false,
+                    screensHaveSeparateSpaces: true
+                )
+            }
         )
         box.coordinator = coordinator
 
@@ -635,7 +651,15 @@ final class EdgeSnapCoordinatorTests: XCTestCase {
             stateMachine: stateMachine,
             windowSampler: sampler,
             targetResolver: targetResolver,
-            topologyProvider: { [displayTopology] in displayTopology }
+            topologyProvider: { [displayTopology] in displayTopology },
+            systemTilingStateProvider: {
+                SystemTilingState(
+                    isEdgeTilingEnabled: false,
+                    isTopTilingEnabled: false,
+                    isOptionAcceleratorEnabled: false,
+                    screensHaveSeparateSpaces: true
+                )
+            }
         )
 
         await coordinator.start()

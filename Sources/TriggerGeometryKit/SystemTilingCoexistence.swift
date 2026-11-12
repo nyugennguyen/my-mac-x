@@ -15,7 +15,7 @@ public struct SystemTilingState: Equatable, Sendable {
         isTopTilingEnabled: Bool,
         isOptionAcceleratorEnabled: Bool,
         screensHaveSeparateSpaces: Bool,
-        operatingSystemMajorVersion: Int
+        operatingSystemMajorVersion: Int = 15
     ) {
         self.isEdgeTilingEnabled = isEdgeTilingEnabled
         self.isTopTilingEnabled = isTopTilingEnabled

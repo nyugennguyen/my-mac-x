@@ -185,14 +185,14 @@ actor EventTapManager: EventTapManaging {
                 lifecycle = .unavailable
                 return .unavailable
             }
-            return status()
+            return .stopped
         }
 
         guard case let .starting(currentGeneration, _) = lifecycle,
               currentGeneration == startGeneration
         else {
             // A concurrent stop owns teardown of a still-starting installation.
-            return status()
+            return .stopped
         }
 
         lifecycle = .active(startGeneration, installation)
@@ -202,7 +202,7 @@ actor EventTapManager: EventTapManaging {
               currentGeneration == startGeneration,
               currentInstallation == installation
         else {
-            return status()
+            return .stopped
         }
         return .active
     }
