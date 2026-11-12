@@ -153,15 +153,23 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
             window: candidate.identity,
             continuation: channel.continuation
         )
+        let retainedBox = Unmanaged.passRetained(box)
         let addError = AXObserverAddNotification(
             createdObserver,
             window,
             kAXMovedNotification as CFString,
-            Unmanaged.passUnretained(box).toOpaque()
+            retainedBox.toOpaque()
         )
         guard addError == .success else {
+            retainedBox.release()
             channel.continuation.finish()
             return .unavailable(mapObservation(addError))
+        }
+
+        channel.continuation.onTermination = { [weak self] _ in
+            Task { [weak self] in
+                await self?.stopObserving()
+            }
         }
 
         let source = AXObserverGetRunLoopSource(createdObserver)
@@ -184,8 +192,11 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
         if let movementSource {
             movementRunLoop.remove(movementSource)
         }
-        movementCallbackBox?.finish()
-        movementCallbackBox = nil
+        if let box = movementCallbackBox {
+            box.finish()
+            Unmanaged.passUnretained(box).release()
+            movementCallbackBox = nil
+        }
         movementSource = nil
         movementObservedWindow = nil
         movementObserver = nil
@@ -294,6 +305,11 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
         }
         guard let window = identityCache.element(for: identity) else {
             return .failure(.windowDisappeared)
+        }
+
+        var processID: pid_t = 0
+        if AXUIElementGetPid(window, &processID) == .success, processID == getpid() {
+            return .failure(.rejected)
         }
 
         switch configureMessagingTimeout(on: window) {
@@ -576,7 +592,7 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
     private func setPosition(_ position: CGPoint, on element: AXUIElement) -> AXRead<Void> {
         var processID: pid_t = 0
         if AXUIElementGetPid(element, &processID) == .success, processID == getpid() {
-            return .failure(.cannotComplete)
+            return .failure(.illegalArgument)
         }
         var mutablePosition = position
         guard let value = AXValueCreate(.cgPoint, &mutablePosition) else {
@@ -593,7 +609,7 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
     private func setSize(_ size: CGSize, on element: AXUIElement) -> AXRead<Void> {
         var processID: pid_t = 0
         if AXUIElementGetPid(element, &processID) == .success, processID == getpid() {
-            return .failure(.cannotComplete)
+            return .failure(.illegalArgument)
         }
         var mutableSize = size
         guard let value = AXValueCreate(.cgSize, &mutableSize) else {
@@ -764,7 +780,8 @@ actor SystemWindowAdapter: AccessibilityWindowAdapting,
 
 private final class SystemAXMovementCallbackBox: @unchecked Sendable {
     private let window: WindowIdentity
-    private let continuation: AsyncStream<WindowIdentity>.Continuation
+    private let lock = NSLock()
+    private var continuation: AsyncStream<WindowIdentity>.Continuation?
 
     init(
         window: WindowIdentity,
@@ -775,17 +792,24 @@ private final class SystemAXMovementCallbackBox: @unchecked Sendable {
     }
 
     func moved() {
-        continuation.yield(window)
+        lock.lock()
+        let cont = continuation
+        lock.unlock()
+        cont?.yield(window)
     }
 
     func finish() {
-        continuation.finish()
+        lock.lock()
+        let cont = continuation
+        continuation = nil
+        lock.unlock()
+        cont?.finish()
     }
 }
 
 private let systemAXMovementObserverCallback: AXObserverCallback = {
     _, _, notification, userInfo in
-    guard notification as String == (kAXMovedNotification as String),
+    guard notification as String == kAXMovedNotification,
           let userInfo
     else { return }
     let box = Unmanaged<SystemAXMovementCallbackBox>
@@ -795,80 +819,51 @@ private let systemAXMovementObserverCallback: AXObserverCallback = {
 }
 
 private final class AXMovementRunLoopThread: @unchecked Sendable {
-    private struct SourceBox: @unchecked Sendable {
-        let value: CFRunLoopSource
-    }
-
-    private final class Storage: @unchecked Sendable {
-        let condition = NSCondition()
-        private var runLoop: CFRunLoop?
-
-        func publish(_ runLoop: CFRunLoop) {
-            condition.lock()
-            self.runLoop = runLoop
-            condition.broadcast()
-            condition.unlock()
-        }
-
-        func waitForRunLoop() -> CFRunLoop {
-            condition.lock()
-            while runLoop == nil { condition.wait() }
-            let value = runLoop!
-            condition.unlock()
-            return value
-        }
-    }
-
-    private let storage: Storage
+    private let runLoop: CFRunLoop
 
     init(name: String) {
-        let storage = Storage()
-        self.storage = storage
+        let condition = NSCondition()
+        var runLoopRef: CFRunLoop?
+
         let thread = Thread {
             var context = CFRunLoopSourceContext()
             let keepAlive = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &context)!
-            let runLoop = CFRunLoopGetCurrent()!
-            CFRunLoopAddSource(runLoop, keepAlive, .commonModes)
-            storage.publish(runLoop)
+            let currentRunLoop = CFRunLoopGetCurrent()!
+            CFRunLoopAddSource(currentRunLoop, keepAlive, .commonModes)
+
+            condition.lock()
+            runLoopRef = currentRunLoop
+            condition.broadcast()
+            condition.unlock()
+
             CFRunLoopRun()
-            CFRunLoopRemoveSource(runLoop, keepAlive, .commonModes)
+            CFRunLoopRemoveSource(currentRunLoop, keepAlive, .commonModes)
             CFRunLoopSourceInvalidate(keepAlive)
         }
         thread.name = name
         thread.qualityOfService = .userInteractive
         thread.start()
-        _ = storage.waitForRunLoop()
+
+        condition.lock()
+        while runLoopRef == nil {
+            condition.wait()
+        }
+        self.runLoop = runLoopRef!
+        condition.unlock()
     }
 
     func add(_ source: CFRunLoopSource) {
-        let source = SourceBox(value: source)
-        performSync {
-            CFRunLoopAddSource(CFRunLoopGetCurrent(), source.value, .commonModes)
-        }
+        CFRunLoopAddSource(runLoop, source, .commonModes)
+        CFRunLoopWakeUp(runLoop)
     }
 
     func remove(_ source: CFRunLoopSource) {
-        let source = SourceBox(value: source)
-        performSync {
-            CFRunLoopRemoveSource(CFRunLoopGetCurrent(), source.value, .commonModes)
-        }
+        CFRunLoopRemoveSource(runLoop, source, .commonModes)
     }
 
     deinit {
-        let runLoop = storage.waitForRunLoop()
         CFRunLoopStop(runLoop)
         CFRunLoopWakeUp(runLoop)
-    }
-
-    private func performSync(_ operation: @escaping @Sendable () -> Void) {
-        let runLoop = storage.waitForRunLoop()
-        let completed = DispatchSemaphore(value: 0)
-        CFRunLoopPerformBlock(runLoop, CFRunLoopMode.commonModes.rawValue) {
-            operation()
-            completed.signal()
-        }
-        CFRunLoopWakeUp(runLoop)
-        completed.wait()
     }
 }
 
