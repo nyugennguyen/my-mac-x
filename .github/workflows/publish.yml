@@ -94,9 +94,19 @@ jobs:
         run: |
           TAG="v${VERSION}"
           OUTPUT_DIR="build/release/${VERSION}"
-          NOTES_FILE="docs/release/release-notes-0.1.0.md"
+          NOTES_FILE="docs/release/release-notes-${VERSION}.md"
+          if [ ! -f "$NOTES_FILE" ]; then
+            NOTES_FILE="docs/release/release-notes-0.1.0.md"
+          fi
           if [ ! -f "$NOTES_FILE" ]; then
             NOTES_FILE="docs/release/release-notes-0.1.0-beta.md"
+          fi
+
+          NOTES_ARGS=()
+          if [ -f "$NOTES_FILE" ]; then
+            NOTES_ARGS=(--notes-file "$NOTES_FILE")
+          else
+            NOTES_ARGS=(--generate-notes)
           fi
 
           if gh release view "$TAG" >/dev/null 2>&1; then
@@ -111,5 +121,5 @@ jobs:
               "$OUTPUT_DIR/MyMacX-${VERSION}.zip" \
               "$OUTPUT_DIR/MyMacX-${VERSION}.sha256" \
               --title "My Mac X ${VERSION}" \
-              --notes-file "$NOTES_FILE"
+              "${NOTES_ARGS[@]}"
           fi
