@@ -20,7 +20,7 @@ import XCTest
 
 @MainActor
 final class OnboardingWindowControllerTests: XCTestCase {
-    private var testDefaults: UserDefaults!
+    nonisolated(unsafe) private var testDefaults: UserDefaults!
     private let suiteName = "test.mymacx.onboarding"
 
     override func setUp() {
