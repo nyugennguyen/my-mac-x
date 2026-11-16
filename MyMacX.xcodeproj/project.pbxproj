@@ -158,6 +158,8 @@
 		1000000000000000000000A6 /* HotkeyPersistenceRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A6 /* HotkeyPersistenceRegressionTests.swift */; };
 		1000000000000000000000A7 /* SettingsRuntimePersistenceRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A7 /* SettingsRuntimePersistenceRegressionTests.swift */; };
 		1000000000000000000000A8 /* SettingsRuntimeLayoutPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A8 /* SettingsRuntimeLayoutPersistenceTests.swift */; };
+		1000000000000000000000A9 /* OnboardingWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000A9 /* OnboardingWindowController.swift */; };
+		1000000000000000000000AA /* OnboardingWindowControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2000000000000000000000AA /* OnboardingWindowControllerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -327,6 +329,8 @@
 		2000000000000000000000A6 /* HotkeyPersistenceRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyPersistenceRegressionTests.swift; sourceTree = "<group>"; };
 		2000000000000000000000A7 /* SettingsRuntimePersistenceRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRuntimePersistenceRegressionTests.swift; sourceTree = "<group>"; };
 		2000000000000000000000A8 /* SettingsRuntimeLayoutPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRuntimeLayoutPersistenceTests.swift; sourceTree = "<group>"; };
+		2000000000000000000000A9 /* OnboardingWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindowController.swift; sourceTree = "<group>"; };
+		2000000000000000000000AA /* OnboardingWindowControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindowControllerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -404,6 +408,7 @@
 				20000000000000000000009E /* EdgeSnapCoordinator.swift */,
 				2000000000000000000000A1 /* LayoutThumbnailRenderer.swift */,
 				2000000000000000000000A4 /* ZoneMapPicker.swift */,
+				2000000000000000000000A9 /* OnboardingWindowController.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -508,6 +513,7 @@
 				2000000000000000000000A6 /* HotkeyPersistenceRegressionTests.swift */,
 				2000000000000000000000A7 /* SettingsRuntimePersistenceRegressionTests.swift */,
 				2000000000000000000000A8 /* SettingsRuntimeLayoutPersistenceTests.swift */,
+				2000000000000000000000AA /* OnboardingWindowControllerTests.swift */,
 			);
 			path = AppShell;
 			sourceTree = "<group>";
@@ -1073,6 +1079,7 @@
 				1000000000000000000000A1 /* LayoutThumbnailRenderer.swift in Sources */,
 				1000000000000000000000A2 /* EdgeSnapZoneConfigurationStore.swift in Sources */,
 				1000000000000000000000A4 /* ZoneMapPicker.swift in Sources */,
+				1000000000000000000000A9 /* OnboardingWindowController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1152,6 +1159,7 @@
 				1000000000000000000000A6 /* HotkeyPersistenceRegressionTests.swift in Sources */,
 				1000000000000000000000A7 /* SettingsRuntimePersistenceRegressionTests.swift in Sources */,
 				1000000000000000000000A8 /* SettingsRuntimeLayoutPersistenceTests.swift in Sources */,
+				1000000000000000000000AA /* OnboardingWindowControllerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1177,7 +1185,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "My Mac X";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.mymacx.app;
 				PRODUCT_MODULE_NAME = MyMacX;
 				PRODUCT_NAME = MyMacX;
@@ -1196,7 +1204,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "My Mac X";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.mymacx.app;
 				PRODUCT_MODULE_NAME = MyMacX;
 				PRODUCT_NAME = MyMacX;

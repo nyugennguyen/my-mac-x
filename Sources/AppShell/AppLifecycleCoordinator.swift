@@ -7,6 +7,14 @@ enum FirstLaunchOnboardingPolicy {
     ) -> Bool {
         !hasSeenExplanation && permissionState != .granted
     }
+
+    static func shouldPresent(
+        hasSeenExplanation: Bool,
+        permissionState: AccessibilityPermissionState,
+        inputMonitoringGranted: Bool
+    ) -> Bool {
+        !hasSeenExplanation && (permissionState != .granted || !inputMonitoringGranted)
+    }
 }
 
 @MainActor

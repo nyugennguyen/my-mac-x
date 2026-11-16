@@ -26,7 +26,7 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
     private let superModeSettingsWindowController: SuperModeSettingsWindowController
     private let globalHotkeySettingsWindowController: GlobalHotkeySettingsWindowController
     private let quickActionWindowState: MenuQuickActionWindowState
-    private let onboardingController: FirstLaunchOnboardingController
+    private let onboardingWindowController: OnboardingWindowController
 
     override init() {
         let permissionManager = AccessibilityPermissionManager()
@@ -191,11 +191,17 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
         self.settingsWindowController = settingsWindowController
         self.superModeSettingsWindowController = superModeSettingsWindowController
         self.globalHotkeySettingsWindowController = globalHotkeySettingsWindowController
-        self.onboardingController = FirstLaunchOnboardingController(
-            permissionState: { permissionManager.state },
+        self.onboardingWindowController = OnboardingWindowController(
+            accessibilityStateProvider: { permissionManager.state },
+            refreshAccessibilityState: { permissionManager.refresh() },
+            inputMonitoringStateProvider: { inputMonitoringAuthorizer.hasAccess() },
+            requestInputMonitoringAccess: { inputMonitoringAuthorizer.requestAccess() },
             openAccessibilitySettings: {
                 permissionManager.recordUserWasDirectedToGrantPermission()
-                permissionManager.openSystemSettings()
+                SystemSettingsDeepLink.openAccessibility()
+            },
+            openInputMonitoringSettings: {
+                SystemSettingsDeepLink.openInputMonitoring()
             },
             openAppSettings: { settingsWindowController.present() }
         )
@@ -314,11 +320,12 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         lifecycleCoordinator.applicationDidFinishLaunching()
-        onboardingController.presentIfNeeded()
+        onboardingWindowController.presentIfNeeded()
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
         lifecycleCoordinator.applicationDidBecomeActive()
+        onboardingWindowController.refreshPermissions()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -326,54 +333,6 @@ private final class ApplicationDelegate: NSObject, NSApplicationDelegate {
         let coordinator = edgeSnapCoordinator
         Task {
             await coordinator.stop()
-        }
-    }
-}
-
-@MainActor
-private final class FirstLaunchOnboardingController {
-    private static let explanationSeenKey = "onboarding.accessibilityExplanationSeen.v1"
-
-    private let defaults: UserDefaults
-    private let permissionState: () -> AccessibilityPermissionState
-    private let openAccessibilitySettings: () -> Void
-    private let openAppSettings: () -> Void
-
-    init(
-        defaults: UserDefaults = .standard,
-        permissionState: @escaping () -> AccessibilityPermissionState,
-        openAccessibilitySettings: @escaping () -> Void,
-        openAppSettings: @escaping () -> Void
-    ) {
-        self.defaults = defaults
-        self.permissionState = permissionState
-        self.openAccessibilitySettings = openAccessibilitySettings
-        self.openAppSettings = openAppSettings
-    }
-
-    func presentIfNeeded() {
-        guard FirstLaunchOnboardingPolicy.shouldPresent(
-            hasSeenExplanation: defaults.bool(forKey: Self.explanationSeenKey),
-            permissionState: permissionState()
-        ) else { return }
-
-        NSApplication.shared.activate(ignoringOtherApps: true)
-        let alert = NSAlert()
-        alert.alertStyle = .informational
-        alert.icon = NSImage(systemSymbolName: "rectangle.3.group", accessibilityDescription: nil)
-        alert.messageText = String(localized: "Welcome to My Mac X")
-        alert.informativeText = String(localized: "My Mac X needs Accessibility permission to move and resize windows. It does not read what you type, window titles, clipboard contents, or screenshots. You can review this before enabling it.")
-        alert.addButton(withTitle: String(localized: "Open Accessibility Settings"))
-        alert.addButton(withTitle: String(localized: "Not Now"))
-        alert.addButton(withTitle: String(localized: "Review App Settings"))
-        defaults.set(true, forKey: Self.explanationSeenKey)
-        switch alert.runModal() {
-        case .alertFirstButtonReturn:
-            openAccessibilitySettings()
-        case .alertThirdButtonReturn:
-            openAppSettings()
-        default:
-            break
         }
     }
 }
