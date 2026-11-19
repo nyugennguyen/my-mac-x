@@ -2,9 +2,11 @@
 
 > A native, local-first macOS window manager built in Swift. Combines **Notch Snap** for pointer users, customizable **Hotkeys**, and a prefix-driven **Super Mode** for keyboard power users.
 
+[![Latest Release](https://img.shields.io/github/v/release/nyugennguyen/my-mac-x?color=blue&label=Release)](https://github.com/nyugennguyen/my-mac-x/releases)
 [![Platform: macOS 14+](https://img.shields.io/badge/Platform-macOS%2014%20Sonoma%2B-black.svg?style=flat&logo=apple)](https://www.apple.com/macos/)
 [![Swift 6](https://img.shields.io/badge/Swift-6.0-orange.svg?style=flat&logo=swift)](https://swift.org)
 [![Universal Binary](https://img.shields.io/badge/Architecture-Universal%20(arm64%20%7C%20x86__64)-blue.svg?style=flat)](#system-requirements)
+[![Tests: 634 Passing](https://img.shields.io/badge/Tests-634%20Passing-brightgreen.svg?style=flat)](#building-from-source)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat)](./LICENSE)
 [![Local-First](https://img.shields.io/badge/Privacy-100%25%20Local--First-green.svg?style=flat)](#privacy--security-invariants)
 
@@ -13,20 +15,23 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [What's New in v0.1.1](#whats-new-in-v011)
 - [System Requirements](#system-requirements)
-- [Installation](#installation)
-- [Permissions Setup (Required Before Use)](#permissions-setup-required-before-use)
-  - [1. Accessibility Permission (Mandatory)](#1-accessibility-permission-mandatory)
-  - [2. Input Monitoring Permission (Conditional)](#2-input-monitoring-permission-conditional)
+- [Installation & First Run](#installation--first-run)
+- [Permissions Setup](#permissions-setup)
+  - [Open Design Onboarding (Recommended)](#open-design-onboarding-recommended)
+  - [Manual Permission Configuration](#manual-permission-configuration)
   - [Troubleshooting & Permission Reset](#troubleshooting--permission-reset)
 - [Key Features](#key-features)
   - [Notch Snap & Edge Zones](#notch-snap--edge-zones)
   - [Keyboard Hotkeys](#keyboard-hotkeys)
   - [Super Mode](#super-mode)
+  - [First-Launch Onboarding Window](#first-launch-onboarding-window)
   - [Multi-Display & Reconnect Stability](#multi-display--reconnect-stability)
 - [Privacy & Security Invariants](#privacy--security-invariants)
 - [Building from Source](#building-from-source)
 - [Diagnostics & Support](#diagnostics--support)
+- [License](#license)
 
 ---
 
@@ -41,6 +46,16 @@
 
 ---
 
+## What's New in v0.1.1
+
+- **First-Launch Permission Onboarding (Open Design)**: Replaces legacy modal alert dialogs with a modern, frameless 580×560 pt native macOS window featuring subtle material vibrancy, rounded interactive cards, and drag-by-background support.
+- **Dual Permission Guidance**: Dedicated visual cards for both **Accessibility** and **Input Monitoring** permissions with live status badges (`Granted` vs `Required` / `Recommended`), plain-English purpose explanations, and 1-click deep-linking to macOS System Settings.
+- **Live Auto-Refresh**: Dynamic state observers and active-application notifications update permission badges in real time as soon as you toggle them in System Settings—no application restart required.
+- **Privacy & Security Trust Guarantee**: Clear, upfront callout ensuring all operations remain local-first, offline, and privacy-preserving with zero logging of typed text, keystrokes, window titles, or screen content.
+- **Full Test Suite Verification**: 634 unit and integration tests passing on macOS 14/15 runner matrix with complete Swift 6 concurrency compliance.
+
+---
+
 ## System Requirements
 
 - **Operating System**: macOS 14.0 (Sonoma) or later.
@@ -49,79 +64,68 @@
 
 ---
 
-## Installation
+## Installation & First Run
 
-1. Download the latest release (`MyMacX.app` or DMG) from the releases page, or build it locally from source.
-2. Drag **`MyMacX.app`** into your **`/Applications`** folder.
+1. Download the latest release (`MyMacX-0.1.1.dmg` or `MyMacX-0.1.1.zip`) from the [Releases page](https://github.com/nyugennguyen/my-mac-x/releases).
+2. Open the DMG and drag **`MyMacX.app`** into your **`/Applications`** folder.
 3. Launch **My Mac X** from `/Applications` or via Spotlight (`⌘ Space`).
-
-> [!IMPORTANT]
-> **Why permissions must be granted manually:**
-> macOS standard drag-and-drop application installation does not configure system security entitlements. Because My Mac X manages third-party application windows across macOS without an invasive installer package, you must grant **Accessibility** permissions in macOS **System Settings** before the app can move or resize windows.
+4. On first launch, the **Open Design Onboarding Window** will guide you through granting the necessary permissions.
 
 ---
 
-## Permissions Setup (Required Before Use)
+## Permissions Setup
 
-Follow these steps immediately after copying the app to `/Applications`.
+### Open Design Onboarding (Recommended)
 
-### 1. Accessibility Permission (Mandatory)
+When My Mac X starts for the first time without permissions, it presents the **First-Launch Onboarding Window**:
 
-macOS requires explicit user authorization under the Transparency, Consent, and Control (TCC) framework before any app is permitted to query, inspect, move, or resize windows belonging to other applications.
-
-#### Step-by-Step Instructions:
-
-1. Open **System Settings** on your Mac (click the **** menu in the top-left corner > **System Settings...**).
-2. In the left sidebar, navigate to **Privacy & Security**.
-3. In the right pane, click **Accessibility**.
-4. Check if **My Mac X** appears in the list:
-   - **If My Mac X is in the list**: Turn the toggle switch next to **My Mac X** to **ON** (blue).
-   - **If My Mac X is NOT in the list**:
-     1. Click the **`+`** (Add) button below the application list.
-     2. Authenticate with your Mac password or Touch ID when prompted.
-     3. In the file picker dialog, navigate to **Applications**, select **`My Mac X.app`**, and click **Open**.
-     4. Verify that the toggle switch next to **My Mac X** is switched **ON** (blue).
-5. If **My Mac X** is already running, macOS will apply the permissions immediately. You can verify this inside the app:
-   - Click the **My Mac X** icon in the menu bar.
-   - Open **Settings** (`⌘ ,`).
-   - The Accessibility indicator will display **Granted**.
+1. **Accessibility Permission (Required)**: Click **Grant Access** (or **Open Settings**) to open macOS **System Settings > Privacy & Security > Accessibility**. Toggle **My Mac X** to **ON**. The badge in the onboarding window automatically switches to **Granted**.
+2. **Input Monitoring Permission (Recommended for Super Mode)**: Click **Grant Access** to configure event taps for prefix sequence capture.
+3. Once Accessibility is granted, click **Get Started** to start using My Mac X immediately.
 
 ---
 
-### 2. Input Monitoring Permission (Conditional)
+### Manual Permission Configuration
 
-Input Monitoring is **not** required for standard global hotkeys. It is only required if you enable **Super Mode** with global event-tap sequence capture.
+If you prefer to configure permissions manually:
 
-#### Step-by-Step Instructions (Only if using Super Mode Event Taps):
+#### 1. Accessibility Permission (Mandatory)
+macOS requires explicit authorization under the Transparency, Consent, and Control (TCC) framework before any app can inspect, move, or resize third-party application windows.
 
-1. Open **System Settings** > **Privacy & Security**.
-2. Click **Input Monitoring**.
-3. Click the **`+`** button (or toggle the switch to **ON** if `My Mac X` is already present).
-4. Select **`My Mac X.app`** from `/Applications`.
-5. When macOS prompts with *"My Mac X will not be able to monitor input until it is quit"*, click **Quit & Reopen**.
+1. Open **System Settings** > **Privacy & Security** > **Accessibility**.
+2. Ensure the toggle next to **My Mac X** is switched **ON** (blue).
+3. If My Mac X is not listed:
+   - Click the **`+`** (Add) button below the list.
+   - Authenticate with Touch ID or your administrator password.
+   - Select `/Applications/My Mac X.app` and click **Open**.
+   - Verify the toggle is **ON**.
+
+#### 2. Input Monitoring Permission (Conditional)
+Only required if you use **Super Mode** with global event-tap sequence capture (standard hotkeys do not require Input Monitoring).
+
+1. Open **System Settings** > **Privacy & Security** > **Input Monitoring**.
+2. Click the **`+`** button (or toggle **ON** if already present).
+3. Select `/Applications/My Mac X.app`.
+4. When prompted by macOS, select **Quit & Reopen** (or restart My Mac X).
 
 ---
 
 ### Troubleshooting & Permission Reset
 
 #### Issue: Permission toggle is ON, but window snapping/moving does not work
-This is a known macOS TCC bug that frequently occurs after an app is updated, recompiled, or replaced without changing its bundle identifier. macOS may cache the security signature of the previous binary.
+This occurs if macOS TCC caches a previous binary signature after recompiling or updating without changing the bundle ID.
 
-To fix this, reset the TCC cache for My Mac X using Terminal:
+Reset the TCC cache for My Mac X using Terminal:
 
-1. Quit **My Mac X**.
-2. Open **Terminal** (`/Applications/Utilities/Terminal.app`) and execute:
-   ```bash
-   # Reset Accessibility permission for My Mac X
-   tccutil reset Accessibility dev.mymacx.app
-   ```
-3. If you also configured Input Monitoring:
-   ```bash
-   # Reset Input Monitoring permission for My Mac X
-   tccutil reset ListenEvent dev.mymacx.app
-   ```
-4. Reopen **System Settings** > **Privacy & Security** > **Accessibility**, click **`+`**, re-add `/Applications/My Mac X.app`, and ensure it is toggled **ON**.
-5. Launch **My Mac X** again.
+```bash
+# Reset Accessibility permission for My Mac X
+tccutil reset Accessibility dev.mymacx.app
+
+# Reset Input Monitoring permission for My Mac X (if configured)
+tccutil reset ListenEvent dev.mymacx.app
+```
+
+Then re-open **System Settings** > **Privacy & Security** > **Accessibility**, re-enable **My Mac X**, and relaunch the app.
 
 ---
 
@@ -144,10 +148,15 @@ Configure customizable shortcuts for standard window operations:
 
 ### Super Mode
 A modal, prefix-driven navigation engine for keyboard enthusiasts:
-1. Tap your designated **Prefix Key** (e.g. `⌥ Space`).
+1. Tap your designated **Prefix Key** (e.g., `⌥ Space`).
 2. The transient **Super HUD** appears showing available placement actions.
 3. Tap a single mnemonic key (e.g., `H` for left half, `L` for right half, `M` for maximize, `U` for undo).
 4. Press `Escape` at any time to dismiss without moving the window.
+
+### First-Launch Onboarding Window
+- **Frameless Native Window**: Clean 580×560 pt canvas with material vibrancy and drag-by-background capability.
+- **Live Status Badges**: Automatically updates from `Required` to `Granted` via real-time notifications as soon as you toggle settings.
+- **Privacy Trust Banner**: Clear confirmation of local-first execution and zero data collection.
 
 ### Multi-Display & Reconnect Stability
 - Uses **Stable Display IDs** to remember screen layouts across monitor disconnections, sleep cycles, and dock reconnections.
@@ -177,15 +186,15 @@ My Mac X is strictly **local-first** and engineered with privacy as a foundation
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/mymac-x.git
-cd mymac-x
+git clone https://github.com/nyugennguyen/my-mac-x.git
+cd my-mac-x
 
 # Fast debug build (no signing required)
 xcodebuild -project MyMacX.xcodeproj -scheme MyMacX \
   -destination 'platform=macOS' \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
 
-# Run the complete automated test suite
+# Run the complete automated test suite (634 tests)
 xcodebuild -project MyMacX.xcodeproj -scheme MyMacX \
   -destination 'platform=macOS' \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" test
@@ -211,4 +220,4 @@ If you encounter issues with a window not responding or positioning unexpectedly
 
 ## License
 
-This project is licensed under the **GNU General Public License v3.0** (GPL-3.0). See the [LICENSE](file:///Users/mac/Projects/mymac-x/LICENSE) file for the full text.
+This project is licensed under the **GNU General Public License v3.0** (GPL-3.0). See the [LICENSE](./LICENSE) file for the full text.
